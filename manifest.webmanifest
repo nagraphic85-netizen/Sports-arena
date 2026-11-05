@@ -1,0 +1,17 @@
+{
+  "name": "Sports Arena",
+  "short_name": "Sports Arena",
+  "description": "বার্ষিক ক্রীড়া ও সাংস্কৃতিক প্রতিযোগিতা ম্যানেজমেন্ট",
+  "lang": "bn",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0B1426",
+  "theme_color": "#0B1426",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
