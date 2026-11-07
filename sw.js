@@ -7,11 +7,15 @@ const EXT = ['https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;60
   'https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js',
   'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js'];
 const EXT_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com', 'cdnjs.cloudflare.com'];
+/* রিডাইরেক্ট হয়ে আসা উত্তর (যেমন /index.html → /) ব্রাউজার পেজ হিসেবে দেয় না; তাই সাধারণ উত্তরে বদলে নিই */
+const clean = res => (res && res.redirected)
+  ? res.blob().then(b => new Response(b, { status: res.status, statusText: res.statusText, headers: res.headers }))
+  : Promise.resolve(res);
 const WAIT = 4000;   // নেটওয়ার্ক ধীর হলে এতক্ষণ পর ক্যাশ থেকে খুলবে
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => Promise.all(
-    CORE.map(u => c.add(u).catch(() => {})).concat(
+    CORE.map(u => fetch(u).then(clean).then(r => r && r.ok && c.put(u, r)).catch(() => {})).concat(
       EXT.map(u => fetch(u, { mode: 'no-cors' }).then(r => c.put(u, r)).catch(() => {}))
     )
   )).then(() => self.skipWaiting()));
@@ -30,8 +34,8 @@ self.addEventListener('fetch', e => {
   if (!same && !EXT_HOSTS.includes(u.hostname)) return;     // অন্য সাইট: ব্রাউজারের নিজের নিয়মে
   e.respondWith((async () => {
     const cache = await caches.open(CACHE);
-    const fromCache = () => cache.match(r).then(m => m || (r.mode === 'navigate' ? cache.match('./index.html') : undefined));
-    const net = fetch(r).then(res => {
+    const fromCache = () => cache.match(r).then(m => m || (r.mode === 'navigate' ? (cache.match('./index.html').then(x => x || cache.match('./'))) : undefined));
+    const net = fetch(r).then(clean).then(res => {
       if (res && (res.status === 200 || res.type === 'opaque')) cache.put(r, res.clone());
       return res;
     });
