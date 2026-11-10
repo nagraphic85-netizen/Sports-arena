@@ -14,6 +14,14 @@
     return 'p:' + it;
   }
   function mergeArr(b, l, r, noBase) {
+    /* ফাঁকা ('') ঘরযুক্ত তালিকা (যেমন সইয়ের ৩টা ঘর) জায়গা ধরে মেলে — একসঙ্গে একটা মান হিসেবে */
+    function hasEmpty(a) { return Array.isArray(a) && a.some(function (x) { return x === '' || x === null; }); }
+    if (hasEmpty(b) || hasEmpty(l) || hasEmpty(r)) {
+      if (!Array.isArray(l)) return r;
+      if (!Array.isArray(r)) return l;
+      if (noBase) return r.some(function (x) { return x; }) ? r : l;
+      return J(l) !== J(b) ? l : r;
+    }
     b = Array.isArray(b) ? b : []; l = Array.isArray(l) ? l : []; r = Array.isArray(r) ? r : [];
     var mb = {}, ml = {}, mr = {}, out = [], seen = {};
     b.forEach(function (x) { mb[keyOf(x)] = x; });
@@ -83,7 +91,8 @@
   /* সার্ভারের সঙ্গে মিলিয়ে নেয়; দরকার হলে মার্জ করে লোকালে বসায়। সার্ভারের সারি ফেরত দেয় */
   function reconcile(row) {
     var loc = localData(), remote = row.data;
-    var merged = loc ? mergeVal(base, loc, remote, !base) : remote;
+    var le = (loc && loc.epoch) || 0, re = (remote && remote.epoch) || 0;   // "সব ডিলিট"-এর রিসেট নম্বর
+    var merged = !loc ? remote : re > le ? remote : le > re ? loc : mergeVal(base, loc, remote, !base);
     applyLocal(merged);
     saveBase(remote, row.updated_at);
     return J(merged) !== J(remote);          // true = সার্ভারে পাঠানোর মতো নতুন কিছু আছে
@@ -143,6 +152,7 @@
   }
 
   pull(true);
-  setInterval(function () { if (!document.hidden && !timer) pull(false); }, 5000);
+  var tk = 0;
+  setInterval(function () { if (typeof ME !== 'undefined' && !ME && ++tk % 6) return; if (!document.hidden && !timer) pull(false); }, 5000);
   document.addEventListener('visibilitychange', function () { if (!document.hidden) pull(false); });
 })();
