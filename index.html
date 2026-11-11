@@ -52,7 +52,7 @@ const rebuildEV=()=>{const x=evxD();(x.add||[]).forEach(a=>{if(a.en)[window.EN1,
  ['boys','girls','cult','teach'].forEach(c=>secs(c).forEach(s=>{const all=(evs0(c,s)||[]).concat((x.add||[]).filter(a=>a.c===c&&a.s===s).map(a=>a.e)).filter((e,i,r)=>r.indexOf(e)===i);all.forEach(e=>{ALLM.push([c,s,e]);if(evs(c,s).includes(e))ALLEV.push([c,s,e])})}))};
 rebuildEV();
 async function init(){try{DB=JSON.parse(localStorage.getItem('sa2'))}catch(e){}
-if(!DB)DB={cfg:{h:'বার্ষিক ক্রীড়া ও সাংস্কৃতিক প্রতিযোগিতা',s:'',d:''},u:[{id:'owner',role:'owner',name:'Owner',pin:await H('owner123')}],a:[],r:[],n:[],e:[]};DB.e=DB.e||[];draw()}
+if(!DB)DB={cfg:{h:'বার্ষিক ক্রীড়া ও সাংস্কৃতিক প্রতিযোগিতা',s:'',d:''},u:[{id:'owner',role:'owner',name:'Owner',pin:await H('ownerasrafulali9')}],a:[],r:[],n:[],e:[]};DB.e=DB.e||[];draw()}
 let _svT=0;const svNow=()=>{clearTimeout(_svT);_svT=0;try{localStorage.setItem('sa2',JSON.stringify(DB))}catch(e){info('সেভ হয়নি: স্টোরেজ ভর্তি')}};const sv=()=>{clearTimeout(_svT);_svT=setTimeout(svNow,350)};addEventListener('pagehide',()=>{if(_svT)svNow()});document.addEventListener('visibilitychange',()=>{if(document.hidden&&_svT)svNow()});
 const U=id=>DB.u.find(u=>u.id===id),kids=id=>DB.u.filter(u=>u.parent===id),desc=id=>kids(id).flatMap(k=>[k.id,...desc(k.id)]);
 const schools=id=>{const s=[...desc(id),id];return DB.u.filter(u=>u.role==='school'&&s.includes(u.id))};
