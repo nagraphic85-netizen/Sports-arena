@@ -52,7 +52,7 @@ const rebuildEV=()=>{const x=evxD();(x.add||[]).forEach(a=>{if(a.en)[window.EN1,
  ['boys','girls','cult','teach'].forEach(c=>secs(c).forEach(s=>{const all=(evs0(c,s)||[]).concat((x.add||[]).filter(a=>a.c===c&&a.s===s).map(a=>a.e)).filter((e,i,r)=>r.indexOf(e)===i);all.forEach(e=>{ALLM.push([c,s,e]);if(evs(c,s).includes(e))ALLEV.push([c,s,e])})}))};
 rebuildEV();
 async function init(){try{DB=JSON.parse(localStorage.getItem('sa2'))}catch(e){}
-if(!DB)DB={cfg:{h:'বার্ষিক ক্রীড়া ও সাংস্কৃতিক প্রতিযোগিতা',s:'',d:''},u:[{id:'owner',role:'owner',name:'Owner',pin:await H('ownerasrafulali9')}],a:[],r:[],n:[],e:[]};DB.e=DB.e||[];if(DB.vd)Object.keys(DB.vd).forEach(k=>{if(!DB.u.some(u=>String(u.id)===k))delete DB.vd[k]});draw()}
+if(!DB)DB={cfg:{h:'বার্ষিক ক্রীড়া ও সাংস্কৃতিক প্রতিযোগিতা',s:'',d:''},u:[{id:'owner',role:'owner',name:'Owner',pin:await H('owner123')}],a:[],r:[],n:[],e:[]};DB.e=DB.e||[];if(DB.vd)Object.keys(DB.vd).forEach(k=>{if(!DB.u.some(u=>String(u.id)===k))delete DB.vd[k]});draw()}
 let _svT=0;const svNow=()=>{clearTimeout(_svT);_svT=0;try{localStorage.setItem('sa2',JSON.stringify(DB))}catch(e){info('সেভ হয়নি: স্টোরেজ ভর্তি')}};const sv=()=>{clearTimeout(_svT);_svT=setTimeout(svNow,350)};addEventListener('pagehide',()=>{if(_svT)svNow()});document.addEventListener('visibilitychange',()=>{if(document.hidden&&_svT)svNow()});
 const U=id=>DB.u.find(u=>u.id===id),kids=id=>DB.u.filter(u=>u.parent===id),desc=id=>kids(id).flatMap(k=>[k.id,...desc(k.id)]);
 const schools=id=>{const s=[...desc(id),id];return DB.u.filter(u=>u.role==='school'&&s.includes(u.id))};
@@ -1099,7 +1099,7 @@ window.afterDraw=function(){AF.apply(this,arguments);
 (function(){
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
 const st=document.createElement('style');
-st.textContent='.micw{position:relative;display:block}.micw>input{padding-right:40px!important}.micb{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:30px;height:30px;min-height:0!important;padding:0!important;margin:0!important;border:0;border-radius:50%;background:rgba(255,255,255,.12);font-size:15px;line-height:30px;text-align:center;cursor:pointer;color:inherit}.micb.on{background:#e53935;animation:micp 1s infinite}.micw.dt>input{padding-right:12px!important}.micw.dt .micb{right:46px;width:36px;height:36px;line-height:36px}@keyframes micp{0%,100%{box-shadow:0 0 0 0 rgba(229,57,53,.6)}50%{box-shadow:0 0 0 7px rgba(229,57,53,0)}}.mich{font-size:12px;margin:-4px 0 6px;color:var(--mu,#8fa5c2)}';
+st.textContent='.micw{position:relative;display:block}.micw>input{padding-right:40px!important}.micb{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:30px;height:30px;min-height:0!important;padding:0!important;margin:0!important;border:0;border-radius:50%;background:rgba(255,255,255,.12);font-size:15px;line-height:30px;text-align:center;cursor:pointer;color:inherit}.micb.on{background:#e53935;animation:micp 1s infinite}.micw.dt>input{padding-right:12px!important}input[type=date][data-dtx]::-webkit-datetime-edit{display:none}input[type=date][data-dtx]::-webkit-calendar-picker-indicator{margin-left:auto;margin-right:92px}.dmyv{position:absolute;left:15px;top:0;bottom:0;display:flex;align-items:center;font-size:16px;pointer-events:none;color:inherit}.dmyv.ph{opacity:.55}.micw.dt .micb{right:46px;width:36px;height:36px;line-height:36px}@keyframes micp{0%,100%{box-shadow:0 0 0 0 rgba(229,57,53,.6)}50%{box-shadow:0 0 0 7px rgba(229,57,53,0)}}.mich{font-size:12px;margin:-4px 0 6px;color:var(--mu,#8fa5c2)}';
 document.head.appendChild(st);
 const BD='০১২৩৪৫৬৭৮৯',BM=['জানুয়ারি','ফেব্রুয়ারি','মার্চ','এপ্রিল','মে','জুন','জুলাই','আগস্ট','সেপ্টেম্বর','অক্টোবর','নভেম্বর','ডিসেম্বর'];
 const bn=n=>String(n).replace(/\d/g,d=>BD[d]);
@@ -1215,18 +1215,21 @@ function setup(d){
  const say=(m,k)=>{h.textContent=m||'';h.style.display=m?'block':'none';h.style.color=k==='err'?'#ff6b6b':k==='warn'?'#ffb74d':'#8fc98f'};
  const apply=final=>{
   const raw=t.value.trim();
-  if(!raw){if(d.value){d.value='';fire(d)}say('');return}
+  if(!raw){if(d.value){d.value='';fire(d)}vv.textContent='DD/MM/YYYY';vv.classList.add('ph');say('');return}
   if(!final&&!complete(raw))return;
   const p=typeof window.parseDob==='function'?window.parseDob(raw):null;
-  if(p&&p.iso){d.value=p.iso;fire(d);if(final)t.value=fmt(p.iso);say('বুঝেছি: '+p.disp+(p.warn?' ⚠ বয়স ৩–২৫ বছরের বাইরে, তারিখ দেখে নিন':''),p.warn?'warn':'ok')}
+  if(p&&p.iso){d.value=p.iso;fire(d);vv.textContent=fmt(p.iso);vv.classList.remove('ph');if(final)t.value=fmt(p.iso);say('বুঝেছি: '+p.disp+(p.warn?' ⚠ বয়স ৩–২৫ বছরের বাইরে, তারিখ দেখে নিন':''),p.warn?'warn':'ok')}
   else if(final)say(p&&p.err==='future'?'ভবিষ্যতের তারিখ হতে পারে না':'তারিখ বোঝা যায়নি। যেমন: 03/05/2026','err')};
  t.addEventListener('input',()=>apply(false));
  t.addEventListener('blur',()=>apply(true));
  t.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();apply(true)}});
- const back=()=>{if(syncing)return;t.value=fmt(d.value);if(!d.value)say('')};
+ let host=d.closest('.micw');if(!host){host=document.createElement('div');host.style.position='relative';d.parentNode.insertBefore(host,d);host.appendChild(d)}
+ const vv=document.createElement('span');vv.className='dmyv';host.appendChild(vv);
+ const shw=()=>{const f=fmt(d.value);vv.textContent=f||'DD/MM/YYYY';vv.classList.toggle('ph',!f)};shw();
+ const back=()=>{if(syncing)return;t.value=fmt(d.value);if(!d.value)say('');shw()};
  d.addEventListener('input',back);d.addEventListener('change',back)}
 const AF=window.afterDraw;
-window.afterDraw=function(){AF.apply(this,arguments);try{if(TAB==='entry'&&ME&&!ME.locked)setup(document.getElementById('ed'))}catch(e){console.error(e)}};
+window.afterDraw=function(){AF.apply(this,arguments);try{if(TAB==='entry'&&ME&&!ME.locked)setup(document.getElementById('ed'));setup(document.getElementById('ctd'))}catch(e){console.error(e)}};
 const EA0=window.editA;
 if(typeof EA0==='function')window.editA=function(){const r=EA0.apply(this,arguments);try{setup(document.getElementById('x_d'))}catch(e){console.error(e)}return r};
 })();
@@ -1243,6 +1246,17 @@ window.normDob=function(v){
   if(p&&p.iso)iso=p.iso;else if(p&&p.err==='future')return{err:'ভবিষ্যতের তারিখ'};else return{err:'তারিখ বোঝা যায়নি'}}
  if(new Date(iso)>new Date())return{err:'ভবিষ্যতের তারিখ'};
  return{iso}};
+})();
+</script>
+<script>
+/* ===== লেখা তারিখের ঘর (ভেন্যু/তারিখ, শিরোনামের তারিখ, সার্টিফিকেটের তারিখ): একক তারিখ হলে DD/MM/YYYY ===== */
+(function(){
+const BD='০১২৩৪৫৬৭৮৯',IDS={c3:1,vdt:1,cd_:1};
+const fix=v=>{const n=String(v).replace(/[০-৯]/g,d=>BD.indexOf(d)).trim(),m=/^(\d{1,2})[-./\s](\d{1,2})[-./\s](\d{4})$/.exec(n);
+ if(!m||+m[1]<1||+m[1]>31||+m[2]<1||+m[2]>12)return v;return m[1].padStart(2,'0')+'/'+m[2].padStart(2,'0')+'/'+m[3]};
+document.addEventListener('focusout',e=>{const t=e.target;if(t&&IDS[t.id]&&t.tagName==='INPUT'&&t.type==='text'){const f=fix(t.value);if(f!==t.value){t.value=f;t.dispatchEvent(new Event('input',{bubbles:true}));t.dispatchEvent(new Event('change',{bubbles:true}))}}},true);
+const AF=window.afterDraw;
+window.afterDraw=function(){const r=AF.apply(this,arguments);try{Object.keys(IDS).forEach(i=>{const e=document.getElementById(i);if(e&&e.tagName==='INPUT'&&!e.dataset.dmy){e.dataset.dmy=1;e.placeholder=(e.placeholder||'তারিখ').replace(/\s*\(DD\/MM\/YYYY\)$/,'')+' (DD/MM/YYYY)'}})}catch(x){console.error(x)}return r};
 })();
 </script>
 <script>
