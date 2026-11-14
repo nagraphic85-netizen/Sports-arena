@@ -86,7 +86,9 @@
   var busyAt = 0;
   function setBusy(v) { busy = v; busyAt = v ? Date.now() : 0; }
   function isBusy() { if (busy && Date.now() - busyAt > TMO * 2) { busy = false; } return busy; }
-  function dirty() { var l = localData(); return !!l && !!base && C(l) !== C(base); }
+  /* _sid: সার্ভারের সারি প্রথম যে বানায় সে একটা র‍্যান্ডম চিহ্ন বসায়। টেবিল নতুন করে বানালে চিহ্ন বদলায় — তখন ডিভাইস পুরনো base ভুলে সব ডেটা মিলিয়ে নেয় (কিছু 'মুছে গেছে' ভাবে না) */
+  function withSid(l) { if (l && base && base._sid && !l._sid) { var o = {}; Object.keys(l).forEach(function (k) { o[k] = l[k]; }); o._sid = base._sid; return o; } return l; }
+  function dirty() { var l = localData(); return !!l && !!base && C(withSid(l)) !== C(base); }
   var retryT = null, retryN = 0;
   function retryLater() { if (retryT) return; retryN++; retryT = setTimeout(function () { retryT = null; push(0); }, Math.min(60000, 5000 * retryN)); }
 
@@ -115,7 +117,8 @@
   function reconcile(row) {
     var loc = localData(), remote = row.data;
     var le = (loc && loc.epoch) || 0, re = (remote && remote.epoch) || 0;   // "সব ডিলিট"-এর রিসেট নম্বর
-    var merged = !loc ? remote : re > le ? remote : le > re ? loc : mergeVal(base, loc, remote, !base);
+    var recreated = !!base && (base._sid || '') !== ((remote && remote._sid) || '');
+    var merged = !loc ? remote : re > le ? remote : le > re ? loc : mergeVal(recreated ? null : base, loc, remote, !base || recreated);
     applyLocal(merged);
     saveBase(remote, row.updated_at);
     return C(merged) !== C(remote);          // true = সার্ভারে পাঠানোর মতো নতুন কিছু আছে
@@ -129,10 +132,11 @@
     setBusy(true);
     var stamp = new Date().toISOString(), req;
     if (!remoteStamp) {
-      var b1 = JSON.stringify([{ id: 1, data: loc, updated_at: stamp }]);
+      var d1 = Object.assign({}, loc, { _sid: Math.random().toString(36).slice(2) + Date.now().toString(36) });
+      var b1 = JSON.stringify([{ id: 1, data: d1, updated_at: stamp }]);
       req = tfetch(EP, { method: 'POST', headers: Object.assign({ Prefer: 'return=representation' }, H), body: b1, keepalive: !!keep && b1.length < 60000 });
     } else {
-      var b2 = JSON.stringify({ data: loc, updated_at: stamp });
+      var b2 = JSON.stringify({ data: withSid(loc), updated_at: stamp });
       req = tfetch(EP + '?id=eq.1&updated_at=eq.' + encodeURIComponent(remoteStamp), { method: 'PATCH',
         headers: Object.assign({ Prefer: 'return=representation' }, H), body: b2, keepalive: !!keep && b2.length < 60000 });
     }
@@ -164,7 +168,10 @@
   function pull(first) {
     if (isBusy()) return Promise.resolve();
     return fetchRow(false).then(function (meta) {
-      if (!meta) { if (first && localData()) { remoteStamp = ''; return push(0); } return; }
+      if (!meta) {                           // সার্ভারে সারি নেই (টেবিল নতুন/ফাঁকা): পুরনো base ভুলে সব ডেটা মিলিয়ে তোলা, যাতে কিছু 'মুছে গেছে' ভাবা না হয়
+        if (localData()) { base = null; remoteStamp = ''; try { localStorage.removeItem(BASEKEY); localStorage.removeItem(STAMPKEY); } catch (e) {} return push(0); }
+        return;
+      }
       if (meta.updated_at === remoteStamp) { if (!timer && !retryT && !appBusy() && dirty()) push(0); return; }   // সার্ভারে যায়নি এমন লোকাল ডেটা থাকলে আবার পাঠাও
       if (appBusy()) return;                 // অ্যাপ এইমাত্র সেভ করছে, একটু পরে
       return fetchRow(true).then(function (row) {
