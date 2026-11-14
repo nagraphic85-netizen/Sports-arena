@@ -203,8 +203,10 @@ const rkT=(m,t,c2)=>{const k=Object.keys(m).sort((a,b)=>m[b]-m[a]||(a>b?1:-1));r
 const resTbl=rs=>{let h='',last='';rs.forEach(x=>{const k=x.cat+x.sec;if(k!==last){h+=`<h3>${CN[x.cat]}${x.sec?' — '+SN[x.sec]+' বিভাগ':''}</h3>`;last=k}h+=`<table style="margin-bottom:6px"><tr><th colspan="6">ইভেন্ট ${++EVN}: ${esc(x.ev)}</th></tr><tr><th>স্থান</th><th>চেস্ট</th><th>নাম</th><th>বিদ্যালয়</th><th>জিপি</th><th>পয়েন্ট</th></tr>${x.win.map(w=>`<tr><td>${w.pos}ম</td><td>${esc(w.chest)}</td><td>${esc(w.name)}</td><td>${esc(w.school)}</td><td>${esc(x.gpn)}</td><td>${PTS[w.pos-1]}</td></tr>`).join('')}</table>`});return h};
 function resPrintCard(){return`<div class="cd"><h2>🖨 ফলাফল (A4 প্রিভিউ ও প্রিন্ট)</h2><select onchange="RPM=this.value;draw()"><option value="cat"${RPM==='cat'?' selected':''}>বিভাগ অনুযায়ী (বালক / বালিকা / সাংস্কৃতিক / শিক্ষক) + পয়েন্ট</option><option value="gp"${RPM==='gp'?' selected':''}>জিপি অনুযায়ী</option><option value="sch"${RPM==='sch'?' selected':''}>স্কুল অনুযায়ী</option></select><p class="mu">পয়েন্ট: ১ম ৫, ২য় ৩, ৩য় ১, ৪র্থ ০</p><button class="b" onclick="resXls()">📥 Excel ডাউনলোড (.xlsx)</button></div><div id="pv"></div>`}
 window.resXls=function(){const rs=rsScope();if(!rs.length)return info('ডাউনলোড করার মতো ফলাফল নেই');
-const mx=window.RXF||1,UC=(()=>{try{return ME.role!=='school'&&schools(ME.id).length>0}catch(e){return false}})(),HD=(UC?['Unit']:[]).concat(['Name','NameBn','Father','DOB(DD/MM/YYYY)','Class','PEN','Category(boys/girls/cult/teach)','Group(A/B/C)','Event1','Event2','School']),
+const mx=window.RXF||1,SB=ME.role==='sub',UC=(()=>{try{return ME.role!=='school'&&schools(ME.id).length>0}catch(e){return false}})(),HD=(UC?['Unit']:[]).concat(['Name','NameBn','Father','DOB(DD/MM/YYYY)','Class','PEN','Category(boys/girls/cult/teach)','Group(A/B/C)','Event1','Event2'].concat(SB?['Circle']:[]).concat(['School'])),
 nmOf=a=>{try{return U(a.school).name}catch(e){return''}},
+cirOf=u=>{let c=u,g=0;while(c&&g++<8){if(c.role==='circle'||(c.role==='school'&&c.lvl==='circle'))return c.name;c=U(c.parent)}return''},
+unNm=u=>{return ME.name;if(!u)return'';const want=ME.role==='gp'||ME.role==='circle'?'gp':'circle';let c=u,t=null,g=0;while(c&&g++<8){if(c.role===want||(c.role==='school'&&c.lvl===want)){t=c;break}c=U(c.parent)}if(!t&&want==='circle'){c=u;g=0;while(c&&g++<8){if(c.role==='gp'||(c.role==='school'&&c.lvl==='gp')){t=c;break}c=U(c.parent)}}return(t||u).name},
 find=(x,v)=>{if(v.pid!=null){const p=DB.a.find(a=>a.id===v.pid);if(p)return p}
  const ch=String(v.chest||'').trim().toUpperCase();if(!ch)return null;
  let m=DB.a.filter(a=>String(a.chest||'').trim().toUpperCase()===ch&&a.cat===x.cat&&(a.sec||'')===(x.sec||'')&&(a.ev||[]).includes(x.ev));
@@ -213,9 +215,9 @@ P=new Map();
 rs.forEach(x=>x.win.slice().sort((p,q)=>p.pos-q.pos).forEach(v=>{if(v.pos>mx)return;const a=find(x,v),k=a?'i'+a.id:'n|'+v.name+'|'+v.school+'|'+x.cat+'|'+(x.sec||'');
  let e=P.get(k);if(!e){e={a,v,x,ev:[]};P.set(k,e)}if(!e.ev.includes(x.ev))e.ev.push(x.ev)}));
 const R=[];P.forEach(({a,v,x,ev})=>{const u=a?U(a.school):null,sch=a?(u&&u.lvl?(a.sch||v.school||''):(u?u.name:v.school)):v.school;
- R.push((UC?[u?u.name+' ('+u.id+')':'']:[]).concat([(a&&a.name)||v.name||'',(a&&a.bn)||'',(a&&a.father)||'',window.fmtDob((a&&a.dob)||''),(a&&a.cls)||'',(a&&a.pen)||'',x.cat,x.sec||'',ev[0]||'',x.cat==='teach'?'':(ev[1]||''),sch||'']))});
+ R.push((UC?[unNm(u)]:[]).concat([(a&&a.name)||v.name||'',(a&&a.bn)||'',(a&&a.father)||'',window.fmtDob((a&&a.dob)||''),(a&&a.cls)||'',(a&&a.pen)||'',x.cat,x.sec||'',ev[0]||'',x.cat==='teach'?'':(ev[1]||'')].concat(SB?[cirOf(u)]:[]).concat([sch||''])))});
 if(!R.length)return info('এই ফিল্টারে কোনো বিজয়ী নেই');
-const sh=XLSX.utils.aoa_to_sheet([HD].concat(R));sh['!cols']=(UC?[28]:[]).concat([26,26,22,12,8,12,16,10,22,22,26]).map(x=>({wch:x}));sh['!autofilter']={ref:'A1:'+(UC?'L':'K')+(R.length+1)};
+const sh=XLSX.utils.aoa_to_sheet([HD].concat(R));sh['!cols']=(UC?[28]:[]).concat([26,26,22,12,8,12,16,10,22,22].concat(SB?[22]:[]).concat([26])).map(x=>({wch:x}));sh['!autofilter']={ref:'A1:'+(UC?(SB?'M':'L'):(SB?'L':'K'))+(R.length+1)};
 const w=XLSX.utils.book_new();XLSX.utils.book_append_sheet(w,sh,'Entry');
 const u2=URL.createObjectURL(new Blob([XLSX.write(w,{bookType:'xlsx',type:'array'})],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'})),l=document.createElement('a');
 l.href=u2;l.download='result-entry-top'+mx+'-'+new Date().toISOString().slice(0,10)+'.xlsx';document.body.appendChild(l);l.click();l.remove();setTimeout(()=>URL.revokeObjectURL(u2),4000)};
