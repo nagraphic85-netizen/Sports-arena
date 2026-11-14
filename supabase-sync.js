@@ -1,13 +1,20 @@
-/* Sports Arena <-> Supabase সিঙ্ক (v3: ডেটা হারানো রোধে মার্জ সহ)
+/* Sports Arena <-> Supabase সিঙ্ক (v4: অনুরোধে সময়সীমা, ব্যর্থ পাঠানো আবার চেষ্টা, ব্যাকগ্রাউন্ডে যাওয়ার সময় ফ্লাশ, বিজয়ীর মেলানো আইডি ধরে)
    - পুশ করার আগে সার্ভারে অন্য কেউ বদলেছে কিনা দেখা হয়; বদলালে দুই পক্ষের কাজ মিলিয়ে (মার্জ) তারপর সেভ হয়।
    - যাচাই হয় শুধু "শেষ বদলের সময়" দিয়ে (ছোট অনুরোধ), তাই ৫ সেকেন্ডেও খরচ কম। */
 (function () {
   /* ---------- মার্জ ---------- */
   function isObj(x) { return x && typeof x === 'object' && !Array.isArray(x); }
   function J(x) { return JSON.stringify(x); }
+  /* কী-এর ক্রম বাদ দিয়ে তুলনা (সুপাবেসের jsonb কী সাজিয়ে ফেরত দেয়, তাই সাধারণ তুলনায় সবসময় 'আলাদা' দেখাত) */
+  function C(x) {
+    if (Array.isArray(x)) return '[' + x.map(C).join(',') + ']';
+    if (x && typeof x === 'object') return '{' + Object.keys(x).sort().map(function (k) { return JSON.stringify(k) + ':' + C(x[k]); }).join(',') + '}';
+    return JSON.stringify(x);
+  }
   function keyOf(it) {
     if (it && typeof it === 'object') {
       if (it.id !== undefined) return 'i:' + it.id;
+      if (it.pid !== undefined && it.pos !== undefined) return 'w:' + it.pos + ':' + it.pid;   // বিজয়ী: স্থান + প্রতিযোগীর আইডি (একই নামের দুজন মিশবে না)
       if (it.name !== undefined) return 'n:' + it.name;
       return 'j:' + J(it);
     }
@@ -37,6 +44,7 @@
       var k = keyOf(x); if (seen[k]) return; seen[k] = 1;
       var v = decide(k); if (v !== undefined) out.push(v);
     });
+    if (out.length && out.every(function (x) { return x && typeof x === 'object' && x.pid !== undefined && typeof x.pos === 'number'; })) out.sort(function (a, c) { return a.pos - c.pos; });
     return out;
   }
   function mergeVal(b, l, r, noBase) {
@@ -67,6 +75,21 @@
   var remoteStamp = '', base = null, busy = false, applying = false, timer = null;
   try { base = JSON.parse(localStorage.getItem(BASEKEY)); remoteStamp = localStorage.getItem(STAMPKEY) || ''; } catch (e) { base = null; }
 
+  var TMO = window.SA_TIMEOUT || 20000;
+  function tfetch(url, opt) {            // সময়সীমাসহ fetch: ঝুলে থাকা অনুরোধ সিঙ্ক আটকাবে না
+    opt = opt || {};
+    if (typeof AbortController === 'undefined') return fetch(url, opt);
+    var ac = new AbortController(), t = setTimeout(function () { ac.abort(); }, TMO);
+    opt.signal = ac.signal;
+    return fetch(url, opt).then(function (r) { clearTimeout(t); return r; }, function (e) { clearTimeout(t); throw e; });
+  }
+  var busyAt = 0;
+  function setBusy(v) { busy = v; busyAt = v ? Date.now() : 0; }
+  function isBusy() { if (busy && Date.now() - busyAt > TMO * 2) { busy = false; } return busy; }
+  function dirty() { var l = localData(); return !!l && !!base && C(l) !== C(base); }
+  var retryT = null, retryN = 0;
+  function retryLater() { if (retryT) return; retryN++; retryT = setTimeout(function () { retryT = null; push(0); }, Math.min(60000, 5000 * retryN)); }
+
   function status(t) { try { window.SYNC_STATUS = t; } catch (e) {} }
   function saveBase(data, stamp) {
     base = data; remoteStamp = stamp;
@@ -83,7 +106,7 @@
   }
 
   function fetchRow(full) {
-    return fetch(EP + '?id=eq.1&select=' + (full ? 'data,updated_at' : 'updated_at'), { headers: H })
+    return tfetch(EP + '?id=eq.1&select=' + (full ? 'data,updated_at' : 'updated_at'), { headers: H })
       .then(function (r) { return r.json(); })
       .then(function (rows) { if (!Array.isArray(rows)) throw new Error('bad response'); return rows[0] || null; });
   }
@@ -95,33 +118,35 @@
     var merged = !loc ? remote : re > le ? remote : le > re ? loc : mergeVal(base, loc, remote, !base);
     applyLocal(merged);
     saveBase(remote, row.updated_at);
-    return J(merged) !== J(remote);          // true = সার্ভারে পাঠানোর মতো নতুন কিছু আছে
+    return C(merged) !== C(remote);          // true = সার্ভারে পাঠানোর মতো নতুন কিছু আছে
   }
 
-  function push(tries) {
+  function push(tries, keep) {
     tries = tries || 0;
-    if (busy) return Promise.resolve();
+    if (isBusy()) return Promise.resolve();
     var loc = localData(); if (!loc) return Promise.resolve();
     if (tries > 5) { status('সিঙ্ক ব্যর্থ (বারবার দ্বন্দ্ব)'); return Promise.resolve(); }
-    busy = true;
+    setBusy(true);
     var stamp = new Date().toISOString(), req;
     if (!remoteStamp) {
-      req = fetch(EP, { method: 'POST', headers: Object.assign({ Prefer: 'return=representation' }, H),
-        body: JSON.stringify([{ id: 1, data: loc, updated_at: stamp }]) });
+      var b1 = JSON.stringify([{ id: 1, data: loc, updated_at: stamp }]);
+      req = tfetch(EP, { method: 'POST', headers: Object.assign({ Prefer: 'return=representation' }, H), body: b1, keepalive: !!keep && b1.length < 60000 });
     } else {
-      req = fetch(EP + '?id=eq.1&updated_at=eq.' + encodeURIComponent(remoteStamp), { method: 'PATCH',
-        headers: Object.assign({ Prefer: 'return=representation' }, H), body: JSON.stringify({ data: loc, updated_at: stamp }) });
+      var b2 = JSON.stringify({ data: loc, updated_at: stamp });
+      req = tfetch(EP + '?id=eq.1&updated_at=eq.' + encodeURIComponent(remoteStamp), { method: 'PATCH',
+        headers: Object.assign({ Prefer: 'return=representation' }, H), body: b2, keepalive: !!keep && b2.length < 60000 });
     }
     return req.then(function (r) {
       if (r.status === 409) return 'conflict';
       if (!r.ok) { status('সিঙ্ক ব্যর্থ ' + r.status); return 'fail'; }
       return r.json().then(function (rows) {
-        if (Array.isArray(rows) && rows.length) { saveBase(rows[0].data, rows[0].updated_at); status('সিঙ্ক ✔'); return 'ok'; }
+        if (Array.isArray(rows) && rows.length) { saveBase(rows[0].data, rows[0].updated_at); status('সিঙ্ক ✔'); retryN = 0; return 'ok'; }
         return 'conflict';                   // অন্য কেউ আগে সেভ করেছে
       });
     }).catch(function (e) { status('অফলাইন'); console.error(e); return 'fail'; })
       .then(function (res) {
-        busy = false;
+        setBusy(false);
+        if (res === 'fail') { retryLater(); return; }
         if (res !== 'conflict') return;
         return fetchRow(true).then(function (row) {
           if (!row) { remoteStamp = ''; return push(tries + 1); }
@@ -137,10 +162,10 @@
   };
 
   function pull(first) {
-    if (busy) return Promise.resolve();
+    if (isBusy()) return Promise.resolve();
     return fetchRow(false).then(function (meta) {
       if (!meta) { if (first && localData()) { remoteStamp = ''; return push(0); } return; }
-      if (meta.updated_at === remoteStamp) return;
+      if (meta.updated_at === remoteStamp) { if (!timer && !retryT && !appBusy() && dirty()) push(0); return; }   // সার্ভারে যায়নি এমন লোকাল ডেটা থাকলে আবার পাঠাও
       if (appBusy()) return;                 // অ্যাপ এইমাত্র সেভ করছে, একটু পরে
       return fetchRow(true).then(function (row) {
         if (!row) return;
@@ -154,5 +179,8 @@
   pull(true);
   var tk = 0;
   setInterval(function () { if (typeof ME !== 'undefined' && !ME && ++tk % 6) return; if (!document.hidden && !timer) pull(false); }, 5000);
-  document.addEventListener('visibilitychange', function () { if (!document.hidden) pull(false); });
+  function flush() { if (timer) { clearTimeout(timer); timer = null; push(0, true); } else if (dirty()) push(0, true); }
+  document.addEventListener('visibilitychange', function () { if (document.hidden) flush(); else pull(false); });
+  window.addEventListener('pagehide', flush);
+  window.addEventListener('online', function () { pull(false); if (dirty()) push(0); });
 })();
