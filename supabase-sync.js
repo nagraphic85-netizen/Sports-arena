@@ -173,10 +173,24 @@
     return C(merged) !== C(remote) || C(tomb) !== C(rt0 || {});          // true = সার্ভারে পাঠানোর মতো নতুন কিছু আছে
   }
 
+  /* মোছা আয়োজন: সারি না থাকলে আর events তালিকাতেও না থাকলে এই ডিভাইস নতুন করে সারি বানাবে না — আয়োজন ১-এ ফিরে যাবে */
+  var evOk = EVN === 1;
+  function leaveEv() {
+    try { [KEYNAME, BASEKEY, STAMPKEY, TK].forEach(function (k) { localStorage.removeItem(k); }); localStorage.setItem('sa_ev', '1'); localStorage.setItem('sa_evc', ''); localStorage.setItem('sa_evn', ''); } catch (e) {}
+    location.reload();
+  }
+  function checkEv() {
+    if (evOk) return Promise.resolve(true);
+    return tfetch(URL_ + '/rest/v1/events?id=eq.' + EVN + '&select=id', { headers: H })
+      .then(function (r) { return r.json(); })
+      .then(function (j) { if (Array.isArray(j) && j.length === 0) { leaveEv(); return false; } evOk = true; return true; })
+      .catch(function () { return false; });
+  }
   function push(tries, keep) {
     tries = tries || 0;
     if (isBusy()) return Promise.resolve();
     var loc = localData(); if (!loc) return Promise.resolve();
+    if (!remoteStamp && !evOk) return checkEv().then(function (ok) { if (ok) return push(tries, keep); });
     if (tries > 5) { status('সিঙ্ক ব্যর্থ (বারবার দ্বন্দ্ব)'); return Promise.resolve(); }
     setBusy(true);
     noteDel(loc);

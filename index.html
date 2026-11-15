@@ -1592,12 +1592,30 @@ function evSel(){const li=$('li');if(!li||$('evs')||!ON())return;
  d.innerHTML='<div class="mu">আয়োজন</div><select id="evs">'+evOpts(L)+'</select>';box.appendChild(d);
  $('evs').onchange=function(){const o=this.selectedOptions[0];evSwitch(+this.value,o.dataset.c,o.dataset.n)};
  if(!evLoaded){evLoaded=true;rest('events?select=id,code,name&order=id').then(r=>r.json()).then(j=>{if(!Array.isArray(j))return;lss('sa_evl',JSON.stringify(j));const s=$('evs');if(s)s.innerHTML=evOpts(j)}).catch(()=>{})}}
-const AF2=window.afterDraw;window.afterDraw=function(){const r=AF2.apply(this,arguments);try{evSel()}catch(e){}return r};
+function evList(){const d=$('evlist');if(!d||!ON())return;
+ rest('events?select=id,code,name&order=id').then(r=>r.json()).then(j=>{if(!Array.isArray(j)||!$('evlist'))return;
+  $('evlist').innerHTML='<b>সব আয়োজন</b>'+j.map(x=>`<div style="margin:6px 0">${esc(x.name||x.code)} <span class="mu">(${esc(x.code)}${x.id===EV?' · এখন খোলা':''})</span> ${x.id===1?'':`<button class="b d s" onclick="evDel(${x.id},'${esc(x.code)}')">মুছুন</button>`}</div>`).join('')}).catch(()=>{})}
+window.evDel=async function(id,code){
+ const a=prompt('এই আয়োজনের সব ডেটা (ইউনিট, প্রতিযোগী, ফলাফল) চিরতরে মুছে যাবে। নিশ্চিত করতে আয়োজনের কোড লিখুন: '+code);
+ if(a===null)return;if(String(a).trim().toUpperCase()!==String(code).toUpperCase())return info('কোড মেলেনি, কিছু মোছা হয়নি');
+ try{const r1=await rest('app_state?id=eq.'+id,{method:'DELETE',headers:{Prefer:'return=representation'}});
+  const d1=await r1.json();
+  if(!r1.ok||!Array.isArray(d1)||!d1.length){
+   const chk=await(await rest('app_state?id=eq.'+id+'&select=id')).json();
+   if(Array.isArray(chk)&&chk.length)return info('মোছা যায়নি — Supabase-এ মোছার অনুমতির SQL চালানো হয়েছে কি দেখুন');}
+  await rest('unit_index?ev=eq.'+id,{method:'DELETE'});
+  const r3=await rest('events?id=eq.'+id,{method:'DELETE',headers:{Prefer:'return=representation'}});const d3=await r3.json();
+  if(!r3.ok||!Array.isArray(d3)||!d3.length)return info('তালিকা থেকে সরানো যায়নি — Supabase-এর অনুমতির SQL দেখুন');
+  const k='sa2_e'+id;try{[k,k+'_base',k+'_stamp',k+'_tomb'].forEach(x=>localStorage.removeItem(x))}catch(e){}
+  try{const L=JSON.parse(lsg('sa_evl'))||[];lss('sa_evl',JSON.stringify(L.filter(x=>x.id!==id)))}catch(e){}
+  if(id===EV)return evSwitch(1,'MAIN','');
+  info('আয়োজন মুছে ফেলা হয়েছে');evList()}catch(e){info('মোছা যায়নি — ইন্টারনেট দেখুন')}};
+const AF2=window.afterDraw;window.afterDraw=function(){const r=AF2.apply(this,arguments);try{evSel();evList()}catch(e){}return r};
 /* সেটিংসে (অনার): নতুন আয়োজন */
 const V2=window.view;
 window.view=function(){let h=V2.apply(this,arguments);
  try{if(ME&&ME.role==='owner'&&TAB==='set'&&ON()&&typeof h==='string'){const code=lsg('sa_evc')||'MAIN';
-  h+=`<div class="cd"><h2>🗂 আয়োজন</h2><p class="mu">এখন খোলা: <b>${esc((DB.cfg&&DB.cfg.h)||'')}</b> (কোড: ${esc(code)})</p><input id="evn" placeholder="নতুন আয়োজনের নাম (যেমন নারাজোল-১ সার্কেল স্পোর্টস)"><input id="evc" placeholder="ছোট ইংরেজি কোড (যেমন NRJ1)" maxlength="6" style="text-transform:uppercase"><button class="b" onclick="evNew()">➕ নতুন আয়োজন বানান</button><p class="mu">নতুন আয়োজন খালি শুরু হবে; অনার আইডি ও পিন এখনকারটাই থাকবে। আয়োজন বদলাতে লগইন পর্দার "আয়োজন" তালিকা ব্যবহার করুন।</p></div>`}}catch(e){}
+  h+=`<div class="cd"><h2>🗂 আয়োজন</h2><p class="mu">এখন খোলা: <b>${esc((DB.cfg&&DB.cfg.h)||'')}</b> (কোড: ${esc(code)})</p><input id="evn" placeholder="নতুন আয়োজনের নাম (যেমন নারাজোল-১ সার্কেল স্পোর্টস)"><input id="evc" placeholder="ছোট ইংরেজি কোড (যেমন NRJ1)" maxlength="6" style="text-transform:uppercase"><button class="b" onclick="evNew()">➕ নতুন আয়োজন বানান</button><div id="evlist" class="mu" style="margin-top:10px"></div><p class="mu">নতুন আয়োজন খালি শুরু হবে; অনার আইডি ও পিন এখনকারটাই থাকবে। আয়োজন বদলাতে লগইন পর্দার "আয়োজন" তালিকা ব্যবহার করুন।</p></div>`}}catch(e){}
  return h};
 window.evNew=async function(){const nm=(($('evn')||{}).value||'').trim(),cd=(($('evc')||{}).value||'').trim().toUpperCase();
  if(!nm)return info('আয়োজনের নাম লিখুন');
