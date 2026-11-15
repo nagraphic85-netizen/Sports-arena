@@ -1,0 +1,37 @@
+<!doctype html><html lang="bn"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>সিঙ্ক পরীক্ষা</title>
+<style>body{font-family:system-ui,sans-serif;margin:0;padding:16px;background:#0b1426;color:#e8eefc;font-size:15px;line-height:1.5}h1{font-size:19px;margin:0 0 4px}.c{background:#16213d;border-radius:12px;padding:12px 14px;margin:10px 0}.k{color:#9db0d8;font-size:13px}.v{font-weight:700;word-break:break-all}.ok{color:#7be0a0}.bad{color:#ff8a8a}button{font-size:16px;padding:10px 16px;border-radius:10px;border:0;background:#ffc312;color:#0b1426;font-weight:700}pre{white-space:pre-wrap;font-size:12px;color:#c7d4f2}</style></head><body>
+<h1>সিঙ্ক পরীক্ষা (শুধু দেখার পাতা, কিছু বদলায় না)</h1>
+<div class="k">এই পাতা মোবাইল ও ডেস্কটপ দুই জায়গায় খুলে ফলাফলের সংখ্যা মিলিয়ে দেখুন।</div>
+<div id="o" class="c">লোড হচ্ছে...</div><button onclick="run()">আবার দেখুন</button>
+<script src="supabase-config.js"></script>
+<script>
+function row(k,v,cls){return '<div class="c"><div class="k">'+k+'</div><div class="v '+(cls||'')+'">'+v+'</div></div>'}
+function rr(d){return d&&Array.isArray(d.r)?d.r.length:'নেই'}
+function ids(d){return d&&Array.isArray(d.r)?d.r.map(function(x){return x.id}).join(', '):''}
+async function run(){
+ var h='',L=null,B=null,st='';
+ try{L=JSON.parse(localStorage.getItem('sa2'))}catch(e){}
+ try{B=JSON.parse(localStorage.getItem('sa2_base'))}catch(e){}
+ st=localStorage.getItem('sa2_stamp')||'';
+ var url=window.SUPABASE_URL||'',key=window.SUPABASE_ANON_KEY||'';
+ var host=url.replace(/^https?:\/\//,'');
+ h+=row('সুপাবেস প্রজেক্ট (এই ডিভাইস যেটা ব্যবহার করছে)',host||'সেট করা নেই — ডিভাইসে সিঙ্ক বন্ধ',host?'':'bad');
+ h+=row('এই ডিভাইসে সংরক্ষিত ফলাফল',rr(L));
+ h+=row('শেষবার সার্ভারের সঙ্গে মেলানো অবস্থায় ফলাফল (base)',rr(B));
+ h+=row('শেষ মেলানোর সময়-চিহ্ন (stamp)',st||'নেই');
+ try{var a=await (await fetch('supabase-sync.js',{cache:'no-store'})).text(),b=await (await fetch('supabase-sync.js?x='+Date.now(),{cache:'no-store'})).text();
+  var ver=(a.match(/\(v\d[^:)]*/)||['?'])[0];
+  h+=row('সিঙ্ক ফাইলের সংস্করণ (এই ডিভাইস যেটা পাচ্ছে)',ver+(a===b?'':' — ⚠ ক্যাশের কপি আলাদা'),a===b?'ok':'bad')}catch(e){h+=row('সিঙ্ক ফাইল','পড়া যায়নি: '+e.message,'bad')}
+ try{var ks=await caches.keys();h+=row('ক্যাশ নাম',ks.join(', ')||'নেই')}catch(e){}
+ if(url&&key){try{
+  var r=await fetch(url+'/rest/v1/app_state?id=eq.1&select=data,updated_at',{headers:{apikey:key,Authorization:'Bearer '+key}});
+  var j=await r.json();var R=j&&j[0];
+  if(!R)h+=row('সার্ভার','সারি নেই ('+r.status+')','bad');else{
+   h+=row('সার্ভারে ফলাফল',rr(R.data),'ok');h+=row('সার্ভারের শেষ বদল',R.updated_at);
+   var same=st&&R.updated_at===st;h+=row('এই ডিভাইস সার্ভারের সঙ্গে মেলানো?',same?'হ্যাঁ':'না — সার্ভারে নতুন বদল আছে বা এই ডিভাইস মেলায়নি',same?'ok':'bad');
+   var ld=L&&JSON.stringify(L)!==JSON.stringify(B);h+=row('এই ডিভাইসে সার্ভারে-না-যাওয়া বদল আছে?',ld?'হ্যাঁ (পাঠানো বাকি)':'না',ld?'bad':'ok');
+   h+='<div class="c"><div class="k">সার্ভারের ফলাফল আইডি</div><pre>'+ids(R.data)+'</pre><div class="k">এই ডিভাইসের ফলাফল আইডি</div><pre>'+ids(L)+'</pre></div>'}
+ }catch(e){h+=row('সার্ভারে যেতে পারছে না',e.message,'bad')}}
+ document.getElementById('o').outerHTML='<div id="o">'+h+'</div>'}
+run();
+</script></body></html>
