@@ -84,7 +84,7 @@ const pr=x=>DB.u.filter(u=>u.role===PAR[x]);
 return`<div class="cd"><h2>নতুন ${r==='owner'?'অ্যাকাউন্ট':RN[CH[r]]}</h2>${r==='owner'?`<select id="ar" onchange="$('ap').innerHTML=pOpts(this.value)">${['sub','circle','gp','school'].map(x=>`<option value="${x}">${RN[x]}</option>`).join('')}</select><select id="ap">${pOpts('sub')}</select>`:''}<input id="an" placeholder="নাম"><button class="b p" onclick="addU()">তৈরি (৪-ডিজিট পিন)</button></div><div class="cd tw"><h2>অ্যাকাউন্ট</h2><table><tr><th>রোল</th><th>নাম</th><th>আইডি</th><th>অবস্থা</th><th></th></tr>${ks.map(u=>`<tr><td>${RN[u.role]}</td><td>${esc(u.name)}</td><td>${u.id}</td><td>${u.blocked?'ব্লকড':'সক্রিয়'}${u.locked?' 🔒':''}</td><td>${r==='owner'?`<select style="min-height:34px;width:auto;margin:2px;padding:3px" onchange="setP('${u.id}',this.value)">${pOpts(u.role,u.parent)}</select><button class="b s" onclick="blk('${u.id}')">ব্লক/আনব্লক</button><button class="b s" onclick="rst('${u.id}')">পিন রিসেট</button>`:''}${u.locked&&r==='gp'?`<button class="b s" onclick="unlockU('${u.id}')">আনলক</button>`:''}${r==='owner'||u.parent===ME.id?`<button class="b d s" onclick="delU('${u.id}')">মুছুন</button>`:''}</td></tr>`).join('')}</table></div>`}
 const pOpts=(x,cur)=>'<option value="">— সরাসরি / অভিভাবক ছাড়া —</option>'+DB.u.filter(u=>u.role===PAR[x]).map(u=>`<option value="${u.id}"${u.id===cur?' selected':''}>${esc(u.name)} (${u.id})</option>`).join('');
 async function addU(){const n=$('an').value.trim();if(!n)return info('নাম দিন');const r=ME.role;let role=CH[r],par=ME.id;if(r==='owner'){role=$('ar').value;par=$('ap').value||undefined}
-const id=await saNewId(role),p=rp();DB.u.push({id,role,name:n,pin:await H(p),parent:par});sv();draw();info(`আইডি: <b>${id}</b><br>পিন: <b>${p}</b><br><span class="mu">এখনই লিখে রাখুন, আর দেখা যাবে না।</span>`)}
+const id=await saNewId(role,n),p=rp();DB.u.push({id,role,name:n,pin:await H(p),parent:par});sv();draw();info(`আইডি: <b>${id}</b><br>পিন: <b>${p}</b><br><span class="mu">এখনই লিখে রাখুন, আর দেখা যাবে না।</span>`)}
 const setP=(id,p)=>{const u=U(id),q=p&&U(p);if(q&&q.role!==PAR[u.role])return;u.parent=p||undefined;sv();draw()};
 const blk=id=>{U(id).blocked=!U(id).blocked;sv();draw()};
 const rst=id=>conf('নতুন পিন তৈরি হবে।',async()=>{const p=rp();U(id).pin=await H(p);sv();draw();info(`নতুন পিন: <b>${p}</b>`)});
@@ -311,7 +311,7 @@ if(u.blocked)return info('অ্যাকাউন্ট ব্লকড');fails
 window.addU=async function(){const n=$('an').value.trim();if(!n)return info('নাম দিন');const r=ME.role;let role=CH[r],par=ME.id;
 if(r==='owner'){role=$('ar').value;par=$('ap').value||undefined}
 let lvl;if(par&&role!=='school'){lvl=role;role='school'}else if(role==='school')lvl='school';
-const id=await saNewId(lvl||role),p=rp();
+const id=await saNewId(lvl||role,n),p=rp();
 DB.u.push({id,role,lvl,name:n,pin:await H(p),parent:par});sv();draw();
 info(`আইডি: <b>${id}</b><br>পিন: <b>${p}</b><br><span class="mu">লগইনে "${LVL[lvl||role]}" বেছে নিন। এখনই লিখে রাখুন।</span>`)};
 /* ভেন্যু ও তারিখ (প্রতি অ্যাডমিন নিজের স্তরের) */
@@ -1536,7 +1536,26 @@ const q=t=>encodeURIComponent(t);
 async function idxFind(id){try{const r=await rest('unit_index?uid=ilike.'+q(id)+'&select=uid,ev');const j=await r.json();return Array.isArray(j)?j.map(x=>x.ev):null}catch(e){return null}}
 async function idxFree(id){if(!ON())return true;const r=await idxFind(id);return r===null?true:r.length===0}
 function idxAdd(ids){if(!ON()||!ids.length)return;try{rest('unit_index?on_conflict=uid',{method:'POST',headers:{Prefer:'resolution=ignore-duplicates,return=minimal'},body:JSON.stringify(ids.map(uid=>({uid,ev:EV})))}).catch(()=>{})}catch(e){}}
-window.saNewId=async function(role){const code=lsg('sa_evc')||'MAIN',pre=code==='MAIN'?'':code+'-',R=role.toUpperCase();
+/* নাম থেকে ছোট ইংরেজি কোড: বাংলা নামের ব্যঞ্জনবর্ণ ধরে (নারাজোল-১ → NRJL1), ইংরেজি নামের অক্ষর ধরে */
+const BM={'ক':'K','খ':'K','গ':'G','ঘ':'G','ঙ':'N','চ':'C','ছ':'C','জ':'J','ঝ':'J','ঞ':'N','ট':'T','ঠ':'T','ড':'D','ঢ':'D','ণ':'N','ত':'T','থ':'T','দ':'D','ধ':'D','ন':'N','প':'P','ফ':'P','ব':'B','ভ':'B','ম':'M','য':'J','র':'R','ল':'L','শ':'S','ষ':'S','স':'S','হ':'H','ড়':'R','ঢ়':'R','য়':'Y','ৎ':'T','ং':'N'},
+ BV={'অ':'A','আ':'A','ই':'I','ঈ':'I','উ':'U','ঊ':'U','ঋ':'R','এ':'E','ঐ':'O','ও':'O','ঔ':'O'},
+ SKIP=/^(জিপি|গ্রাম|পঞ্চায়েত|সার্কেল|সাব|ডিভিশন|সাবডিভিশন|মহকুমা|স্পোর্টস|ক্রীড়া|স্কুল|বিদ্যালয়|gp|circle|sub|division|subdivision|sports|school)$/i;
+window.saCode=function(name){
+ let t=String(name||'').replace(/[০-৯]/g,c=>'০১২৩৪৫৬৭৮৯'.indexOf(c)).replace(/ড়/g,'ড়').replace(/[()\[\]]/g,' ');
+ const ws=t.split(/[\s\-_.,/]+/).filter(Boolean),keep=ws.filter(w=>!SKIP.test(w)),use=keep.length?keep:ws;
+ let L='',D='';
+ use.forEach(w=>{if(/^\d+$/.test(w)){D+=w;return}
+  let o='',first=true;
+  for(const ch of Array.from(w.normalize('NFC'))){
+   if(/[A-Za-z]/.test(ch)){o+=ch.toUpperCase();first=false;continue}
+   if(/\d/.test(ch)){D+=ch;continue}
+   if(BM[ch]){o+=BM[ch];first=false;continue}
+   if(first&&BV[ch]){o+=BV[ch]}
+   first=false}
+  if(/^[A-Za-z]+$/.test(w))o=w.length>4?w.slice(0,4).toUpperCase():w.toUpperCase();
+  L+=o});
+ return (L.slice(0,5)+D.slice(0,3))||''};
+window.saNewId=async function(role,name){const c=window.saCode?saCode(name):'',pre=c?c+'-':'',R=role.toUpperCase();
  for(let k=0;k<12;k++){const id=pre+R+'-'+Math.floor(100+Math.random()*900);
   if(DB.u.some(u=>nrm(u.id)===nrm(id)))continue;
   if(await idxFree(id)){idxAdd([id]);return id}}
