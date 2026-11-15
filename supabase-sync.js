@@ -1,4 +1,4 @@
-/* Sports Arena <-> Supabase সিঙ্ক (v5: মোছা-তালিকা (_tomb), অনুরোধে সময়সীমা, ব্যর্থ পাঠানো আবার চেষ্টা, ব্যাকগ্রাউন্ডে যাওয়ার সময় ফ্লাশ, বিজয়ীর মেলানো আইডি ধরে)
+/* Sports Arena <-> Supabase সিঙ্ক (v6: একাধিক আয়োজন (সারির নম্বর = আয়োজন), মোছা-তালিকা (_tomb), অনুরোধে সময়সীমা, ব্যর্থ পাঠানো আবার চেষ্টা, ব্যাকগ্রাউন্ডে যাওয়ার সময় ফ্লাশ, বিজয়ীর মেলানো আইডি ধরে)
    - পুশ করার আগে সার্ভারে অন্য কেউ বদলেছে কিনা দেখা হয়; বদলালে দুই পক্ষের কাজ মিলিয়ে (মার্জ) তারপর সেভ হয়।
    - যাচাই হয় শুধু "শেষ বদলের সময়" দিয়ে (ছোট অনুরোধ), তাই ৫ সেকেন্ডেও খরচ কম। */
 (function () {
@@ -70,7 +70,7 @@
   if (!URL_ || !KEY || /YOUR-/.test(URL_) || /YOUR-/.test(KEY)) { console.warn('Supabase সেট করা নেই — শুধু লোকাল মোডে চলছে'); return; }
   var EP = URL_ + '/rest/v1/app_state';
   var H = { apikey: KEY, Authorization: 'Bearer ' + KEY, 'Content-Type': 'application/json' };
-  var KEYNAME = 'sa2', BASEKEY = 'sa2_base', STAMPKEY = 'sa2_stamp';
+  var EVN = window.SA_EV || 1, KEYNAME = window.SA_KEY || 'sa2', BASEKEY = KEYNAME + '_base', STAMPKEY = KEYNAME + '_stamp';   // আয়োজন ১-এর নাম আগের মতোই ('sa2'), বাকিগুলো 'sa2_e<নম্বর>'
   var orig = Storage.prototype.setItem;
   var remoteStamp = '', base = null, busy = false, applying = false, timer = null;
   try { base = JSON.parse(localStorage.getItem(BASEKEY)); remoteStamp = localStorage.getItem(STAMPKEY) || ''; } catch (e) { base = null; }
@@ -96,7 +96,7 @@
   /* ---------- মোছা-তালিকা (v5) ----------
      যে ডিভাইস কিছু মোছে সে সার্ভারে আইডি জমা রাখে (_tomb); পুরনো ডেটা নিয়ে ফেরা ডিভাইস সেটা আর ফেরাতে পারে না।
      মান: [সময়, 1=মোছা | 0=পরে আবার যোগ হয়েছে]; নতুন সময়ই জেতে। */
-  var TK = 'sa2_tomb', WL = ['u', 'a', 'r', 'n', 'e', 'vd', 'ctx', 'sg'], tomb = {};
+  var TK = KEYNAME + '_tomb', WL = ['u', 'a', 'r', 'n', 'e', 'vd', 'ctx', 'sg'], tomb = {};
   try { tomb = JSON.parse(localStorage.getItem(TK)) || {}; } catch (e) { tomb = {}; }
   function saveTomb() { try { orig.call(localStorage, TK, J(tomb)); } catch (e) {} }
   function intake(d) {                   // সার্ভারের ডেটা থেকে _tomb আলাদা করে নেয়; বাকিটা ফেরত দেয়
@@ -156,7 +156,7 @@
   }
 
   function fetchRow(full) {
-    return tfetch(EP + '?id=eq.1&select=' + (full ? 'data,updated_at' : 'updated_at'), { headers: H })
+    return tfetch(EP + '?id=eq.' + EVN + '&select=' + (full ? 'data,updated_at' : 'updated_at'), { headers: H })
       .then(function (r) { return r.json(); })
       .then(function (rows) { if (!Array.isArray(rows)) throw new Error('bad response'); return rows[0] || null; });
   }
@@ -183,11 +183,11 @@
     var stamp = new Date().toISOString(), req;
     if (!remoteStamp) {
       var d1 = Object.assign({}, withTomb(loc), { _sid: Math.random().toString(36).slice(2) + Date.now().toString(36) });
-      var b1 = JSON.stringify([{ id: 1, data: d1, updated_at: stamp }]);
+      var b1 = JSON.stringify([{ id: EVN, data: d1, updated_at: stamp }]);
       req = tfetch(EP, { method: 'POST', headers: Object.assign({ Prefer: 'return=representation' }, H), body: b1, keepalive: !!keep && b1.length < 60000 });
     } else {
       var b2 = JSON.stringify({ data: withTomb(withSid(loc)), updated_at: stamp });
-      req = tfetch(EP + '?id=eq.1&updated_at=eq.' + encodeURIComponent(remoteStamp), { method: 'PATCH',
+      req = tfetch(EP + '?id=eq.' + EVN + '&updated_at=eq.' + encodeURIComponent(remoteStamp), { method: 'PATCH',
         headers: Object.assign({ Prefer: 'return=representation' }, H), body: b2, keepalive: !!keep && b2.length < 60000 });
     }
     return req.then(function (r) {

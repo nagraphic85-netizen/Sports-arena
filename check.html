@@ -4,17 +4,19 @@
 <div class="k">এই পাতা মোবাইল ও ডেস্কটপ দুই জায়গায় খুলে ফলাফলের সংখ্যা মিলিয়ে দেখুন।</div>
 <div id="o" class="c">লোড হচ্ছে...</div><button onclick="run()">আবার দেখুন</button>
 <script src="supabase-config.js"></script>
+<script>try{window.SA_EV=parseInt(localStorage.getItem('sa_ev'))||1}catch(e){window.SA_EV=1}window.SA_KEY=window.SA_EV===1?'sa2':'sa2_e'+window.SA_EV</script>
 <script>
 function row(k,v,cls){return '<div class="c"><div class="k">'+k+'</div><div class="v '+(cls||'')+'">'+v+'</div></div>'}
 function rr(d){return d&&Array.isArray(d.r)?d.r.length:'নেই'}
 function ids(d){return d&&Array.isArray(d.r)?d.r.map(function(x){return x.id}).join(', '):''}
 async function run(){
  var h='',L=null,B=null,st='';
- try{L=JSON.parse(localStorage.getItem('sa2'))}catch(e){}
- try{B=JSON.parse(localStorage.getItem('sa2_base'))}catch(e){}
- st=localStorage.getItem('sa2_stamp')||'';
+ try{L=JSON.parse(localStorage.getItem(SA_KEY))}catch(e){}
+ try{B=JSON.parse(localStorage.getItem(SA_KEY+'_base'))}catch(e){}
+ st=localStorage.getItem(SA_KEY+'_stamp')||'';
  var url=window.SUPABASE_URL||'',key=window.SUPABASE_ANON_KEY||'';
  var host=url.replace(/^https?:\/\//,'');
+ h+=row('আয়োজন নম্বর (এই ডিভাইসে বাছা)',SA_EV);
  h+=row('সুপাবেস প্রজেক্ট (এই ডিভাইস যেটা ব্যবহার করছে)',host||'সেট করা নেই — ডিভাইসে সিঙ্ক বন্ধ',host?'':'bad');
  h+=row('এই ডিভাইসে সংরক্ষিত ফলাফল',rr(L));
  h+=row('শেষবার সার্ভারের সঙ্গে মেলানো অবস্থায় ফলাফল (base)',rr(B));
@@ -24,7 +26,7 @@ async function run(){
   h+=row('সিঙ্ক ফাইলের সংস্করণ (এই ডিভাইস যেটা পাচ্ছে)',ver+(a===b?'':' — ⚠ ক্যাশের কপি আলাদা'),a===b?'ok':'bad')}catch(e){h+=row('সিঙ্ক ফাইল','পড়া যায়নি: '+e.message,'bad')}
  try{var ks=await caches.keys();h+=row('ক্যাশ নাম',ks.join(', ')||'নেই')}catch(e){}
  if(url&&key){try{
-  var r=await fetch(url+'/rest/v1/app_state?id=eq.1&select=data,updated_at',{headers:{apikey:key,Authorization:'Bearer '+key}});
+  var r=await fetch(url+'/rest/v1/app_state?id=eq.'+SA_EV+'&select=data,updated_at',{headers:{apikey:key,Authorization:'Bearer '+key}});
   var j=await r.json();var R=j&&j[0];
   if(!R)h+=row('সার্ভার','সারি নেই ('+r.status+')','bad');else{
    h+=row('সার্ভারে ফলাফল',rr(R.data),'ok');h+=row('সার্ভারের শেষ বদল',R.updated_at);
