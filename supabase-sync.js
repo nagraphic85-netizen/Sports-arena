@@ -1,4 +1,4 @@
-/* Sports Arena <-> Supabase সিঙ্ক (v4: অনুরোধে সময়সীমা, ব্যর্থ পাঠানো আবার চেষ্টা, ব্যাকগ্রাউন্ডে যাওয়ার সময় ফ্লাশ, বিজয়ীর মেলানো আইডি ধরে)
+/* Sports Arena <-> Supabase সিঙ্ক (v5: মোছা-তালিকা (_tomb), অনুরোধে সময়সীমা, ব্যর্থ পাঠানো আবার চেষ্টা, ব্যাকগ্রাউন্ডে যাওয়ার সময় ফ্লাশ, বিজয়ীর মেলানো আইডি ধরে)
    - পুশ করার আগে সার্ভারে অন্য কেউ বদলেছে কিনা দেখা হয়; বদলালে দুই পক্ষের কাজ মিলিয়ে (মার্জ) তারপর সেভ হয়।
    - যাচাই হয় শুধু "শেষ বদলের সময়" দিয়ে (ছোট অনুরোধ), তাই ৫ সেকেন্ডেও খরচ কম। */
 (function () {
@@ -93,7 +93,55 @@
   function retryLater() { if (retryT) return; retryN++; retryT = setTimeout(function () { retryT = null; push(0); }, Math.min(60000, 5000 * retryN)); }
 
   function status(t) { try { window.SYNC_STATUS = t; } catch (e) {} }
+  /* ---------- মোছা-তালিকা (v5) ----------
+     যে ডিভাইস কিছু মোছে সে সার্ভারে আইডি জমা রাখে (_tomb); পুরনো ডেটা নিয়ে ফেরা ডিভাইস সেটা আর ফেরাতে পারে না।
+     মান: [সময়, 1=মোছা | 0=পরে আবার যোগ হয়েছে]; নতুন সময়ই জেতে। */
+  var TK = 'sa2_tomb', WL = ['u', 'a', 'r', 'n', 'e', 'vd', 'ctx', 'sg'], tomb = {};
+  try { tomb = JSON.parse(localStorage.getItem(TK)) || {}; } catch (e) { tomb = {}; }
+  function saveTomb() { try { orig.call(localStorage, TK, J(tomb)); } catch (e) {} }
+  function intake(d) {                   // সার্ভারের ডেটা থেকে _tomb আলাদা করে নেয়; বাকিটা ফেরত দেয়
+    if (!d || !d._tomb) return d;
+    var rt = d._tomb, o = {}, ch = false;
+    Object.keys(rt).forEach(function (k) { if (!tomb[k] || tomb[k][0] < rt[k][0]) { tomb[k] = rt[k]; ch = true; } });
+    if (ch) saveTomb();
+    Object.keys(d).forEach(function (k) { if (k !== '_tomb') o[k] = d[k]; });
+    return o;
+  }
+  function kmap(v) {
+    var m = {};
+    if (Array.isArray(v)) v.forEach(function (x) { if (x && typeof x === 'object' && x.id !== undefined) m[keyOf(x)] = 1; });
+    else if (isObj(v)) Object.keys(v).forEach(function (k) { m['o:' + k] = 1; });
+    return m;
+  }
+  function noteDel(loc) {                // base বনাম লোকাল: কী মুছেছে / আবার যোগ হয়েছে
+    if (!base || !loc) return;
+    var now = new Date().toISOString(), ch = false;
+    WL.forEach(function (n) {
+      var bk = kmap(base[n]), lk = kmap(loc[n]);
+      Object.keys(bk).forEach(function (k) { if (!lk[k]) { var t = tomb[n + '|' + k]; if (!t || !t[1]) { tomb[n + '|' + k] = [now, 1]; ch = true; } } });
+      Object.keys(lk).forEach(function (k) { if (!bk[k]) { var t = tomb[n + '|' + k]; if (t && t[1]) { tomb[n + '|' + k] = [now, 0]; ch = true; } } });
+    });
+    var old = Date.now() - 120 * 864e5, old0 = Date.now() - 14 * 864e5;
+    Object.keys(tomb).forEach(function (k) { var t = Date.parse(tomb[k][0]); if (t < (tomb[k][1] ? old : old0)) { delete tomb[k]; ch = true; } });
+    if (ch) saveTomb();
+  }
+  function withTomb(o) { if (!Object.keys(tomb).length) return o; var x = {}; Object.keys(o).forEach(function (k) { x[k] = o[k]; }); x._tomb = tomb; return x; }
+  function applyTomb(m, loc, noB) {      // মোছা তালিকার জিনিস মার্জের ফল থেকে বাদ; যেটা এই ডিভাইস সদ্য নতুন যোগ করেছে সেটা থাকে
+    if (!m || !Object.keys(tomb).length) return m;
+    var o = {}, bch = false;
+    Object.keys(m).forEach(function (k) { o[k] = m[k]; });
+    WL.forEach(function (n) {
+      var v = o[n]; if (!v) return;
+      var bk = noB || !base ? null : kmap(base[n]), lk = kmap(loc && loc[n]);
+      function dead(k) { var t = tomb[n + '|' + k]; if (!t || !t[1]) return false; return !(bk && !bk[k] && lk[k]); }
+      if (Array.isArray(v)) { var f = v.filter(function (x) { return !(x && typeof x === 'object' && x.id !== undefined && dead(keyOf(x))); }); if (f.length !== v.length) { o[n] = f; bch = true; } }
+      else if (isObj(v)) { var c = {}, h = false; Object.keys(v).forEach(function (k) { if (dead('o:' + k)) h = true; else c[k] = v[k]; }); if (h) { o[n] = c; bch = true; } }
+    });
+    return bch ? o : m;
+  }
+
   function saveBase(data, stamp) {
+    data = intake(data);
     base = data; remoteStamp = stamp;
     try { orig.call(localStorage, BASEKEY, J(data)); orig.call(localStorage, STAMPKEY, stamp); } catch (e) {}
   }
@@ -115,13 +163,14 @@
 
   /* সার্ভারের সঙ্গে মিলিয়ে নেয়; দরকার হলে মার্জ করে লোকালে বসায়। সার্ভারের সারি ফেরত দেয় */
   function reconcile(row) {
-    var loc = localData(), remote = row.data;
+    var loc = localData(), rt0 = row.data && row.data._tomb, remote = intake(row.data);
     var le = (loc && loc.epoch) || 0, re = (remote && remote.epoch) || 0;   // "সব ডিলিট"-এর রিসেট নম্বর
     var recreated = !!base && (base._sid || '') !== ((remote && remote._sid) || '');
     var merged = !loc ? remote : re > le ? remote : le > re ? loc : mergeVal(recreated ? null : base, loc, remote, !base || recreated);
+    merged = applyTomb(merged, loc, recreated || !base);
     applyLocal(merged);
     saveBase(remote, row.updated_at);
-    return C(merged) !== C(remote);          // true = সার্ভারে পাঠানোর মতো নতুন কিছু আছে
+    return C(merged) !== C(remote) || C(tomb) !== C(rt0 || {});          // true = সার্ভারে পাঠানোর মতো নতুন কিছু আছে
   }
 
   function push(tries, keep) {
@@ -130,13 +179,14 @@
     var loc = localData(); if (!loc) return Promise.resolve();
     if (tries > 5) { status('সিঙ্ক ব্যর্থ (বারবার দ্বন্দ্ব)'); return Promise.resolve(); }
     setBusy(true);
+    noteDel(loc);
     var stamp = new Date().toISOString(), req;
     if (!remoteStamp) {
-      var d1 = Object.assign({}, loc, { _sid: Math.random().toString(36).slice(2) + Date.now().toString(36) });
+      var d1 = Object.assign({}, withTomb(loc), { _sid: Math.random().toString(36).slice(2) + Date.now().toString(36) });
       var b1 = JSON.stringify([{ id: 1, data: d1, updated_at: stamp }]);
       req = tfetch(EP, { method: 'POST', headers: Object.assign({ Prefer: 'return=representation' }, H), body: b1, keepalive: !!keep && b1.length < 60000 });
     } else {
-      var b2 = JSON.stringify({ data: withSid(loc), updated_at: stamp });
+      var b2 = JSON.stringify({ data: withTomb(withSid(loc)), updated_at: stamp });
       req = tfetch(EP + '?id=eq.1&updated_at=eq.' + encodeURIComponent(remoteStamp), { method: 'PATCH',
         headers: Object.assign({ Prefer: 'return=representation' }, H), body: b2, keepalive: !!keep && b2.length < 60000 });
     }
