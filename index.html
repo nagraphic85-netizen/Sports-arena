@@ -77,7 +77,7 @@ function view(){const r=ME.role;if(TAB==='home')return home();if(TAB==='ad')retu
 if(TAB==='set')return`<div class="cd"><h2>হেডিং</h2><input id="c1" value="${esc(DB.cfg.h)}"><input id="c2" value="${esc(DB.cfg.s)}" placeholder="সাব-হেডিং"><input id="c3" value="${esc(DB.cfg.d)}" placeholder="তারিখ"><button class="b p" onclick="DB.cfg=Object.assign(DB.cfg||{},{h:$('c1').value,s:$('c2').value,d:$('c3').value});sv();draw()">সেভ</button></div><div class="cd"><h2>নোটিশ / জাজমেন্ট PDF (২MB পর্যন্ত)</h2><input type="file" accept="application/pdf" onchange="upN(this)">${DB.n.map((n,i)=>`<div class="nt">${esc(n.name)} <button class="b d s" onclick="conf('নোটিশ মুছবেন?',()=>{DB.n.splice(${i},1);sv();draw()})">মুছুন</button></div>`).join('')}</div><div class="cd"><h2>মাস্টার পাসওয়ার্ড</h2><input id="np" type="password" placeholder="নতুন (৬+ অক্ষর)"><button class="b" onclick="chp()">আপডেট</button></div>`;
 if(TAB==='entry')return entry();if(TAB==='list')return list();if(TAB==='ch')return chest();if(TAB==='sh')return shSel();if(TAB==='sc')return sched();if(TAB==='rs')return resEntry();if(TAB==='rp')return resPrintCard();if(TAB==='ct')return ctPage();if(TAB==='sb')return subList();if(TAB==='es')return escForm()+'<div id="pv"></div>'}
 async function chp(){const v=$('np').value;if(v.length<6)return info('কমপক্ষে ৬ অক্ষর');ME.pin=await H(v);sv();info('পরিবর্তিত')}
-function upN(el){const f=el.files[0];if(!f)return;if(f.size>2e6)return info('২MB এর বেশি');const rd=new FileReader();rd.onload=async()=>{const u=await saUp(f,'pdf');DB.n.push({name:f.name,data:u||rd.result});sv();draw()};rd.readAsDataURL(f)}
+function upN(el){const f=el.files[0];if(!f)return;if(f.size>2e7)return info('২০MB এর বেশি');const rd=new FileReader();rd.onload=async()=>{const u=await saUp(f,'pdf');if(!u&&f.size>2e6)return info('বড় ফাইল আপলোড হয়নি — ইন্টারনেট দেখে আবার চেষ্টা করুন');DB.n.push({name:f.name,data:u||rd.result});sv();draw()};rd.readAsDataURL(f)}
 const rp=()=>String(Math.floor(1000+Math.random()*9000));
 function admin(){const r=ME.role,ks=r==='owner'?DB.u.filter(u=>u.role!=='owner'):desc(ME.id).map(U);
 const pr=x=>DB.u.filter(u=>u.role===PAR[x]);
@@ -693,9 +693,10 @@ const migN=()=>{try{return(DB.g||[]).filter(x=>typeof x==='string'&&x.startsWith
 
 /* ===== ধাপ ৯: গ্যালারি — একসাথে ৪-৫টি ছবি ===== */
 window.galUp=async function(el){let f=[...el.files];el.value='';if(!f.length)return;if(f.length>5){info('একসাথে সর্বোচ্চ ৫টি ছবি নেওয়া হয়েছে');f=f.slice(0,5)}
- const cv=(src,w,h)=>{const z=Math.min(1,900/w),c=document.createElement('canvas');c.width=Math.round(w*z);c.height=Math.round(h*z);c.getContext('2d').drawImage(src,0,0,c.width,c.height);return c.toDataURL('image/jpeg',.7)};
+ const one=(src,w,h,m,q)=>{const z=Math.min(1,m/w),c=document.createElement('canvas');c.width=Math.round(w*z);c.height=Math.round(h*z);c.getContext('2d').drawImage(src,0,0,c.width,c.height);return c.toDataURL('image/jpeg',q)};
+ const cv=(src,w,h)=>({b:one(src,w,h,1600,.85),s:one(src,w,h,900,.7)});
  const out=await Promise.all(f.map(async x=>{try{const bm=await createImageBitmap(x);const d=cv(bm,bm.width,bm.height);if(bm.close)bm.close();return d}catch(e){return new Promise(r=>{const u=URL.createObjectURL(x),im=new Image();im.onload=()=>{const d=cv(im,im.width,im.height);URL.revokeObjectURL(u);r(d)};im.onerror=()=>{URL.revokeObjectURL(u);r(null)};im.src=u})}}));
- const ups=await Promise.all(out.filter(Boolean).map(d=>saUpD(d,'jpg')));(DB.g=DB.g||[]).push(...ups);sv();draw()};
+ const ups=await Promise.all(out.filter(Boolean).map(async o=>{const u=await saUpD(o.b,'jpg');return u.startsWith('http')?u:o.s}));(DB.g=DB.g||[]).push(...ups);sv();draw()};
 const V1=window.view;window.view=function(){
  if(ME&&ADM.includes(ME.role)&&TAB==='pc')return`<div class="cd"><h2>মোট অংশগ্রহণকারী (${UL[ME.role]} অনুযায়ী)</h2></div><div id="pv"></div>`;
  if(ME&&ADM.includes(ME.role)&&TAB==='sq')return`<div class="cd"><h2>স্কোয়াড মাস্টার শিট</h2><p class="mu">প্রতি এককে সর্বোচ্চ ২ জন। ${UL[ME.role]}-অ্যাডমিন নিজ নিজ ট্যাবে (এসকর্ট) নাম ও মোবাইল দেবে।</p></div><div id="pv"></div>`;
