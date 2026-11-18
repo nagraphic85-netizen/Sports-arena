@@ -4585,10 +4585,9 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
 })();
 </script><script id="sa-voice-engine-hotfix">
 /* ==========================================================================
-   NATURAL MALE & FEMALE VOICE + TRUE STADIUM ECHO (NO DOUBLE WORDS) + BG MUSIC
+   HIGH-SPEED MALE BARITONE + STRONG 3-TAP STADIUM ECHO + BG MUSIC + 31MM QR
    ========================================================================== */
 (function(){
-  /* ০. লাইভ সার্ভারে অডিও ব্লক আটকানোর জন্য মূল পেজের হেডে No-Referrer মেটা বসানো */
   if(!document.querySelector('meta[name="referrer"]')){
     const m = document.createElement('meta');
     m.name = 'referrer';
@@ -4648,7 +4647,7 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
   }
 
   /* ------------------------------------------------------------------------
-     ২. স্টেডিয়াম ব্যাকগ্রাউন্ড মিউজিক ও প্রাকৃতিক ইকো ইঞ্জিন (পুরুষ ও মহিলা উভয় কণ্ঠেই চলবে)
+     ২. স্টেডিয়াম ব্যাকগ্রাউন্ড মিউজিক ইঞ্জিন
      ------------------------------------------------------------------------ */
   let bgCtx = null, bgMaster = null, bgTimer = null, bgVolLevel = 0.14;
 
@@ -4672,22 +4671,20 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
       if(!ctx) return;
       bgMaster = ctx.createGain();
       bgMaster.gain.setValueAtTime(0.01, ctx.currentTime);
-      bgMaster.gain.linearRampToValueAtTime(bgVolLevel, ctx.currentTime + 0.4);
+      bgMaster.gain.linearRampToValueAtTime(bgVolLevel, ctx.currentTime + 0.35);
       bgMaster.connect(ctx.destination);
 
-      /* প্রারম্ভিক মাইক অন চাইম */
       const now0 = ctx.currentTime;
-      [[523.25, 0], [659.25, 0.13], [783.99, 0.26]].forEach(([f, t]) => {
+      [[523.25, 0], [659.25, 0.12], [783.99, 0.24]].forEach(([f, t]) => {
         const o = ctx.createOscillator(), g = ctx.createGain();
         o.type = 'triangle'; o.frequency.setValueAtTime(f, now0 + t);
         g.gain.setValueAtTime(0.001, now0 + t);
         g.gain.linearRampToValueAtTime(0.55, now0 + t + 0.03);
-        g.gain.exponentialRampToValueAtTime(0.001, now0 + t + 0.5);
+        g.gain.exponentialRampToValueAtTime(0.001, now0 + t + 0.48);
         o.connect(g); g.connect(bgMaster);
-        o.start(now0 + t); o.stop(now0 + t + 0.52);
+        o.start(now0 + t); o.stop(now0 + t + 0.5);
       });
 
-      /* স্পোর্টস ফ্যানফেয়ার কর্ড ও রিদম */
       const chords = [
         { pad:[261.63, 329.63, 392.00], bass:130.81, mel:[523.25, 659.25, 783.99, 659.25] },
         { pad:[293.66, 369.99, 440.00], bass:146.83, mel:[587.33, 739.99, 880.00, 739.99] },
@@ -4744,21 +4741,22 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     if(bgTimer){ clearInterval(bgTimer); bgTimer = null; }
     if(bgCtx && bgMaster){
       try {
-        bgMaster.gain.linearRampToValueAtTime(0.0001, bgCtx.currentTime + 0.22);
+        bgMaster.gain.linearRampToValueAtTime(0.0001, bgCtx.currentTime + 0.2);
         bgMaster = null;
       } catch(e){}
     }
   }
 
   /* ------------------------------------------------------------------------
-     ৩. স্বাভাবিক ছন্দের পুরুষ ও মহিলা কণ্ঠ + আসল স্টেডিয়াম ইকো (কোনো শব্দ ডবল বলা ছাড়া!)
+     ৩. দ্রুত ও গম্ভীর পুরুষ কণ্ঠ + জোরালো ৩-স্তরীয় স্টেডিয়াম ইকো ইঞ্জিন
      ------------------------------------------------------------------------ */
   window.__saUtterHold = [];
   let vQueue = [], vLastSegments = [], vActive = false, vMode = 'callout', vWatch = null;
-  let echoT1 = null, echoT2 = null, trimTimer = null;
+  let echoT1 = null, echoT2 = null, echoT3 = null, trimTimer = null;
 
-  const poolMain = new Audio(), poolE1 = new Audio(), poolE2 = new Audio();
-  [poolMain, poolE1, poolE2].forEach(a => { a.referrerPolicy = 'no-referrer'; a.preload = 'auto'; });
+  /* ৪টি প্রি-লোডেড অডিও চ্যানেল: মূল কণ্ঠ + ৩টি স্টেডিয়াম ইকো (120ms, 240ms, 360ms) */
+  const poolMain = new Audio(), poolE1 = new Audio(), poolE2 = new Audio(), poolE3 = new Audio();
+  [poolMain, poolE1, poolE2, poolE3].forEach(a => { a.referrerPolicy = 'no-referrer'; a.preload = 'auto'; });
 
   window.__saVoiceProfile = localStorage.getItem('sa_vprof') || 'male_deep';
   window.__saVoiceSpeed = localStorage.getItem('sa_vspd') || 'auto';
@@ -4777,26 +4775,27 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     if(vActive && vLastSegments.length) startStadiumAnnouncement(vLastSegments, vMode);
   };
 
+  /* স্পিড আগের চেয়ে আরও বাড়ানো হয়েছে যাতে পুরুষ কণ্ঠ একদম চটপটে ও দ্রুত চলে */
   function getEffectiveRate(isFastCallout){
     const sp = window.__saVoiceSpeed || 'auto';
-    if(sp === 'auto') return isFastCallout ? 1.24 : 1.04;
-    return parseFloat(sp) || 1.12;
+    if(sp === 'auto') return isFastCallout ? 1.38 : 1.14;
+    return parseFloat(sp) || 1.25;
   }
 
   function voiceControlsHTML(){
     const curP = window.__saVoiceProfile || 'male_deep';
     const curS = window.__saVoiceSpeed || 'auto';
     return `<select class="sa-vprof-sel" onchange="setVoiceProfile(this.value)" title="কণ্ঠস্বর বেছে নিন">
-      <option value="male_deep" ${curP==='male_deep'?'selected':''}>🎙 স্বাভাবিক গম্ভীর পুরুষ কণ্ঠ (Male Deep)</option>
-      <option value="male_clear" ${curP==='male_clear'?'selected':''}>🎙 স্পষ্ট বাচিক পুরুষ কণ্ঠ (Male Clear)</option>
-      <option value="female" ${curP==='female'?'selected':''}>🎙 স্পষ্ট মহিলা কণ্ঠ (Female)</option>
+      <option value="male_deep" ${curP==='male_deep'?'selected':''}>🎙 গম্ভীর পুরুষ কণ্ঠ (Deep Male + Strong Echo)</option>
+      <option value="male_clear" ${curP==='male_clear'?'selected':''}>🎙 চটপটে পুরুষ কণ্ঠ (Fast Male + Echo)</option>
+      <option value="female" ${curP==='female'?'selected':''}>🎙 স্পষ্ট মহিলা কণ্ঠ (Female + Echo)</option>
     </select><select class="sa-vspd-sel" onchange="setVoiceSpeed(this.value)" title="কথা বলার গতি (Speed) বেছে নিন">
       <option value="auto" ${curS==='auto'?'selected':''}>⚡ অটো স্পিড (ইভেন্টে দ্রুত / ফলাফলে স্বাভাবিক)</option>
-      <option value="0.95" ${curS==='0.95'?'selected':''}>🐢 ধীর গতি (0.95x)</option>
       <option value="1.05" ${curS==='1.05'?'selected':''}>🚶 স্বাভাবিক গতি (1.05x)</option>
-      <option value="1.18" ${curS==='1.18'?'selected':''}>🏃 মাঝারি দ্রুত (1.18x)</option>
-      <option value="1.30" ${curS==='1.30'?'selected':''}>⚡ দ্রুত গতি (1.30x)</option>
-      <option value="1.45" ${curS==='1.45'?'selected':''}>🚀 সুপার ফাস্ট (1.45x)</option>
+      <option value="1.22" ${curS==='1.22'?'selected':''}>🏃 মাঝারি দ্রুত (1.22x)</option>
+      <option value="1.38" ${curS==='1.38'?'selected':''}>⚡ দ্রুত গতি (1.38x)</option>
+      <option value="1.55" ${curS==='1.55'?'selected':''}>🚀 সুপার ফাস্ট (1.55x)</option>
+      <option value="1.75" ${curS==='1.75'?'selected':''}>🔥 আল্ট্রা ফাস্ট (1.75x)</option>
     </select>`;
   }
 
@@ -4810,29 +4809,30 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     window.speechSynthesis.onvoiceschanged = refreshVoices;
   }
 
-  function pickNativeBanglaVoice(wantMale){
+  /* শুধুমাত্র যদি ডিভাইসে ১০০% আসল পুরুষ ভয়েস (Pradeep / Bashkar / Male) থাকে তবেই সেটি নেবে; কখনোই bn[0] মহিলা ভয়েসকে পুরুষ বলে চালাবে না! */
+  function findStrictMaleSystemVoice(){
     refreshVoices();
     const bn = allVoices.filter(v => /bn[-_](IN|BD)/i.test(v.lang) || /bengali|bangla|বাংলা/i.test(v.name));
-    if(!bn.length) return { voice: null, isNativeMale: false };
-    if(wantMale){
-      const mBn = bn.find(v => /pradeep|bashkar|male|পুরুষ|indranil|sagar/i.test(v.name));
-      if(mBn) return { voice: mBn, isNativeMale: true };
-      return { voice: bn[bn.length > 1 ? 1 : 0], isNativeMale: false };
-    } else {
-      const fBn = bn.find(v => /tanishaa|nabanita|female|মহিলা/i.test(v.name)) || bn[0];
-      return { voice: fBn, isNativeMale: false };
+    /* ১. স্পষ্টভাবে Male / Pradeep / Bashkar নাম থাকা ভয়েস */
+    const strictMale = bn.find(v => /pradeep|bashkar|male|পুরুষ|indranil|sagar|karthik/i.test(v.name) && !/female|tanishaa|nabanita/i.test(v.name));
+    if(strictMale) return strictMale;
+    /* ২. অ্যান্ড্রয়েডে যদি একাধিক বাংলা ভয়েস থাকে (যার মধ্যে অন্তত একটি ফিমেল এবং অন্যটি আলাদা ভয়েস) */
+    if(bn.length >= 2){
+      const nonFem = bn.find((v, idx) => idx > 0 && !/female|tanishaa|nabanita/i.test(v.name));
+      if(nonFem) return nonFem;
     }
+    return null;
   }
 
   function stopDirectAudios(){
-    clearTimeout(echoT1); clearTimeout(echoT2); clearInterval(trimTimer);
-    [poolMain, poolE1, poolE2].forEach(a => {
+    clearTimeout(echoT1); clearTimeout(echoT2); clearTimeout(echoT3); clearInterval(trimTimer);
+    [poolMain, poolE1, poolE2, poolE3].forEach(a => {
       if(a){ try { a.pause(); a.currentTime = 0; } catch(e){} }
     });
   }
 
-  /* অনলাইন অডিও স্ট্রিমের মাধ্যমে আসল স্টেডিয়াম ইকো (130ms ও 250ms ডিলে) বাজানো */
-  function playDirectAudioWithEcho(urls, prof, speedRate, isFastCallout, onDone, onFail){
+  /* ৩-ট্যাপ জোরালো স্টেডিয়াম ইকো এবং ফাস্ট ক্যাডেন্স কাটিং সহ অডিও স্ট্রিম প্লেয়ার */
+  function playDirectAudioWithStrongEcho(urls, prof, speedRate, isFastCallout, onDone, onFail){
     stopDirectAudios();
     const urlList = Array.isArray(urls) ? urls.slice() : [urls];
 
@@ -4847,24 +4847,28 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
         let preserve = true;
 
         if(wantMale){
+          /* গলার স্বর পুরুষালি করার জন্য পিচ শিফট চালু (preservesPitch = false), কিন্তু স্পিড স্কেলার যুক্ত যাতে দ্রুত চলে */
           preserve = false;
-          const baseMale = (prof === 'male_deep') ? 0.88 : 0.93;
-          playRate = Math.max(0.85, Math.min(1.15, baseMale * (speedRate > 1.2 ? 1.06 : 1.0)));
+          const baseMalePitch = (prof === 'male_deep') ? 0.84 : 0.89;
+          const speedBoost = speedRate >= 1.5 ? 1.12 : (speedRate >= 1.3 ? 1.07 : 1.02);
+          playRate = Math.max(0.83, Math.min(0.96, baseMalePitch * speedBoost));
         }
 
-        const setupAud = (a, vol) => {
+        const setupAud = (a, vol, rateOverride) => {
           a.referrerPolicy = 'no-referrer';
           a.src = url;
           a.volume = vol;
           a.preservesPitch = preserve;
           a.mozPreservesPitch = preserve;
           a.webkitPreservesPitch = preserve;
-          a.playbackRate = playRate;
+          a.playbackRate = rateOverride || playRate;
         };
 
-        setupAud(poolMain, 1.0);
-        setupAud(poolE1, 0.32);
-        setupAud(poolE2, 0.15);
+        /* মূল কণ্ঠ 100%, ১ম ইকো 48% (120ms), ২য় ইকো 26% (235ms), ৩য় ইকো 12% (350ms) — আসল বড় মাঠের মাইকের মতো জোরালো ইকো! */
+        setupAud(poolMain, 1.0, playRate);
+        setupAud(poolE1, 0.48, playRate);
+        setupAud(poolE2, 0.26, playRate);
+        setupAud(poolE3, 0.12, playRate);
 
         let started = false, doneFlag = false;
         const finishOnce = () => {
@@ -4879,21 +4883,24 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
             try { poolMain.pause(); } catch(e){}
             tryNextUrl();
           }
-        }, 1900);
+        }, 1800);
 
         poolMain.onplaying = () => {
           started = true;
           clearTimeout(guard);
-          echoT1 = setTimeout(() => { if(vActive && !doneFlag) poolE1.play().catch(()=>{}); }, 130);
-          echoT2 = setTimeout(() => { if(vActive && !doneFlag) poolE2.play().catch(()=>{}); }, 255);
+          /* ৩-লেয়ার স্টেডিয়াম ইকো ট্রিগার */
+          echoT1 = setTimeout(() => { if(vActive && !doneFlag) poolE1.play().catch(()=>{}); }, 120);
+          echoT2 = setTimeout(() => { if(vActive && !doneFlag) poolE2.play().catch(()=>{}); }, 235);
+          echoT3 = setTimeout(() => { if(vActive && !doneFlag) poolE3.play().catch(()=>{}); }, 350);
 
-          const cutTail = isFastCallout ? 0.25 : 0.16;
+          /* পুরুষ কণ্ঠ যাতে একটুও ধীর না লাগে সেজন্য প্রতিটি খণ্ডের শেষের ফাঁকা সময় (0.34s) কেটে সাথে সাথে পরের শব্দে ঝাঁপিয়ে পড়া! */
+          const cutTail = wantMale ? (isFastCallout ? 0.36 : 0.26) : (isFastCallout ? 0.22 : 0.14);
           trimTimer = setInterval(() => {
             if(!vActive || doneFlag){ clearInterval(trimTimer); return; }
-            if(poolMain.duration && poolMain.currentTime > 0.12 && (poolMain.duration - poolMain.currentTime) <= cutTail){
+            if(poolMain.duration && poolMain.currentTime > 0.08 && (poolMain.duration - poolMain.currentTime) <= cutTail){
               finishOnce();
             }
-          }, 25);
+          }, 20);
         };
 
         poolMain.onended = () => { clearTimeout(guard); finishOnce(); };
@@ -4911,38 +4918,66 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     tryNextUrl();
   }
 
-  /* পুরুষ কণ্ঠে (SpeechSynthesis চলাকালীন) ডবল শব্দ না বলে সমান্তরালভাবে হালকা অ্যাকোস্টিক স্টেডিয়াম ইকো-শ্যাডো দেওয়া */
-  function triggerParallelStadiumShadow(cleanText, rate, pitchVal){
+  /* সিস্টেম পুরুষ ভয়েস চলাকালীন জোরালো স্টেডিয়াম ইকো দেওয়ার জন্য আগে থেকেই ইকো অডিও প্রি-লোড করে রাখা */
+  function playSystemMaleWithPreloadedEcho(cleanText, sysMaleVoice, prof, rate, isFast, finish){
+    const q = encodeURIComponent(cleanText.slice(0, 180));
+    const gUrl = `https://translate.googleapis.com/translate_tts?ie=UTF-8&client=tw-ob&tl=bn&q=${q}`;
+
+    /* ইকো লেয়ার দুটি আগে থেকেই লোড করে প্রস্তুত রাখা যাতে 120ms ও 240ms-এ সাথে সাথে জোরালো ইকো বাজে */
+    const echoPitch = (prof === 'male_deep') ? 0.85 : 0.90;
+    [poolE1, poolE2].forEach((a, idx) => {
+      try {
+        a.referrerPolicy = 'no-referrer';
+        a.src = gUrl;
+        a.preservesPitch = false;
+        a.mozPreservesPitch = false;
+        a.webkitPreservesPitch = false;
+        a.playbackRate = echoPitch;
+        a.volume = idx === 0 ? 0.44 : 0.24; // জোরালো ইকো ভলিউম
+        a.load();
+      } catch(e){}
+    });
+
     try {
-      /* ১. যদি অনলাইনে থাকে, তবে মূল পুরুষ কণ্ঠের ঠিক 135ms পেছনে খুব হালকা (0.22 ভলিউমে) আসল অডিও ইকো লেয়ার বাজবে — ফলে শেষের নাম ডবল না বলে পুরো কথার নিচে মাঠের মাইকের মতো আসল ইকো হবে! */
-      if(navigator.onLine && cleanText.length <= 180){
-        const q = encodeURIComponent(cleanText);
-        const gUrl = `https://translate.googleapis.com/translate_tts?ie=UTF-8&client=tw-ob&tl=bn&q=${q}`;
-        poolE1.referrerPolicy = 'no-referrer';
-        poolE1.src = gUrl;
-        poolE1.preservesPitch = false;
-        poolE1.mozPreservesPitch = false;
-        poolE1.webkitPreservesPitch = false;
-        poolE1.playbackRate = Math.max(0.84, Math.min(1.15, 0.88 * (rate > 1.2 ? 1.06 : 1.0)));
-        poolE1.volume = 0.22;
-        clearTimeout(echoT1);
-        echoT1 = setTimeout(() => { if(vActive) poolE1.play().catch(()=>{}); }, 135);
-      }
-      /* ২. অফলাইনেও যাতে মাইকের হল-রুম রেশ থাকে সেজন্য সূক্ষ্ম অ্যাকোস্টিক রেজোন্যান্স */
-      const ctx = ensureAudioCtx();
-      if(ctx){
-        const now = ctx.currentTime;
-        [0.08, 0.20].forEach((dt, i) => {
-          const osc = ctx.createOscillator(), g = ctx.createGain();
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(440 - i*40, now + dt);
-          g.gain.setValueAtTime(0.014 / (i+1), now + dt);
-          g.gain.exponentialRampToValueAtTime(0.0003, now + dt + 0.16);
-          osc.connect(g); g.connect(ctx.destination);
-          osc.start(now + dt); osc.stop(now + dt + 0.17);
-        });
-      }
-    } catch(e){}
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.resume();
+
+      const u = new SpeechSynthesisUtterance(cleanText);
+      window.__saUtterHold.push(u);
+      u.voice = sysMaleVoice;
+      u.lang = sysMaleVoice.lang || 'bn-IN';
+      /* সিস্টেম পুরুষ ভয়েসে স্পিড আরও দ্রুত (1.38x / 1.15x) এবং গম্ভীর পুরুষালি পিচ */
+      u.rate = rate;
+      u.pitch = (prof === 'male_deep') ? 0.78 : 0.90;
+      u.volume = 1.0;
+
+      let speechStarted = false;
+      const startCheck = setTimeout(() => {
+        if(!speechStarted){
+          try { window.speechSynthesis.cancel(); } catch(e){}
+          playDirectAudioWithStrongEcho([gUrl], prof, rate, isFast, finish, finish);
+        }
+      }, 950);
+
+      u.onstart = () => {
+        speechStarted = true;
+        clearTimeout(startCheck);
+        clearTimeout(echoT1); clearTimeout(echoT2);
+        echoT1 = setTimeout(() => { if(vActive) poolE1.play().catch(()=>{}); }, 125);
+        echoT2 = setTimeout(() => { if(vActive) poolE2.play().catch(()=>{}); }, 245);
+      };
+
+      vWatch = setTimeout(finish, Math.max(2400, (cleanText.length * 95) / rate));
+      u.onend = () => { clearTimeout(startCheck); clearTimeout(vWatch); finish(); };
+      u.onerror = () => {
+        clearTimeout(startCheck); clearTimeout(vWatch);
+        if(!speechStarted) playDirectAudioWithStrongEcho([gUrl], prof, rate, isFast, finish, finish);
+        else finish();
+      };
+      window.speechSynthesis.speak(u);
+    } catch(e){
+      playDirectAudioWithStrongEcho([gUrl], prof, rate, isFast, finish, finish);
+    }
   }
 
   /* রোমান সংখ্যা (-I, -II), ইংরেজি শব্দ ও সংক্ষেপণকে ১০০% বাংলা অক্ষরে রূপান্তর */
@@ -4996,7 +5031,8 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     const isFast = (vMode === 'callout');
     const rate = getEffectiveRate(isFast);
     const prof = window.__saVoiceProfile || 'male_deep';
-    const gapMs = rate >= 1.22 ? 25 : (seg.pause || 80);
+    /* দুই বাক্যের মাঝখানে কোনো অযথা বিরতি না রেখে মাত্র 5ms গ্যাপ রাখা যাতে কথা দ্রুত এগোয় */
+    const gapMs = isFast ? 5 : (seg.pause || 35);
 
     let done = false;
     const finish = () => {
@@ -5007,7 +5043,7 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     };
 
     if(seg.audioUrl){
-      playDirectAudioWithEcho([seg.audioUrl], 'female', rate, isFast, finish, () => speakCore(seg.text, prof, rate, isFast, finish));
+      playDirectAudioWithStrongEcho([seg.audioUrl], 'female', rate, isFast, finish, () => speakCore(seg.text, prof, rate, isFast, finish));
       return;
     }
     speakCore(seg.text, prof, rate, isFast, finish);
@@ -5018,76 +5054,23 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     if(!clean) return finish();
 
     const wantMale = (prof !== 'female');
-    const picked = pickNativeBanglaVoice(wantMale);
+    const strictMaleVoice = wantMale ? findStrictMaleSystemVoice() : null;
 
-    /* ১. স্মার্টফোন বা ব্রাউজারে বাংলা সিস্টেম ভয়েস থাকলে:
-       - শেষের নাম ডবল বলার কৃত্রিম কোড সম্পূর্ণ বাদ দেওয়া হয়েছে!
-       - গলার স্বর একদম স্বাভাবিক মানুষের মতো ছন্দে রেখে (pitch 0.80 / 0.88) তার সাথে সমান্তরাল স্টেডিয়াম ইকো চালানো হয়েছে */
-    if(wantMale && picked.voice && 'speechSynthesis' in window){
-      try {
-        window.speechSynthesis.cancel();
-        window.speechSynthesis.resume();
-
-        /* রোবটিক ভাব দূর করে স্বাভাবিক ও ছন্দময় পুরুষ কণ্ঠের পিচ (0.80 ও 0.90) */
-        const pitchVal = picked.isNativeMale
-          ? (prof === 'male_deep' ? 0.88 : 0.96)
-          : (prof === 'male_deep' ? 0.78 : 0.86);
-
-        const u = new SpeechSynthesisUtterance(clean);
-        window.__saUtterHold.push(u);
-        u.voice = picked.voice;
-        u.lang = picked.voice.lang || 'bn-IN';
-        u.rate = rate;
-        u.pitch = pitchVal;
-        u.volume = 1.0;
-
-        let speechStarted = false;
-        const startCheck = setTimeout(() => {
-          if(!speechStarted){
-            try { window.speechSynthesis.cancel(); } catch(e){}
-            runDirectOnlineStream();
-          }
-        }, 1200);
-
-        u.onstart = () => {
-          speechStarted = true;
-          clearTimeout(startCheck);
-          /* কথা শুরু হওয়ার সাথে সাথে সমান্তরাল প্রাকৃতিক স্টেডিয়াম ইকো (কোনো শব্দ ডবল না বলে!) */
-          triggerParallelStadiumShadow(clean, rate, pitchVal);
-        };
-
-        vWatch = setTimeout(finish, Math.max(2800, (clean.length * 115) / rate));
-
-        /* কথা শেষ হলে কোনো শব্দ দ্বিতীয়বার না বলে সরাসরি পরের বাক্যে যাওয়া */
-        u.onend = () => {
-          clearTimeout(startCheck);
-          clearTimeout(vWatch);
-          triggerParallelStadiumShadow('', rate, pitchVal);
-          finish();
-        };
-        u.onerror = () => {
-          clearTimeout(startCheck);
-          clearTimeout(vWatch);
-          if(!speechStarted) runDirectOnlineStream();
-          else finish();
-        };
-        window.speechSynthesis.speak(u);
-        return;
-      } catch(e){}
+    /* ১. যদি ডিভাইসে সত্যিকারের বাংলা পুরুষ ভয়েস (Pradeep / Bashkar) থাকে */
+    if(wantMale && strictMaleVoice && 'speechSynthesis' in window){
+      playSystemMaleWithPreloadedEcho(clean, strictMaleVoice, prof, rate, isFast, finish);
+      return;
     }
 
-    /* ২. মহিলা কণ্ঠ (অথবা ব্রাউজারে বাংলা ভয়েস না থাকলে): ডাইরেক্ট অনলাইন স্ট্রিম + ডুয়াল স্টেডিয়াম ইকো */
-    function runDirectOnlineStream(){
-      const q = encodeURIComponent(clean.slice(0, 185));
-      const streamUrls = [
-        `https://translate.googleapis.com/translate_tts?ie=UTF-8&client=tw-ob&tl=bn&q=${q}`,
-        `https://translate.googleapis.com/translate_tts?ie=UTF-8&client=gtx&tl=bn&q=${q}`,
-        `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=bn-IN&q=${q}`
-      ];
-      playDirectAudioWithEcho(streamUrls, prof, rate, isFast, finish, finish);
-    }
-
-    runDirectOnlineStream();
+    /* ২. অন্য সব ক্ষেত্রে (যেখানে ডিভাইসে শুধু মহিলা সিস্টেম ভয়েস আছে বা কোনো বাংলা ভয়েস নেই):
+       কখনোই সিস্টেমের মহিলা ভয়েস না চালিয়ে সরাসরি ৩-ট্যাপ জোরালো স্টেডিয়াম ইকো ও পুরুষ ব্যারিটোন পিচ-শিফটেড স্ট্রিম চালানো! */
+    const q = encodeURIComponent(clean.slice(0, 185));
+    const streamUrls = [
+      `https://translate.googleapis.com/translate_tts?ie=UTF-8&client=tw-ob&tl=bn&q=${q}`,
+      `https://translate.googleapis.com/translate_tts?ie=UTF-8&client=gtx&tl=bn&q=${q}`,
+      `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=bn-IN&q=${q}`
+    ];
+    playDirectAudioWithStrongEcho(streamUrls, prof, rate, isFast, finish, finish);
   }
 
   const origStop = window.stopVoice;
@@ -5126,7 +5109,6 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     vActive = true;
     vMode = mode || 'result';
 
-    /* পুরুষ ও মহিলা উভয় ক্ষেত্রেই সাথে সাথে ব্যাকগ্রাউন্ড মিউজিক চালু করা! */
     startStadiumMusic();
 
     let bar = document.getElementById('tpBar');
@@ -5134,12 +5116,12 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     bar.style.display = 'block';
     const fullTxt = segments.map(s=>s.text).join(' ');
 
-    bar.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:6px;font-size:13px;color:#38bdf8"><span>📢 লাইভ স্টেডিয়াম মাইকিং (${vMode==='callout'?'ইভেন্ট কলিং':'ফলাফল ঘোষণা'} • ইকো ও মিউজিকসহ)</span><div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">${voiceControlsHTML()}<small style="color:#cbd5e1">🎵 মিউজিক:</small><input type="range" min="0.04" max="0.32" step="0.02" value="${bgVolLevel}" oninput="setBgMusicVol(this.value)" style="width:60px;margin:0"><button class="b s p" onclick="replayLastVoice()">🔄 পুনরায়</button><button class="b s" onclick="openVoiceStudio()">🎙 স্টুডিও</button><button class="b s d" onclick="stopVoice()">✕ বন্ধ</button></div></div><div id="tpTxt">${esc(fullTxt)}</div>`;
+    bar.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:6px;font-size:13px;color:#38bdf8"><span>📢 লাইভ স্টেডিয়াম মাইকিং (${vMode==='callout'?'দ্রুত ইভেন্ট কলিং':'ফলাফল ঘোষণা'} • জোরালো ইকো ও মিউজিকসহ)</span><div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">${voiceControlsHTML()}<small style="color:#cbd5e1">🎵 মিউজিক:</small><input type="range" min="0.04" max="0.32" step="0.02" value="${bgVolLevel}" oninput="setBgMusicVol(this.value)" style="width:60px;margin:0"><button class="b s p" onclick="replayLastVoice()">🔄 পুনরায়</button><button class="b s" onclick="openVoiceStudio()">🎙 স্টুডিও</button><button class="b s d" onclick="stopVoice()">✕ বন্ধ</button></div></div><div id="tpTxt">${esc(fullTxt)}</div>`;
 
     const runNext = () => {
       if(!vActive || !vQueue.length){
         vActive = false;
-        setTimeout(() => { if(!vActive) window.pauseVoiceOnly(); }, 950);
+        setTimeout(() => { if(!vActive) window.pauseVoiceOnly(); }, 1000);
         return;
       }
       const seg = vQueue.shift();
@@ -5148,7 +5130,6 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     runNext();
   }
 
-  /* ইভেন্ট শিট ও ফলাফল পাতায় স্থায়ীভাবে কণ্ঠস্বর ও স্পিড সিলেক্টর বসানো */
   function injectPermanentVoiceSelectors(){
     document.querySelectorAll('button[onclick*="speakEventCallout"], button[onclick*="speakAllResults"]').forEach(btn => {
       if(!btn.previousElementSibling || !btn.previousElementSibling.classList.contains('sa-vspd-sel')){
@@ -5170,7 +5151,7 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
   const cmpC = (x,y) => String(x.chest).replace('T','') - String(y.chest).replace('T','');
   const getCustomAudio = k => (DB.vaudio||{})[String(k||'').trim().toUpperCase()] || null;
 
-  /* ১. ইভেন্ট শিট কলিং ঘোষণা: স্বাভাবিক ছন্দে ও স্পষ্টভাবে প্রতিটি প্রতিযোগীর চেস্ট, নাম ও ইউনিট ডাকা */
+  /* ১. ইভেন্ট শিট কলিং ঘোষণা: পুরুষ কণ্ঠেও যাতে কোনো নেটওয়ার্ক বিরতি ছাড়া একদম দ্রুত বলে সেজন্য ছোট ও চটপটে ফ্রেজিং */
   window.speakEventCallout = function(){
     const [c,s,e] = ALLEV[SHSEL] || [];
     if(!e) return;
@@ -5180,44 +5161,44 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     const catStr = toPureBanglaText(`${CN[c]}${s?' '+SN[s]+' বিভাগ':''}`);
     const evStr = toPureBanglaText(e);
     const segs = [
-      { text: `মনোযোগ দিন! এখনই শুরু হতে চলেছে, ${catStr}-এর ${evStr} প্রতিযোগিতা। প্রস্তুত থাকো প্রতিযোগীরা! চেস্ট নম্বর ও নাম ডাকা হচ্ছে—`, pause: 40 }
+      { text: `মনোযোগ দিন! এখনই শুরু হচ্ছে ${catStr}-এর ${evStr}। প্রস্তুত থাকো প্রতিযোগীরা!`, pause: 5 }
     ];
     a.forEach(x => {
       const l = loc(x), rawUnit = ME.role==='gp' ? l.s : (l.u || l.s);
       const pName = toPureBanglaText(x.bn || x.name), uName = toPureBanglaText(rawUnit), chStr = toPureBanglaText(x.chest);
       const clip = getCustomAudio(rawUnit);
       if(clip){
-        segs.push({ text: `চেস্ট নম্বর ${chStr}, ${pName},`, pause: 10 });
-        segs.push({ text: uName, audioUrl: clip, pause: 30 });
+        segs.push({ text: `চেস্ট ${chStr}, ${pName}`, pause: 5 });
+        segs.push({ text: uName, audioUrl: clip, pause: 5 });
       } else {
-        segs.push({ text: `চেস্ট নম্বর ${chStr} — ${pName}, ${uName}।`, pause: 30 });
+        segs.push({ text: `চেস্ট ${chStr}, ${pName}, ${uName}`, pause: 5 });
       }
     });
-    segs.push({ text: `সকল প্রতিযোগীকে অবিলম্বে শুরুর লাইনে উপস্থিত হওয়ার জন্য অনুরোধ করা হচ্ছে।` });
+    segs.push({ text: `সকল প্রতিযোগী অবিলম্বে শুরুর লাইনে উপস্থিত হও।` });
     startStadiumAnnouncement(segs, 'callout');
   };
 
-  /* ২. একক ফলাফল ঘোষণা: সুন্দর ও স্বাভাবিক ছন্দে ফলাফল ঘোষণা */
+  /* ২. একক ফলাফল ঘোষণা */
   window.speakResultSlow = function(rid){
     const x = DB.r.find(r=>r.id===rid); if(!x) return;
     const catStr = toPureBanglaText(`${CN[x.cat]}${x.sec?' '+SN[x.sec]+' বিভাগ':''}`);
     const evStr = toPureBanglaText(x.ev);
-    const pWords = ['প্রথম স্থান অধিকার করেছে','দ্বিতীয় স্থান অধিকার করেছে','তৃতীয় স্থান অধিকার করেছে','চতুর্থ স্থান অধিকার করেছে'];
+    const pWords = ['প্রথম স্থান','দ্বিতীয় স্থান','তৃতীয় স্থান','চতুর্থ স্থান'];
     const segs = [
-      { text: `সুধী দর্শকবৃন্দ, এখন ঘোষণা করা হচ্ছে, ${catStr}-এর ${evStr} প্রতিযোগিতার চূড়ান্ত ফলাফল।`, pause: 60 }
+      { text: `সুধী দর্শকবৃন্দ, এখন ঘোষণা করা হচ্ছে ${catStr}-এর ${evStr} প্রতিযোগিতার চূড়ান্ত ফলাফল।`, pause: 25 }
     ];
     (x.win||[]).sort((a,b)=>a.pos-b.pos).forEach(w=>{
       const a = byChest(w.chest, x.cat);
       const pName = toPureBanglaText((a&&a.bn) ? a.bn : w.name), uName = toPureBanglaText(w.school), chStr = toPureBanglaText(w.chest);
       const clip = getCustomAudio(w.school);
       if(clip){
-        segs.push({ text: `${pWords[w.pos-1]||w.pos+'ম স্থান'}, চেস্ট নম্বর ${chStr}, ${pName},`, pause: 20 });
-        segs.push({ text: uName, audioUrl: clip, pause: 70 });
+        segs.push({ text: `${pWords[w.pos-1]||w.pos+'ম স্থান'}, চেস্ট ${chStr}, ${pName}`, pause: 10 });
+        segs.push({ text: uName, audioUrl: clip, pause: 35 });
       } else {
-        segs.push({ text: `${pWords[w.pos-1]||w.pos+'ম স্থান'} — চেস্ট নম্বর ${chStr}, ${pName}, ${uName}।`, pause: 70 });
+        segs.push({ text: `${pWords[w.pos-1]||w.pos+'ম স্থান'}, চেস্ট ${chStr}, ${pName}, ${uName}`, pause: 35 });
       }
     });
-    segs.push({ text: `বিজয়ী সকল প্রতিযোগীকে আমাদের পক্ষ থেকে জানাই আন্তরিক অভিনন্দন!` });
+    segs.push({ text: `বিজয়ী সকল প্রতিযোগীকে জানাই আন্তরিক অভিনন্দন!` });
     startStadiumAnnouncement(segs, 'result');
   };
 
@@ -5226,15 +5207,15 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     const rs = (ME && typeof rsScope==='function') ? rsScope() : (DB.r||[]);
     if(!rs.length) return info('এখনও কোনো ফলাফল প্রকাশিত হয়নি।');
     const pWords = ['প্রথম স্থান','দ্বিতীয় স্থান','তৃতীয় স্থান','চতুর্থ স্থান'];
-    const segs = [{ text: `সুধী দর্শকবৃন্দ, এখন ঘোষণা করা হচ্ছে আজকের প্রতিযোগিতার প্রকাশিত ফলাফলসমূহ।`, pause: 60 }];
+    const segs = [{ text: `সুধী দর্শকবৃন্দ, এখন ঘোষণা করা হচ্ছে আজকের প্রতিযোগিতার প্রকাশিত ফলাফলসমূহ।`, pause: 25 }];
     rs.forEach(x=>{
       const catStr = toPureBanglaText(`${CN[x.cat]}${x.sec?' '+SN[x.sec]+' বিভাগ':''}`);
       const evStr = toPureBanglaText(x.ev);
-      segs.push({ text: `${catStr}-এর ${evStr} প্রতিযোগিতা—`, pause: 40 });
+      segs.push({ text: `${catStr}-এর ${evStr} প্রতিযোগিতা`, pause: 20 });
       (x.win||[]).sort((a,b)=>a.pos-b.pos).forEach(w=>{
         const a = byChest(w.chest, x.cat);
         const pName = toPureBanglaText((a&&a.bn) ? a.bn : w.name), uName = toPureBanglaText(w.school);
-        segs.push({ text: `${pWords[w.pos-1]} — চেস্ট নম্বর ${toPureBanglaText(w.chest)}, ${pName}, ${uName}।`, pause: 60 });
+        segs.push({ text: `${pWords[w.pos-1]}, চেস্ট ${toPureBanglaText(w.chest)}, ${pName}, ${uName}`, pause: 30 });
       });
     });
     startStadiumAnnouncement(segs, 'result');
