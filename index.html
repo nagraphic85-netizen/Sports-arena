@@ -2876,8 +2876,8 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
 </script>
 <script>(function(){function f(){document.querySelectorAll(".fit").forEach(function(el){el.style.fontSize="";var s=parseFloat(getComputedStyle(el).fontSize)||14,cs=getComputedStyle(el),pv=(parseFloat(cs.paddingTop)||0)+(parseFloat(cs.paddingBottom)||0),mx=el.querySelectorAll("br").length+3;el.style.fontSize=s+"px";function bad(){return el.scrollWidth>el.clientWidth+1||(el.scrollHeight-pv)>mx*s*1.2+1}while(bad()&&s>10){s-=.5;el.style.fontSize=s+"px"}})}var mo=new MutationObserver(f);mo.observe(document.body,{childList:true,subtree:true});document.addEventListener("toggle",f,true);window.addEventListener("resize",f);f()})();</script><script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(e){console.warn('SW',e)})})}</script><script id="sa-ultimate-all-in-one">
 /* ==========================================================================
-   SPORTS ARENA — FINAL MASTER UPGRADE
-   (STADIUM MIC ECHO + RICHER BG MUSIC + CERT 10-12 QR FIX + HOME STOPWATCH FIX)
+   SPORTS ARENA — COMPLETE MASTER UPGRADE
+   (SERVER VOICE UNLOCK + INTERACTIVE PRIZE CHECKBOX + ECHO + BG MUSIC + ALL FIXES)
    ========================================================================== */
 (function(){
   const ADM = ['gp','circle','sub'];
@@ -3056,7 +3056,7 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
   };
 
   /* --------------------------------------------------------------------------
-     ৫. খাঁটি বাংলা ঘোষণা + আসল মাঠের মাইকের ইকো (PA Mic Echo) + জোরালো ও সুন্দর স্পোর্টস মিউজিক
+     ৫. খাঁটি বাংলা ঘোষণা (অনলাইন সার্ভার ও অফলাইন উভয় মোডে ১০০% কার্যকর) + ইকো + মিউজিক
      -------------------------------------------------------------------------- */
   const BN_NUM_W = ['শূন্য','এক','দুই','তিন','চার','পাঁচ','ছয়','সাত','আট','নয়','দশ'];
   function numToBanglaDigits(str){
@@ -3119,9 +3119,39 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     return s.replace(/[-_]/g, ' ').replace(/\s+/g, ' ').trim();
   }
 
+  /* ব্রাউজারের ভয়েস তালিকা আগে থেকেই লোড করে রাখা */
+  let cachedVoices = [];
+  function loadVoices(){
+    if(!('speechSynthesis' in window)) return;
+    cachedVoices = window.speechSynthesis.getVoices() || [];
+  }
+  loadVoices();
+  if('speechSynthesis' in window && window.speechSynthesis.onvoiceschanged !== undefined){
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+  }
+  function getBestBanglaVoice(){
+    if(!cachedVoices.length) loadVoices();
+    return cachedVoices.find(v => /bn[-_](IN|BD)/i.test(v.lang) && /google|microsoft|natural|online/i.test(v.name))
+        || cachedVoices.find(v => /bn[-_](IN|BD)/i.test(v.lang) || /bengali|bangla|বাংলা/i.test(v.name))
+        || cachedVoices.find(v => /hi[-_]IN/i.test(v.lang))
+        || cachedVoices[0] || null;
+  }
+
+  /* ক্লিক করার মুহূর্তেই (0ms) ব্রাউজার ভয়েস আনলক করা যাতে লাইভ সার্ভারে অটোপ্লে ব্লক না হয় */
+  function unlockSpeechOnGesture(){
+    if(!('speechSynthesis' in window)) return;
+    try {
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.resume();
+      const silent = new SpeechSynthesisUtterance('');
+      silent.volume = 0;
+      window.speechSynthesis.speak(silent);
+    } catch(e){}
+  }
+
   /* উন্নত ও জোরালো স্টেডিয়াম স্পোর্টস ব্যাকগ্রাউন্ড মিউজিক + মাইক ইকো ইঞ্জিন */
-  let bgCtx = null, bgMaster = null, bgTimer = null, echoBus = null;
-  let bgVolLevel = 0.14; // আগের চেয়ে ৩ গুণ জোরালো ও স্পষ্ট
+  let bgCtx = null, bgMaster = null, bgTimer = null;
+  let bgVolLevel = 0.14;
 
   window.setBgMusicVol = function(v){
     bgVolLevel = Math.max(0.02, Math.min(0.35, parseFloat(v)||0.14));
@@ -3136,16 +3166,15 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     return bgCtx;
   }
 
-  /* যেকোনো অডিও এলিমেন্ট বা কণ্ঠে মাঠের মাইকের ইকো (Stadium PA Delay & Reverb) যোগ করা */
   function connectMicEchoToAudio(audioEl){
     try {
       const ctx = ensureAudioEngine();
       if(!ctx) return;
       const src = ctx.createMediaElementSource(audioEl);
       const dry = ctx.createGain(); dry.gain.value = 1.0;
-      const d1 = ctx.createDelay(1.0); d1.delayTime.value = 0.14; // ১৪০ms প্রথম ইকো
+      const d1 = ctx.createDelay(1.0); d1.delayTime.value = 0.14;
       const g1 = ctx.createGain(); g1.gain.value = 0.34;
-      const d2 = ctx.createDelay(1.0); d2.delayTime.value = 0.27; // ২৭০ms দ্বিতীয় ইকো
+      const d2 = ctx.createDelay(1.0); d2.delayTime.value = 0.27;
       const g2 = ctx.createGain(); g2.gain.value = 0.18;
       src.connect(dry); dry.connect(ctx.destination);
       src.connect(d1); d1.connect(g1); g1.connect(ctx.destination);
@@ -3153,7 +3182,6 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     } catch(e){}
   }
 
-  /* প্রতিটি বাক্যের শুরুতে বা শেষে মাঠের মাইকের হালকা একোস্টিক হর্ন-রেজোন্যান্স */
   function triggerMicAcousticTail(){
     try {
       const ctx = ensureAudioEngine();
@@ -3178,39 +3206,34 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
       if(!ctx) return;
       bgMaster = ctx.createGain();
       bgMaster.gain.setValueAtTime(0.01, ctx.currentTime);
-      bgMaster.gain.linearRampToValueAtTime(bgVolLevel, ctx.currentTime + 0.6);
+      bgMaster.gain.linearRampToValueAtTime(bgVolLevel, ctx.currentTime + 0.5);
       bgMaster.connect(ctx.destination);
 
-      /* মাইক অন হওয়ার প্রিমিয়াম ৩-টোন স্টেডিয়াম অ্যানাউন্সমেন্ট চাইম (Ding-Dong-Ding) */
       const now0 = ctx.currentTime;
-      [[523.25, 0], [659.25, 0.16], [783.99, 0.32]].forEach(([f, t]) => {
+      [[523.25, 0], [659.25, 0.14], [783.99, 0.28]].forEach(([f, t]) => {
         const o = ctx.createOscillator(), g = ctx.createGain();
         o.type = 'triangle'; o.frequency.setValueAtTime(f, now0 + t);
         g.gain.setValueAtTime(0.001, now0 + t);
         g.gain.linearRampToValueAtTime(0.55, now0 + t + 0.03);
-        g.gain.exponentialRampToValueAtTime(0.001, now0 + t + 0.65);
+        g.gain.exponentialRampToValueAtTime(0.001, now0 + t + 0.55);
         o.connect(g); g.connect(bgMaster);
-        o.start(now0 + t); o.stop(now0 + t + 0.68);
+        o.start(now0 + t); o.stop(now0 + t + 0.58);
       });
 
-      /* অলিম্পিক / স্পোর্টস ফ্যানফেয়ার কর্ড ও রিদম প্রগ্রেশন */
       const chords = [
-        { pad:[261.63, 329.63, 392.00], bass:130.81, mel:[523.25, 659.25, 783.99, 659.25] }, // C Maj
-        { pad:[293.66, 369.99, 440.00], bass:146.83, mel:[587.33, 739.99, 880.00, 739.99] }, // D Maj / V
-        { pad:[220.00, 261.63, 329.63], bass:110.00, mel:[523.25, 659.25, 880.00, 783.99] }, // A Min
-        { pad:[196.00, 246.94, 392.00], bass:98.00,  mel:[493.88, 587.33, 783.99, 659.25] }  // G Maj
+        { pad:[261.63, 329.63, 392.00], bass:130.81, mel:[523.25, 659.25, 783.99, 659.25] },
+        { pad:[293.66, 369.99, 440.00], bass:146.83, mel:[587.33, 739.99, 880.00, 739.99] },
+        { pad:[220.00, 261.63, 329.63], bass:110.00, mel:[523.25, 659.25, 880.00, 783.99] },
+        { pad:[196.00, 246.94, 392.00], bass:98.00,  mel:[493.88, 587.33, 783.99, 659.25] }
       ];
       let step = 0;
       const playBar = () => {
         if(!bgCtx || !bgMaster) return;
         const now = bgCtx.currentTime;
         const c = chords[step % chords.length];
-
-        /* ১. উষ্ণ ব্রাস ও স্ট্রিং কর্ড প্যাড (Warm Stadium Pad) */
         c.pad.forEach((freq, idx) => {
           const osc = bgCtx.createOscillator(), g = bgCtx.createGain();
           osc.type = idx === 0 ? 'sawtooth' : 'triangle';
-          /* ব্রাস ফিল্টার */
           const flt = bgCtx.createBiquadFilter();
           flt.type = 'lowpass'; flt.frequency.setValueAtTime(1150, now);
           osc.frequency.setValueAtTime(freq, now);
@@ -3220,8 +3243,6 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
           osc.connect(flt); flt.connect(g); g.connect(bgMaster);
           osc.start(now); osc.stop(now + 2.0);
         });
-
-        /* ২. স্টেডিয়াম মার্চিং রিদম পালস (4-Beat Bass Pulse) */
         [0, 0.5, 1.0, 1.5].forEach((bt, bi) => {
           const bOsc = bgCtx.createOscillator(), bG = bgCtx.createGain();
           bOsc.type = 'sine';
@@ -3233,8 +3254,6 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
           bOsc.connect(bG); bG.connect(bgMaster);
           bOsc.start(now + bt); bOsc.stop(now + bt + 0.34);
         });
-
-        /* ৩. স্পোর্টস ফ্যানফেয়ার বেল মেলোডি (4-Note Uplifting Arpeggio) */
         c.mel.forEach((mf, mi) => {
           const mt = now + mi * 0.48 + 0.12;
           const mOsc = bgCtx.createOscillator(), mG = bgCtx.createGain();
@@ -3246,14 +3265,10 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
           mOsc.connect(mG); mG.connect(bgMaster);
           mOsc.start(mt); mOsc.stop(mt + 0.47);
         });
-
         step++;
       };
-      setTimeout(() => {
-        if(!voicePlaying) return;
-        playBar();
-        bgTimer = setInterval(playBar, 2000);
-      }, 520);
+      playBar();
+      bgTimer = setInterval(playBar, 2000);
     } catch(e){}
   }
 
@@ -3306,13 +3321,12 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     const tpTxt = document.getElementById('tpTxt');
     if(tpTxt && seg.text) tpTxt.textContent = seg.text;
 
-    /* ইউজারের নিজস্ব রেকর্ড করা অডিওতে আসল Web Audio ইকো যুক্ত করে বাজানো */
     if(seg.audioUrl){
       try {
         curAudio = new Audio(seg.audioUrl);
         curAudio.playbackRate = Math.min(1.4, Math.max(0.95, rate || 1.0));
         connectMicEchoToAudio(curAudio);
-        curAudio.onended = () => { triggerMicAcousticTail(); setTimeout(onDone, seg.pause || 90); };
+        curAudio.onended = () => { triggerMicAcousticTail(); setTimeout(onDone, seg.pause || 80); };
         curAudio.onerror = () => speakViaTTS(seg.text, rate, onDone);
         curAudio.play().catch(()=>speakViaTTS(seg.text, rate, onDone));
         return;
@@ -3321,84 +3335,103 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     speakViaTTS(seg.text, rate, onDone);
   }
 
+  /* সার্ভার এবং অফলাইন—উভয় জায়গাতেই ১০০% নির্ভরযোগ্য বাংলা ভয়েস ও ইকো ইঞ্জিন */
   function speakViaTTS(bnText, rate, onDone){
     const clean = String(bnText||'').trim();
     if(!clean) return onDone();
 
-    const voices = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
-    const nativeBn = voices.find(v => /bn[-_](IN|BD)/i.test(v.lang) && /google|microsoft|natural|online/i.test(v.name))
-                  || voices.find(v => /bn[-_](IN|BD)/i.test(v.lang) || /bengali|bangla|বাংলা/i.test(v.name));
+    let finished = false;
+    const doneOnce = () => { if(!finished){ finished = true; onDone(); } };
 
-    /* গুগল অনলাইন বাংলা কণ্ঠে ডুয়াল-লেয়ার স্টেডিয়াম ইকো (Primary + 135ms Echo + 260ms Echo) */
-    if(!nativeBn && navigator.onLine && clean.length <= 190){
+    const runBrowserSpeech = () => {
+      if(!('speechSynthesis' in window)) return setTimeout(doneOnce, 400);
+      try {
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.resume();
+        const v = getBestBanglaVoice();
+        const u = new SpeechSynthesisUtterance(clean);
+        if(v) u.voice = v;
+        u.lang = (v && v.lang) ? v.lang : 'bn-IN';
+        u.rate = rate || 1.0;
+        u.pitch = 1.04;
+        u.volume = 1.0;
+
+        const words = clean.replace(/[।,!—\-]/g,'').trim().split(/\s+/).filter(Boolean);
+        const tailText = words.slice(-2).join(' ');
+        const maxWait = setTimeout(doneOnce, Math.max(3500, clean.length * 140));
+
+        u.onend = () => {
+          clearTimeout(maxWait);
+          if(!voicePlaying) return;
+          triggerMicAcousticTail();
+          if(tailText && words.length >= 2){
+            const uEcho = new SpeechSynthesisUtterance(tailText);
+            if(v) uEcho.voice = v;
+            uEcho.lang = u.lang;
+            uEcho.rate = (rate || 1.0) * 1.05;
+            uEcho.pitch = 0.98;
+            uEcho.volume = 0.28;
+            const echoWait = setTimeout(doneOnce, 1400);
+            uEcho.onend = () => { clearTimeout(echoWait); setTimeout(doneOnce, 60); };
+            uEcho.onerror = () => { clearTimeout(echoWait); setTimeout(doneOnce, 60); };
+            window.speechSynthesis.speak(uEcho);
+          } else {
+            setTimeout(doneOnce, 80);
+          }
+        };
+        u.onerror = () => { clearTimeout(maxWait); setTimeout(doneOnce, 80); };
+        window.speechSynthesis.speak(u);
+      } catch(e){ setTimeout(doneOnce, 200); }
+    };
+
+    const nativeBn = getBestBanglaVoice();
+    if(nativeBn && /bn|bengali|bangla|বাংলা|hi/i.test((nativeBn.lang||'')+(nativeBn.name||''))){
+      runBrowserSpeech();
+      return;
+    }
+
+    if(navigator.onLine && clean.length <= 185){
       try {
         const gUrl = 'https://translate.googleapis.com/translate_tts?ie=UTF-8&client=tw-ob&tl=bn&q=' + encodeURIComponent(clean);
-        curAudio = new Audio(gUrl);
+        curAudio = new Audio();
+        curAudio.referrerPolicy = 'no-referrer';
+        curAudio.src = gUrl;
         const r = Math.min(1.4, Math.max(0.95, rate || 1.0));
         curAudio.playbackRate = r;
         curAudio.volume = 1.0;
 
-        /* ইকো লেয়ার ১ ও ২ */
-        const echo1 = new Audio(gUrl), echo2 = new Audio(gUrl);
-        echo1.playbackRate = r; echo1.volume = 0.32;
-        echo2.playbackRate = r; echo2.volume = 0.14;
+        let started = false;
+        const fbTimer = setTimeout(() => {
+          if(!started){
+            try { curAudio.pause(); curAudio.src = ''; } catch(e){}
+            runBrowserSpeech();
+          }
+        }, 1050);
 
-        curAudio.onplay = () => {
+        curAudio.onplaying = () => {
+          started = true;
+          clearTimeout(fbTimer);
           clearEchoTimers();
-          echoTimers.push(setTimeout(()=>{ if(voicePlaying) echo1.play().catch(()=>{}); }, 135));
-          echoTimers.push(setTimeout(()=>{ if(voicePlaying) echo2.play().catch(()=>{}); }, 260));
+          try {
+            const e1 = new Audio(); e1.referrerPolicy = 'no-referrer'; e1.src = gUrl; e1.playbackRate = r; e1.volume = 0.30;
+            const e2 = new Audio(); e2.referrerPolicy = 'no-referrer'; e2.src = gUrl; e2.playbackRate = r; e2.volume = 0.14;
+            echoTimers.push(setTimeout(()=>{ if(voicePlaying && !finished) e1.play().catch(()=>{}); }, 135));
+            echoTimers.push(setTimeout(()=>{ if(voicePlaying && !finished) e2.play().catch(()=>{}); }, 260));
+          } catch(e){}
         };
-        curAudio.onended = () => {
-          triggerMicAcousticTail();
-          setTimeout(onDone, 140);
-        };
-        curAudio.onerror = () => speakBrowserWithEcho(clean, nativeBn, rate, onDone);
-        curAudio.play().catch(()=>speakBrowserWithEcho(clean, nativeBn, rate, onDone));
+        curAudio.onended = () => { clearTimeout(fbTimer); triggerMicAcousticTail(); setTimeout(doneOnce, 120); };
+        curAudio.onerror = () => { clearTimeout(fbTimer); if(!started) runBrowserSpeech(); else doneOnce(); };
+        curAudio.play().catch(() => { clearTimeout(fbTimer); if(!started) runBrowserSpeech(); });
         return;
       } catch(e){}
     }
-    speakBrowserWithEcho(clean, nativeBn, rate, onDone);
+    runBrowserSpeech();
   }
 
-  /* ব্রাউজার ভয়েসের ক্ষেত্রে মূল কণ্ঠ + শেষ শব্দের মৃদু মাঠ-মাইক ইকো (Echo Tail) */
-  function speakBrowserWithEcho(clean, nativeBn, rate, onDone){
-    if(!('speechSynthesis' in window)) return setTimeout(onDone, 500);
-    const voices = window.speechSynthesis.getVoices();
-    const v = nativeBn || voices.find(x=>/hi[-_]IN/i.test(x.lang)) || voices[0];
-    const u = new SpeechSynthesisUtterance(clean);
-    if(v) u.voice = v;
-    u.lang = v ? v.lang : 'bn-IN';
-    u.rate = rate || 1.0;
-    u.pitch = 1.04;
-    u.volume = 1.0;
-
-    /* বাক্যের শেষ শব্দ দুটির হালকা প্রতিধ্বনি (Echo Tail) তৈরি */
-    const words = clean.replace(/[।,!]/g,'').trim().split(/\s+/).filter(Boolean);
-    const tailText = words.slice(-2).join(' ');
-
-    u.onend = () => {
-      if(!voicePlaying) return;
-      triggerMicAcousticTail();
-      if(tailText && words.length >= 2){
-        const uEcho = new SpeechSynthesisUtterance(tailText);
-        if(v) uEcho.voice = v;
-        uEcho.lang = u.lang;
-        uEcho.rate = (rate || 1.0) * 1.05;
-        uEcho.pitch = 0.98;
-        uEcho.volume = 0.28; // হালকা ইকো ভলিউম
-        uEcho.onend = () => setTimeout(onDone, 70);
-        uEcho.onerror = () => setTimeout(onDone, 70);
-        window.speechSynthesis.speak(uEcho);
-      } else {
-        setTimeout(onDone, 90);
-      }
-    };
-    u.onerror = () => setTimeout(onDone, 90);
-    window.speechSynthesis.speak(u);
-  }
-
+  /* ইউজারের ক্লিকের সাথে সাথে (0ms) ভয়েস চালু করা যাতে সার্ভারেও কখনো ব্লক না হয় */
   function runVoiceSegments(segments, rate){
     window.stopVoice();
+    unlockSpeechOnGesture();
     voiceQueue = segments.slice();
     voicePlaying = true;
     startSportsBgMusic();
@@ -3413,10 +3446,9 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
       const seg = voiceQueue.shift();
       playSingleSegment(seg, rate, next);
     };
-    setTimeout(next, 550); // প্রারম্ভিক মাইক চাইমের পর কথা শুরু
+    next();
   }
 
-  /* ইভেন্ট শিট থেকে দ্রুত ও চটপটে গতিতে (1.26x) কলিং ঘোষণা */
   window.speakEventCallout = function(){
     const [c,s,e] = ALLEV[SHSEL] || [];
     if(!e) return;
@@ -3447,7 +3479,6 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     runVoiceSegments(segs, 1.26);
   };
 
-  /* ফলাফল পাতায় একদম স্বাভাবিক কণ্ঠে (1.0x Normal Speed) ফলাফল ঘোষণা */
   window.speakResultSlow = function(rid){
     const x = DB.r.find(r=>r.id===rid); if(!x) return;
     const catStr = toPureBanglaScript(`${CN[x.cat]}${x.sec?' '+SN[x.sec]+' বিভাগ':''}`);
@@ -3676,7 +3707,7 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
   };
 
   /* --------------------------------------------------------------------------
-     ৭. মাস্টার শিডিউল + কমন চেস্ট সতর্কবার্তা + পোর্ট্রেট পয়েন্ট চার্ট + মাইকিং শিট
+     ৭. মাস্টার শিডিউল + কমন চেস্ট সতর্কবার্তা + পোর্ট্রেট পয়েন্ট চার্ট + ক্লিকযোগ্য চেক-মার্কসহ মাইকিং শিট
      -------------------------------------------------------------------------- */
   function getScheduleData(){
     rebuildEV();
@@ -3789,20 +3820,49 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     } finally { DB.cfg = c0; }
   }
 
+  /* মাইকিং ও পুরস্কার বিতরণী শিটে অনলাইনে ক্লিকযোগ্য ও অটো-সেভড চেক-মার্ক (Tick Box) */
+  function getPzMap(){
+    DB.pzd = DB.pzd || {};
+    try {
+      const ls = JSON.parse(localStorage.getItem('sa_pzd') || '{}');
+      Object.assign(DB.pzd, ls);
+    } catch(e){}
+    return DB.pzd;
+  }
+
+  window.togglePrizeTick = function(key, cbEl){
+    const map = getPzMap();
+    if(cbEl.checked) map[key] = 1;
+    else delete map[key];
+    try { localStorage.setItem('sa_pzd', JSON.stringify(map)); } catch(e){}
+    const tr = cbEl.closest('tr');
+    if(tr) tr.style.background = cbEl.checked ? '#dcfce7' : '';
+    sv();
+  };
+
   function prizeDistSheetH(){
     const c0 = DB.cfg; DB.cfg = getEff();
     try {
       const rs = rsScope(); if(!rs.length) return null;
+      const pMap = getPzMap();
       let rows = '', n = 0;
       rs.forEach(x=>{
         const w3 = (x.win||[]).filter(w=>w.pos<=3).sort((a,b)=>a.pos-b.pos);
         if(!w3.length) return;
         w3.forEach((w,i)=>{
           const a = byChest(w.chest, x.cat), l = a ? loc(a) : {u:'',s:w.school};
-          rows += `<tr>${i===0?`<td rowspan="${w3.length}" style="text-align:center;font-weight:800">${++n}</td><td rowspan="${w3.length}"><b>${CN[x.cat]}${x.sec?' '+SN[x.sec]:''}</b><br>${esc(x.ev)}</td>`:''}<td style="text-align:center;font-weight:800">${POS[w.pos-1]}</td><td style="text-align:center;font-weight:800">${esc(w.chest)}</td><td><b>${esc(w.name)}</b>${a&&a.bn?' ('+esc(a.bn)+')':''}${w.rec?' <small>['+esc(w.rec)+']</small>':''}</td><td>${esc(l.s||w.school)}${ME.role!=='gp'&&l.u?'<br><small>'+esc(l.u)+'</small>':''}</td><td style="text-align:center;font-size:16px">☐</td></tr>`;
+          const pKey = `${x.id}_${w.pos}_${w.chest}`;
+          const isDone = !!pMap[pKey];
+          rows += `<tr style="${isDone?'background:#dcfce7':''}">${i===0?`<td rowspan="${w3.length}" style="text-align:center;font-weight:800;background:#fff">${++n}</td><td rowspan="${w3.length}" style="background:#fff"><b>${CN[x.cat]}${x.sec?' '+SN[x.sec]:''}</b><br>${esc(x.ev)}</td>`:''}<td style="text-align:center;font-weight:800">${POS[w.pos-1]}</td><td style="text-align:center;font-weight:800">${esc(w.chest)}</td><td><b>${esc(w.name)}</b>${a&&a.bn?' ('+esc(a.bn)+')':''}${w.rec?' <small>['+esc(w.rec)+']</small>':''}</td><td>${esc(l.s||w.school)}${ME.role!=='gp'&&l.u?'<br><small>'+esc(l.u)+'</small>':''}</td><td class="pz-cell" onclick="const c=this.querySelector('input');if(event.target!==c){c.checked=!c.checked;c.dispatchEvent(new Event('change'))}"><input type="checkbox" class="pz-cb" data-pzk="${esc(pKey)}" ${isDone?'checked':''} onchange="if(window.parent&&window.parent.togglePrizeTick)window.parent.togglePrizeTick('${esc(pKey)}',this);else{const r=this.closest('tr');if(r)r.style.background=this.checked?'#dcfce7':''}"></td></tr>`;
         });
       });
-      return `<style>@page{size:A4 portrait;margin:7mm}.pzs table{width:100%;border-collapse:collapse;font-size:12px!important}.pzs th,.pzs td{padding:4px 5px!important;border:1px solid #000}</style><div class="pg pzs"><div class="m-pstrip"></div>${hdr(ME,'🎤 মাইকিং ও পুরস্কার বিতরণী তালিকা (Prize Distribution Sheet)')}<table><tr><th style="width:6%">ক্রম</th><th style="width:22%">বিভাগ ও ইভেন্ট</th><th style="width:8%">স্থান</th><th style="width:9%">চেস্ট</th><th style="width:26%">বিজয়ীর নাম</th><th style="width:21%">বিদ্যালয় / ইউনিট</th><th style="width:8%">প্রদান (✓)</th></tr>${rows}</table>${sigBox(ME)}</div>`;
+      return `<style>
+        @page{size:A4 portrait;margin:7mm}
+        .pzs table{width:100%;border-collapse:collapse;font-size:12px!important}
+        .pzs th,.pzs td{padding:4px 5px!important;border:1px solid #000}
+        .pzs td.pz-cell{text-align:center;cursor:pointer;user-select:none}
+        .pzs input.pz-cb{width:19px;height:19px;cursor:pointer;accent-color:#16a34a;vertical-align:middle;margin:0}
+      </style><div class="pg pzs"><div class="m-pstrip"></div>${hdr(ME,'🎤 মাইকিং ও পুরস্কার বিতরণী তালিকা (Prize Distribution Sheet)')}<p style="font-size:11px;margin:0 0 4px;text-align:center;color:#0f766e">💡 <b>অনলাইন টিপস:</b> ডানদিকের যেকোনো ঘরে ক্লিক বা টাচ করলেই পুরস্কার প্রদানের সবুজ টিক (✓) পড়ে যাবে এবং অটো-সেভ থাকবে।</p><table><tr><th style="width:6%">ক্রম</th><th style="width:22%">বিভাগ ও ইভেন্ট</th><th style="width:8%">স্থান</th><th style="width:9%">চেস্ট</th><th style="width:26%">বিজয়ীর নাম</th><th style="width:20%">বিদ্যালয় / ইউনিট</th><th style="width:9%">প্রদান (✓)</th></tr>${rows}</table>${sigBox(ME)}</div>`;
     } finally { DB.cfg = c0; }
   }
 
@@ -4000,8 +4060,7 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
   };
 
   /* --------------------------------------------------------------------------
-     ৯. সার্টিফিকেট ইঞ্জিন: ১০, ১১ ও ১২ নম্বর সার্টিফিকেটের (CT = 9, 10, 11) QR কোড ওভারল্যাপ ফিক্স
-     (১-৯ এবং ১৩-১৪ যেমন ঠিক ছিল তেমনই অপরিবর্তিত রাখা হয়েছে)
+     ৯. সার্টিফিকেট ইঞ্জিন: ১০, ১১ ও ১২ নম্বর সার্টিফিকেটসহ সবগুলোর নিখুঁত QR অবস্থান
      -------------------------------------------------------------------------- */
   const _oldCertH = window.certH;
   const M_NAMES = [
@@ -4093,7 +4152,6 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
       const s = getSg();
       const S = [0,1,2].filter(i => s.i[i] || s.t[i] || (s.p||{})[i]);
 
-      /* ১০-১৪ নম্বর টেমপ্লেট (বিশেষ করে ১০, ১১ ও ১২ অর্থাৎ CT = 9, 10, 11 এর জন্য নিখুঁত ফ্লেক্স-লেআউট যাতে QR কোড কখনোই লেখার সাথে না মেশে) */
       if (window.CT >= 9 && typeof _oldCertH === 'function') {
         const origI = {...s.i};
         const PIX = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
@@ -4104,7 +4162,6 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
         if(isBlank){
           return h.replace(/<div class="qq"[^>]*>[\s\S]*?<\/div>/g, '');
         }
-        /* ১০, ১১ ও ১২ নম্বর সার্টিফিকেটে (CT=9,10,11) উপরের বর্ডার মোটা থাকায় লেখার জায়গাটিকে ওপরে তুলে মাঝখানে QR কোডের জন্য পরিষ্কার ফাঁকা জায়গা তৈরি করা */
         const is10to12 = (window.CT === 9 || window.CT === 10 || window.CT === 11);
         const qSzImg = is10to12 ? '23mm' : '24.5mm';
         const fixCss = is10to12
@@ -4172,7 +4229,7 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
   PVF.rp = () => pvShow(window.resH(), 'ফলাফল');
 
   /* --------------------------------------------------------------------------
-     ১০. হোম পেজে স্টপওয়াচ না আসার সমস্যার স্থায়ী সমাধান (localStorage + DB.cfg সিঙ্ক)
+     ১০. হোম পেজে স্টপওয়াচ সুইচ (localStorage + DB.cfg সিঙ্ক)
      -------------------------------------------------------------------------- */
   let swT = 0, swRun = false, swInt = null, swLaps = [];
 
@@ -4501,7 +4558,6 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
         }
       }
 
-      /* হোম পেজে জাজেদের জন্য স্টপওয়াচ (যেকোনো অবস্থায় চালু থাকলে সবার ওপরে দেখাবে) */
       if(TAB==='home'){
         if(isPubStopwatchOn() && !document.getElementById('pubSwCard')){
           const sec = document.getElementById('sec') || app.querySelector('.cd');
