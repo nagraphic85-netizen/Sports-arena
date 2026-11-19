@@ -6399,4 +6399,35 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
   if(document.body) obs.observe(document.body, { childList: true, subtree: true });
   setTimeout(attachSmartLogin, 250);
 })();
+</script><script id="sa-tts-server-bridge">
+/* ==========================================================================
+   VERCEL FREE PYTHON TTS BRIDGE
+   (ইভেন্ট কলিং, ফলাফল ও স্পেশাল মাইক বোর্ডের সব /api/tts রিকোয়েস্ট Vercel-এ পাঠাবে)
+   ========================================================================== */
+(function(){
+  /* নিচে শুধু আপনার কাজ করা Vercel লিংকটি বসান (শেষে / দেবেন না) */
+  const VERCEL_TTS_URL = 'https://https://sports-91ejc48vm-nagraphic85-netizen.vercel.app';
+
+  if(!VERCEL_TTS_URL || VERCEL_TTS_URL.includes('আপনার-আসল-লিংক')) return;
+  const base = VERCEL_TTS_URL.replace(/\/+$/, '');
+
+  const origFetch = window.fetch.bind(window);
+  window.fetch = function(input, init){
+    try {
+      if(typeof input === 'string' && input.startsWith('/api/tts')){
+        return origFetch(base + input, init);
+      }
+      if(input && typeof input.url === 'string'){
+        const u = new URL(input.url, location.href);
+        if(u.pathname === '/api/tts'){
+          return origFetch(base + u.pathname + u.search, init);
+        }
+      }
+    } catch(e){}
+    return origFetch(input, init);
+  };
+
+  /* ওয়েবসাইট খোলার সাথে সাথে সার্ভার ওয়ার্ম-আপ রাখা */
+  setTimeout(() => { origFetch(base + '/').catch(()=>{}); }, 1000);
+})();
 </script></body></html>
