@@ -6401,9 +6401,9 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
 })();
 </script>
 <!-- =========================================================================
-     SPORTS PRO ADDONS v5 (Fixed .navb/.tabs anchor | Role-Based | Live Vercel TTS)
+     SPORTS PRO ADDONS v6 (Complete: Gender Honorifics | TTS Filter | Guest List | Victory Stand Prize | Schedule Announce)
      ========================================================================= -->
-<style id="sa-pro-v5-css">
+<style id="sa-pro-v6-css">
   .sa-pro-bar {
     display: flex;
     flex-wrap: wrap;
@@ -6438,7 +6438,7 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     background: var(--cd, #101f38);
     color: var(--tx, #fff);
     width: 100%;
-    max-width: 560px;
+    max-width: 590px;
     max-height: 88vh;
     overflow-y: auto;
     border-radius: 14px;
@@ -6455,8 +6455,8 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     margin-bottom: 12px;
   }
   .sa-pro-head h3 { margin: 0; font-size: 17px; color: var(--tx, #fff); }
-  .sa-pro-row { display: flex; gap: 8px; flex-wrap: wrap; }
-  .sa-pro-row > * { flex: 1; min-width: 140px; }
+  .sa-pro-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; }
+  .sa-pro-row > * { flex: 1; min-width: 125px; }
   .sa-pro-note {
     font-size: 13px;
     color: var(--tx, #e2e8f0);
@@ -6469,27 +6469,33 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
   }
   .sa-pro-sched-row {
     display: flex;
-    gap: 6px;
+    gap: 5px;
     align-items: center;
     margin-bottom: 6px;
   }
   .sa-pro-sched-row input {
     margin: 0;
-    min-height: 38px;
-    padding: 6px 8px;
-    font-size: 13.5px;
+    min-height: 36px;
+    padding: 5px 7px;
+    font-size: 13px;
   }
-  .sa-pro-over-item {
+  .sa-pro-over-item, .sa-pro-guest-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: 8px;
     padding: 7px 9px;
     margin: 5px 0;
-    background: rgba(229, 72, 77, 0.14);
-    border: 1px solid rgba(229, 72, 77, 0.5);
     border-radius: 8px;
     font-size: 13px;
+  }
+  .sa-pro-over-item {
+    background: rgba(229, 72, 77, 0.14);
+    border: 1px solid rgba(229, 72, 77, 0.5);
+  }
+  .sa-pro-guest-item {
+    background: var(--pale, rgba(255, 255, 255, 0.07));
+    border: 1px solid var(--bd, #27406a);
   }
 </style>
 
@@ -6503,9 +6509,50 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
   </div>
 </div>
 
-<script id="sa-pro-addons-v5">
+<script id="sa-pro-addons-v6">
 (function(){
-  /* ১. পর্ষদের ১৯/১১/২০২৬ সংশোধনী অনুযায়ী ডিফল্ট জন্ম-তারিখের সীমা */
+  /* =========================================================================
+     ১. অটো-উচ্চারণ ফিল্টার (সংক্ষিপ্ত শব্দগুলোকে স্পষ্ট বাংলায় রূপান্তর)
+     ========================================================================= */
+  function normalizeTtsText(raw){
+    let s = String(raw || '');
+    /* মি. -> মিটার */
+    s = s.replace(/মি\./g, 'মিটার');
+    /* প্রাঃ বিঃ / প্রা. বি. / P.S. -> প্রাথমিক বিদ্যালয় */
+    s = s.replace(/প্রা[ঃ:.]\s*বি[ঃ:.]?/g, 'প্রাথমিক বিদ্যালয়');
+    s = s.replace(/\bP\.?\s*S\.?\b/gi, 'প্রাথমিক বিদ্যালয়');
+    /* নং -> নম্বর */
+    s = s.replace(/নং\.?/g, 'নম্বর');
+    /* ১ম, ২য়, ৩য়, ৪র্থ -> প্রথম, দ্বিতীয়, তৃতীয়, চতুর্থ */
+    s = s.replace(/১ম/g, 'প্রথম')
+         .replace(/২[য়য]/g, 'দ্বিতীয়')
+         .replace(/৩[য়য]/g, 'তৃতীয়')
+         .replace(/৪র্থ/g, 'চতুর্থ');
+    /* স্ল্যাশ (/) -> এবং (যাতে যোগাসন / জিমন্যাস্টিক্স সুন্দরভাবে পড়ে) */
+    s = s.replace(/\s*\/\s*/g, ' এবং ');
+    return s.replace(/\s{2,}/g, ' ').trim();
+  }
+  window.saNormalizeTtsText = normalizeTtsText;
+
+  /* মূল স্পেশাল মাইক (announcePaText)-এও অটো-ফিল্টার যুক্ত করা */
+  if(typeof window.announcePaText === 'function' && !window.announcePaText.__saFiltered){
+    const _origPaAnnounce = window.announcePaText;
+    window.announcePaText = function(customText){
+      if(typeof customText === 'string' && customText.trim()){
+        return _origPaAnnounce.call(this, normalizeTtsText(customText));
+      }
+      const box = document.getElementById('paCustomTxt');
+      if(box && box.value.trim()){
+        return _origPaAnnounce.call(this, normalizeTtsText(box.value));
+      }
+      return _origPaAnnounce.apply(this, arguments);
+    };
+    window.announcePaText.__saFiltered = true;
+  }
+
+  /* =========================================================================
+     ২. পর্ষদের ১৯/১১/২০২৬ সংশোধনী অনুযায়ী ডিফল্ট জন্ম-তারিখের সীমা (Owner)
+     ========================================================================= */
   const DEF_AGE = { A: '2019-01-01', B: '2017-01-01', C: '2015-01-01' };
 
   function fmtDateBn(iso){
@@ -6522,7 +6569,6 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
   }
   window.saGetAgeLimits = getAgeLimits;
 
-  /* ২. মূল অ্যাপের বয়স যাচাই (updateDynamicAgeBadge) Owner-এর সেট করা তারিখ অনুযায়ী চলবে */
   const _origAgeBadge = window.updateDynamicAgeBadge;
   window.updateDynamicAgeBadge = function(inp, sec){
     try {
@@ -6555,7 +6601,9 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     }
   };
 
-  /* ৩. অ্যাডমিন-ভিত্তিক কাস্টম শিডিউল (প্রিভিউ ও প্রিন্টেও যুক্ত) */
+  /* =========================================================================
+     ৩. অ্যাডমিন-ভিত্তিক কাস্টম শিডিউল (প্রিভিউ, প্রিন্ট ও এক-ক্লিক ঘোষণা)
+     ========================================================================= */
   const DEF_SCHED = [
     { time: '০৯:৩০ - ১০:০০', track: 'উদ্বোধনী অনুষ্ঠান', field: 'অতিথিবরণ', cult: 'মশাল দৌড়' },
     { time: '১০:০০ - ১১:০০', track: '৭৫ মি. / ১০০ মি. দৌড়', field: 'দীর্ঘ লম্ফন / উচ্চ লম্ফন', cult: 'আবৃত্তি (ক ও খ)' },
@@ -6594,9 +6642,36 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     return typeof _origSchedH === 'function' ? _origSchedH.apply(this, arguments) : '';
   };
 
-  /* ৪. চালু থাকা Vercel স্পেশাল মাইক ইঞ্জিন দিয়েই ভয়েস ঘোষণা */
+  /* =========================================================================
+     ৪. সেভ করা অতিথির তালিকা (Admin-ভিত্তিক)
+     ========================================================================= */
+  function getGuestList(){
+    try {
+      const uid = (typeof ME !== 'undefined' && ME && ME.id) ? ME.id : 'default';
+      if(typeof DB !== 'undefined' && DB && DB.cfg && DB.cfg.guestListMap && Array.isArray(DB.cfg.guestListMap[uid])){
+        return DB.cfg.guestListMap[uid];
+      }
+      const ls = JSON.parse(localStorage.getItem('sa_guests_' + uid) || '[]');
+      return Array.isArray(ls) ? ls : [];
+    } catch(e){ return []; }
+  }
+
+  function saveGuestList(arr){
+    const uid = (typeof ME !== 'undefined' && ME && ME.id) ? ME.id : 'default';
+    localStorage.setItem('sa_guests_' + uid, JSON.stringify(arr));
+    if(typeof DB !== 'undefined' && DB){
+      DB.cfg = DB.cfg || {};
+      DB.cfg.guestListMap = DB.cfg.guestListMap || {};
+      DB.cfg.guestListMap[uid] = arr;
+      if(typeof sv === 'function') sv();
+    }
+  }
+
+  /* =========================================================================
+     ৫. চালু থাকা Vercel ভয়েস ইঞ্জিন দিয়েই ঘোষণা
+     ========================================================================= */
   function speakViaExistingEngine(text, prof, statusId){
-    const clean = String(text || '').trim();
+    const clean = normalizeTtsText(text);
     if(!clean) return;
     if(prof && typeof window.paSetVoiceProfile === 'function'){
       window.paSetVoiceProfile(prof);
@@ -6606,7 +6681,7 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     }
     const st = document.getElementById(statusId);
     if(typeof window.announcePaText === 'function'){
-      if(st) st.textContent = '🔊 আপনার চালু ভয়েস সার্ভারে ঘোষণা চলছে...';
+      if(st) st.textContent = '🔊 ঘোষণা চলছে: ' + clean;
       window.announcePaText(clean);
     } else {
       if(st) st.textContent = '⚠️ ভয়েস ইঞ্জিন পাওয়া যায়নি।';
@@ -6632,7 +6707,9 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
       </select>`;
   }
 
-  /* ৫. রোল ও ট্যাব অনুযায়ী ইনলাইন বার বসানো (.navb / .tabs / .top সব ক্ষেত্রেই কাজ করবে) */
+  /* =========================================================================
+     ৬. রোল ও ট্যাব অনুযায়ী ইনলাইন বার (হোম ট্যাব ও স্কুল লগইনে সম্পূর্ণ বন্ধ)
+     ========================================================================= */
   function injectProBar(){
     try {
       const old = document.getElementById('sa-pro-inline-bar');
@@ -6643,7 +6720,6 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
       const r = ME.role;
       const t = (typeof TAB !== 'undefined') ? TAB : 'home';
 
-      /* হোম ট্যাবে বা স্কুল লগইনে কখনোই দেখাবে না */
       if(t === 'home' || r === 'school'){
         if(old) old.remove();
         return;
@@ -6652,7 +6728,6 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
       const app = document.getElementById('app');
       if(!app) return;
 
-      /* .tabs যেহেতু .navb দিয়ে রিপ্লেস হয়ে যায়, তাই .navb / .tabs / .top যেটা আছে তার ঠিক নিচে বসাবে */
       const navb = app.querySelector('.navb');
       const anchor = (navb && navb.parentNode && navb.parentNode.parentNode === app)
         ? navb.parentNode
@@ -6696,11 +6771,24 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
   };
   setInterval(injectProBar, 400);
 
-  /* ৬. পপ-আপ মোডাল */
+  /* =========================================================================
+     ৭. পপ-আপ মোডাল (৪টি ফিচার)
+     ========================================================================= */
   window.saProClose = function(){
     const ov = document.getElementById('sa-pro-overlay');
     if(ov) ov.classList.remove('open');
   };
+
+  function schedRowHtml(it){
+    return `<div class="sa-pro-sched-row">
+      <input type="text" class="sa-sc-time" value="${esc(it.time || '')}" placeholder="সময়" style="width:21%">
+      <input type="text" class="sa-sc-tr" value="${esc(it.track || '')}" placeholder="ট্র্যাক" style="width:21%">
+      <input type="text" class="sa-sc-fl" value="${esc(it.field || '')}" placeholder="ফিল্ড (যোগা / জিমন্যাস্টিক)" style="width:24%">
+      <input type="text" class="sa-sc-cl" value="${esc(it.cult || '')}" placeholder="কালচারাল" style="width:19%">
+      <button class="b s p" title="এই স্লট ঘোষণা করুন" onclick="window.saProAnnounceSchedRow(this)">🔊</button>
+      <button class="b d s" title="মুছুন" onclick="this.parentElement.remove()">✕</button>
+    </div>`;
+  }
 
   window.saProOpen = function(tab){
     const ov = document.getElementById('sa-pro-overlay');
@@ -6728,18 +6816,11 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     }
     else if(tab === 'schedule'){
       const scObj = getAdminSchedObj();
-      title.textContent = '🕒 কাস্টম শিডিউল সেট করুন (Admin)';
-      const rows = scObj.rows.map(it => `
-        <div class="sa-pro-sched-row">
-          <input type="text" class="sa-sc-time" value="${esc(it.time)}" placeholder="সময় (যেমন ১০:৩০ - ১১:১৫)" style="width:24%">
-          <input type="text" class="sa-sc-tr" value="${esc(it.track)}" placeholder="ট্র্যাক" style="width:23%">
-          <input type="text" class="sa-sc-fl" value="${esc(it.field)}" placeholder="ফিল্ড (যোগা / জিমন্যাস্টিক)" style="width:25%">
-          <input type="text" class="sa-sc-cl" value="${esc(it.cult)}" placeholder="কালচারাল" style="width:20%">
-          <button class="b d s" onclick="this.parentElement.remove()">✕</button>
-        </div>
-      `).join('');
+      title.textContent = '🕒 কাস্টম শিডিউল ও ঘোষণা (Admin)';
+      const rows = scObj.rows.map(schedRowHtml).join('');
       body.innerHTML = `
-        <label style="display:flex;align-items:center;gap:8px;margin-bottom:10px;cursor:pointer;font-size:13.5px">
+        ${voiceSelHtml('sa-sc-voice')}
+        <label style="display:flex;align-items:center;gap:8px;margin:8px 0 10px;cursor:pointer;font-size:13.5px">
           <input type="checkbox" id="sa-sc-use" ${scObj.useCustom ? 'checked' : ''} style="width:auto;min-height:auto;margin:0">
           <span>শিডিউল ট্যাবের প্রিভিউ ও প্রিন্টে এই কাস্টম শিডিউল দেখান</span>
         </label>
@@ -6747,12 +6828,13 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
         <div class="sa-pro-row" style="margin-top:10px">
           <button class="b s" onclick="window.saProAddSched()">+ নতুন স্লট</button>
           <button class="b s p" onclick="window.saProSaveSched()">💾 সেভ করুন</button>
+          <button class="b s d" onclick="window.saProStop()">⏹ থামান</button>
         </div>
-        <div id="sa-sc-msg" class="sa-pro-note">একই ঘরে একাধিক ইভেন্ট থাকলে স্ল্যাশ (/) দিয়ে লিখুন—যেমন: যোগাসন / জিমন্যাস্টিক্স।</div>
+        <div id="sa-sc-msg" class="sa-pro-note">প্রতিটি স্লটের পাশের 🔊 বাটনে চাপলেই সেই সময়ের ইভেন্টের ঘোষণা চলবে।</div>
       `;
     }
     else if(tab === 'prize'){
-      title.textContent = '🏆 পুরস্কার বিতরণী ঘোষণা';
+      title.textContent = '🏆 পুরস্কার বিতরণী (ভিক্টরি স্ট্যান্ড)';
       const rs = (typeof rsScope === 'function') ? rsScope() : ((typeof DB !== 'undefined' && DB && Array.isArray(DB.r)) ? DB.r : []);
       window._saPrizeAll = rs;
 
@@ -6781,45 +6863,85 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
           </div>
         </div>
         <div class="sa-pro-row">
-          <div>
+          <div style="flex:1.4">
             <label class="mu">পুরস্কারদাতার নাম</label>
             <input type="text" id="sa-pr-giver" placeholder="যেমন: শ্রী অরুণ কুমার রায়">
           </div>
-          <div>
-            <label class="mu">পুরস্কারদাতার পদমর্যাদা</label>
-            <input type="text" id="sa-pr-desig" placeholder="যেমন: প্রধান শিক্ষক / সভাপতি">
+          <div style="flex:1.2">
+            <label class="mu">পদমর্যাদা</label>
+            <input type="text" id="sa-pr-desig" placeholder="যেমন: প্রধান শিক্ষক">
+          </div>
+          <div style="flex:0.8;min-width:95px">
+            <label class="mu">লিঙ্গ</label>
+            <select id="sa-pr-gen">
+              <option value="M">পুরুষ</option>
+              <option value="F">মহিলা</option>
+            </select>
           </div>
         </div>
         <div id="sa-pr-win-box" class="sa-pro-note">ফলাফল নির্বাচন করুন।</div>
         <div class="sa-pro-row" style="margin-top:10px">
-          <button class="b p" onclick="window.saProAnnouncePrize()">🔊 ঘোষণা করুন</button>
-          <button class="b d" onclick="window.saProStop()">⏹ থামান</button>
+          <button class="b p" style="flex:2" onclick="window.saProAnnouncePrizeAll()">🔊 ৩য় ➔ ২য় ➔ ১ম ডাকুন ও একসঙ্গে পুরস্কার</button>
+          <button class="b d" style="flex:0.7" onclick="window.saProStop()">⏹ থামান</button>
         </div>
-        <div id="sa-pr-status" class="sa-pro-note">প্রস্তুত।</div>
+        <div class="sa-pro-row" style="margin-top:6px">
+          <button class="b s" onclick="window.saProCallStand(3)">৩য় ডাকুন</button>
+          <button class="b s" onclick="window.saProCallStand(2)">২য় ডাকুন</button>
+          <button class="b s" onclick="window.saProCallStand(1)">১ম ডাকুন</button>
+          <button class="b s p" onclick="window.saProHandoverOnce()">🎁 একসঙ্গে পুরস্কার তুলে দিন</button>
+        </div>
+        <div id="sa-pr-status" class="sa-pro-note">বিজয়ীদের ভিক্টরি স্ট্যান্ডে ডেকে একসঙ্গে সবার হাতে পুরস্কার তুলে দেওয়ার ঘোষণা হবে।</div>
       `;
       window.saProFilterPrizeEvents();
     }
     else if(tab === 'guest'){
-      title.textContent = '💐 অতিথিবরণ ঘোষণা';
+      title.textContent = '💐 অতিথিবরণ ও সেভ করা তালিকা';
       body.innerHTML = `
         ${voiceSelHtml('sa-gt-voice')}
-        <label class="mu">অতিথির নাম</label>
-        <input type="text" id="sa-gt-name" placeholder="যেমন: মাননীয় সুব্রত ঘোষ">
+        <div class="sa-pro-row">
+          <div style="flex:1.5">
+            <label class="mu">অতিথির নাম</label>
+            <input type="text" id="sa-gt-name" placeholder="যেমন: সুব্রত ঘোষ / সুমিতা সেন">
+          </div>
+          <div style="flex:0.8;min-width:95px">
+            <label class="mu">অতিথির লিঙ্গ</label>
+            <select id="sa-gt-gen">
+              <option value="M">পুরুষ</option>
+              <option value="F">মহিলা</option>
+            </select>
+          </div>
+        </div>
         <label class="mu">অতিথির পদমর্যাদা</label>
-        <input type="text" id="sa-gt-desig" placeholder="যেমন: অবর বিদ্যালয় পরিদর্শক">
-        <label class="mu">বরণকারীর নাম (ঐচ্ছিক)</label>
-        <input type="text" id="sa-gt-host" placeholder="খালি রাখলে সাধারণভাবে বরণ ঘোষণা হবে">
-        <div class="sa-pro-row" style="margin-top:10px">
-          <button class="b p" onclick="window.saProAnnounceGuest()">🔊 বরণ ঘোষণা করুন</button>
+        <input type="text" id="sa-gt-desig" placeholder="যেমন: অবর বিদ্যালয় পরিদর্শক / প্রধান শিক্ষিকা">
+        <div class="sa-pro-row">
+          <div style="flex:1.5">
+            <label class="mu">বরণকারীর নাম (ঐচ্ছিক)</label>
+            <input type="text" id="sa-gt-host" placeholder="খালি রাখলে সাধারণভাবে বরণ ঘোষণা হবে">
+          </div>
+          <div style="flex:0.8;min-width:95px">
+            <label class="mu">বরণকারীর লিঙ্গ</label>
+            <select id="sa-gt-hgen">
+              <option value="M">পুরুষ</option>
+              <option value="F">মহিলা</option>
+            </select>
+          </div>
+        </div>
+        <div class="sa-pro-row" style="margin-top:8px">
+          <button class="b p" onclick="window.saProAnnounceGuest()">🔊 এখনই বরণ করুন</button>
+          <button class="b" onclick="window.saProSaveGuest()">💾 তালিকায় সেভ করুন</button>
           <button class="b d" onclick="window.saProStop()">⏹ থামান</button>
         </div>
-        <div id="sa-gt-status" class="sa-pro-note">অতিথির নাম ও পদমর্যাদা লিখে ঘোষণা করুন।</div>
+        <div id="sa-gt-status" class="sa-pro-note">প্রস্তুত।</div>
+        <div id="sa-gt-saved-list" style="margin-top:10px"></div>
       `;
+      window.saProRenderGuests();
     }
     ov.classList.add('open');
   };
 
-  /* ৭. সেভ, বয়স স্ক্যান ও ঘোষণা ফাংশন */
+  /* =========================================================================
+     ৮. অ্যাকশন ফাংশনসমূহ
+     ========================================================================= */
   window.saProSaveAge = function(){
     const data = {
       A: document.getElementById('sa-age-a').value || DEF_AGE.A,
@@ -6832,7 +6954,7 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
       DB.cfg.ageLimits = data;
       if(typeof sv === 'function') sv();
     }
-    document.getElementById('sa-age-msg').textContent = '✅ নতুন বয়স-সীমা সেভ হয়েছে। এখন থেকে এন্ট্রি ও যাচাইয়ে এই তারিখ কার্যকর থাকবে।';
+    document.getElementById('sa-age-msg').textContent = '✅ নতুন বয়স-সীমা সেভ হয়েছে।';
   };
 
   window.saProScanOverage = function(){
@@ -6845,7 +6967,7 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
       return minD && String(x.dob).trim() < minD;
     });
     if(!bad.length){
-      box.innerHTML = `<div class="sa-pro-note">✅ বর্তমান বয়স-সীমা অনুযায়ী কোনো অযোগ্য (বয়স বেশি) প্রতিযোগী পাওয়া যায়নি।</div>`;
+      box.innerHTML = `<div class="sa-pro-note">✅ বর্তমান বয়স-সীমা অনুযায়ী কোনো অযোগ্য প্রতিযোগী পাওয়া যায়নি।</div>`;
       return;
     }
     box.innerHTML = `<div style="font-size:13px;font-weight:700;color:#e11d48;margin-bottom:6px">⚠ বয়সসীমা অতিক্রম করেছে (${bad.length} জন):</div>` +
@@ -6871,16 +6993,8 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
   };
 
   window.saProAddSched = function(){
-    const d = document.createElement('div');
-    d.className = 'sa-pro-sched-row';
-    d.innerHTML = `
-      <input type="text" class="sa-sc-time" placeholder="সময়" style="width:24%">
-      <input type="text" class="sa-sc-tr" placeholder="ট্র্যাক" style="width:23%">
-      <input type="text" class="sa-sc-fl" placeholder="ফিল্ড (যোগা / জিমন্যাস্টিক)" style="width:25%">
-      <input type="text" class="sa-sc-cl" placeholder="কালচারাল" style="width:20%">
-      <button class="b d s" onclick="this.parentElement.remove()">✕</button>
-    `;
-    document.getElementById('sa-sc-list').appendChild(d);
+    const wrap = document.getElementById('sa-sc-list');
+    if(wrap) wrap.insertAdjacentHTML('beforeend', schedRowHtml({}));
   };
 
   window.saProSaveSched = function(){
@@ -6907,6 +7021,49 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     if(typeof TAB !== 'undefined' && TAB === 'sc' && typeof draw === 'function') draw();
   };
 
+  window.saProAnnounceSchedRow = function(btn){
+    const r = btn.closest('.sa-pro-sched-row');
+    if(!r) return;
+    const prof = (document.getElementById('sa-sc-voice') || {}).value;
+    const tm = r.querySelector('.sa-sc-time').value.trim();
+    const tr = r.querySelector('.sa-sc-tr').value.trim();
+    const fl = r.querySelector('.sa-sc-fl').value.trim();
+    const cl = r.querySelector('.sa-sc-cl').value.trim();
+    const parts = [];
+    if(tr && tr !== '-') parts.push(`ট্র্যাক ইভেন্টে ${tr}`);
+    if(fl && fl !== '-') parts.push(`ফিল্ড ইভেন্টে ${fl}`);
+    if(cl && cl !== '-') parts.push(`সাংস্কৃতিক বিভাগে ${cl}`);
+    if(!parts.length){
+      document.getElementById('sa-sc-msg').textContent = '⚠️ এই স্লটে কোনো ইভেন্ট লেখা নেই।';
+      return;
+    }
+    const txt = `মনোযোগ দিন। ${tm ? tm + ' সময়ে ' : ''}অনুষ্ঠিত হতে চলেছে— ${parts.join('। ')}। সংশ্লিষ্ট সকল প্রতিযোগী ও এসকর্ট শিক্ষকদের প্রস্তুত থাকার জন্য অনুরোধ করা হচ্ছে।`;
+    speakViaExistingEngine(txt, prof, 'sa-sc-msg');
+  };
+
+  /* পুরস্কার বিতরণী (ভিক্টরি স্ট্যান্ড: ৩য় -> ২য় -> ১ম এবং একসঙ্গে পুরস্কার) */
+  function getSelectedPrizeItem(){
+    const list = window._saPrizeFiltered || [];
+    const sel = document.getElementById('sa-pr-res');
+    if(!list.length || !sel || sel.value === '') return null;
+    return list[Number(sel.value)] || null;
+  }
+
+  function winnerDisplayName(w){
+    const p = (typeof DB !== 'undefined' && DB && Array.isArray(DB.a)) ? DB.a.find(a => a.id === w.pid) : null;
+    return (p && p.bn) ? p.bn : w.name;
+  }
+
+  function giverPhrase(){
+    const giver = (document.getElementById('sa-pr-giver') || {}).value.trim();
+    const desig = (document.getElementById('sa-pr-desig') || {}).value.trim();
+    const gen = (document.getElementById('sa-pr-gen') || {}).value || 'M';
+    const hon = gen === 'F' ? 'মাননীয়া' : 'মাননীয়';
+    const suf = gen === 'F' ? 'মহাশয়াকে' : 'মহাশয়কে';
+    if(!giver && !desig) return '';
+    return `আমাদের ${hon} ${desig ? desig + ', ' : ''}${giver || 'বিশিষ্ট অতিথি'} ${suf}`;
+  }
+
   window.saProFilterPrizeEvents = function(){
     const catSel = document.getElementById('sa-pr-cat');
     const resSel = document.getElementById('sa-pr-res');
@@ -6924,64 +7081,142 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
   };
 
   window.saProPreviewPrize = function(){
-    const sel = document.getElementById('sa-pr-res');
     const box = document.getElementById('sa-pr-win-box');
-    const list = window._saPrizeFiltered || [];
-    if(!sel || !box) return;
-    if(!list.length || sel.value === ''){
-      box.textContent = 'এই বিভাগে এখনও কোনো ফলাফল প্রকাশিত হয়নি।';
-      return;
-    }
-    const item = list[Number(sel.value)];
+    const item = getSelectedPrizeItem();
+    if(!box) return;
+    if(!item){ box.textContent = 'এই বিভাগে এখনও কোনো ফলাফল প্রকাশিত হয়নি।'; return; }
     const posTxt = { 1: 'প্রথম', 2: 'দ্বিতীয়', 3: 'তৃতীয়', 4: 'চতুর্থ' };
     box.innerHTML = (item.win || []).map(w =>
       `<div><b>${posTxt[w.pos] || w.pos + 'ম'}:</b> ${esc(w.name)} (${esc(w.school || '')})</div>`
     ).join('') || 'কোনো বিজয়ী পাওয়া যায়নি।';
   };
 
-  window.saProAnnouncePrize = function(){
-    const list = window._saPrizeFiltered || [];
-    const sel = document.getElementById('sa-pr-res');
-    if(!list.length || !sel || sel.value === ''){
-      document.getElementById('sa-pr-status').textContent = '⚠️ আগে ফলাফল প্রকাশ করুন।';
-      return;
-    }
-    const item = list[Number(sel.value)];
+  window.saProAnnouncePrizeAll = function(){
+    const item = getSelectedPrizeItem();
+    if(!item){ document.getElementById('sa-pr-status').textContent = '⚠️ আগে ফলাফল প্রকাশ করুন।'; return; }
     const prof = document.getElementById('sa-pr-voice').value;
-    const giver = document.getElementById('sa-pr-giver').value.trim();
-    const desig = document.getElementById('sa-pr-desig').value.trim();
     const cN = (typeof CN !== 'undefined' && CN[item.cat]) ? CN[item.cat] : item.cat;
     const sN = (typeof SN !== 'undefined' && item.sec && SN[item.sec]) ? ' ' + SN[item.sec] + ' বিভাগ' : '';
-    const posTxt = { 1: 'প্রথম', 2: 'দ্বিতীয়', 3: 'তৃতীয়', 4: 'চতুর্থ' };
+    const posTxt = { 1: 'প্রথম', 2: 'দ্বিতীয়', 3: 'তৃতীয়' };
 
-    const winLines = (item.win || []).slice(0, 3).map(w => {
-      const p = (typeof DB !== 'undefined' && DB && Array.isArray(DB.a)) ? DB.a.find(a => a.id === w.pid) : null;
-      const nm = (p && p.bn) ? p.bn : w.name;
-      return `${posTxt[w.pos] || w.pos + 'ম'} স্থানাধিকারী ${nm}, বিদ্যালয় ${w.school || ''}`;
-    }).join('। ');
+    /* ৩য় ➔ ২য় ➔ ১ম ক্রমে ভিক্টরি স্ট্যান্ডে ডাকা */
+    const ordered = [3, 2, 1].map(p => (item.win || []).find(w => Number(w.pos) === p)).filter(Boolean);
+    const callLines = ordered.map(w =>
+      `${posTxt[w.pos]} স্থানাধিকারী ${winnerDisplayName(w)}, বিদ্যালয় ${w.school || ''}`
+    ).join('। ');
 
-    let txt = `মনোযোগ দিন। এখন পুরস্কার বিতরণী পর্ব চলছে। ${cN}${sN}, ${item.ev} প্রতিযোগিতার বিজয়ীগণ হলেন— ${winLines}। `;
-    if(giver || desig){
-      txt += `বিজয়ীদের হাতে পুরস্কার তুলে দেওয়ার জন্য মঞ্চে সাদর অনুরোধ জানাচ্ছি আমাদের মাননীয় ${desig ? desig + ', ' : ''}${giver || 'বিশিষ্ট অতিথি'} মহাশয়কে। `;
+    let txt = `মনোযোগ দিন। এখন পুরস্কার বিতরণী পর্ব চলছে। ${cN}${sN}, ${item.ev} প্রতিযোগিতার বিজয়ীদের ভিক্টরি স্ট্যান্ডে আসার জন্য অনুরোধ জানাচ্ছি— ${callLines}। `;
+    const gp = giverPhrase();
+    if(gp){
+      txt += `ভিক্টরি স্ট্যান্ডে উপস্থিত এই সকল বিজয়ীর হাতে একসঙ্গে পুরস্কারগুলি তুলে দেওয়ার জন্য সাদর অনুরোধ জানাচ্ছি ${gp}। `;
+    } else {
+      txt += `ভিক্টরি স্ট্যান্ডে উপস্থিত সকল বিজয়ীর হাতে একসঙ্গে পুরস্কারগুলি তুলে দেওয়া হচ্ছে। `;
     }
     txt += `সকল বিজয়ীকে করতালির মাধ্যমে আন্তরিক অভিনন্দন জানাই।`;
-
     speakViaExistingEngine(txt, prof, 'sa-pr-status');
   };
 
+  window.saProCallStand = function(posNum){
+    const item = getSelectedPrizeItem();
+    if(!item){ document.getElementById('sa-pr-status').textContent = '⚠️ আগে ফলাফল প্রকাশ করুন।'; return; }
+    const w = (item.win || []).find(x => Number(x.pos) === Number(posNum));
+    if(!w){ document.getElementById('sa-pr-status').textContent = `⚠️ এই ইভেন্টে ${posNum} নম্বর স্থানের তথ্য নেই।`; return; }
+    const prof = document.getElementById('sa-pr-voice').value;
+    const cN = (typeof CN !== 'undefined' && CN[item.cat]) ? CN[item.cat] : item.cat;
+    const sN = (typeof SN !== 'undefined' && item.sec && SN[item.sec]) ? ' ' + SN[item.sec] + ' বিভাগ' : '';
+    const posTxt = { 1: 'প্রথম', 2: 'দ্বিতীয়', 3: 'তৃতীয়' }[posNum] || posNum;
+    const txt = `${cN}${sN}, ${item.ev} প্রতিযোগিতায় ${posTxt} স্থানাধিকারী ${winnerDisplayName(w)}, বিদ্যালয় ${w.school || ''}— তোমাকে ভিক্টরি স্ট্যান্ডে আসার জন্য অনুরোধ করা হচ্ছে।`;
+    speakViaExistingEngine(txt, prof, 'sa-pr-status');
+  };
+
+  window.saProHandoverOnce = function(){
+    const item = getSelectedPrizeItem();
+    const prof = document.getElementById('sa-pr-voice').value;
+    const gp = giverPhrase();
+    const evPart = item ? `${(CN[item.cat]||item.cat)}${item.sec&&SN[item.sec]?' '+SN[item.sec]+' বিভাগ':''}, ${item.ev} প্রতিযোগিতার ` : '';
+    const txt = gp
+      ? `এখন ভিক্টরি স্ট্যান্ডে উপস্থিত ${evPart}সকল বিজয়ীর হাতে একসঙ্গে পুরস্কারগুলি তুলে দেওয়ার জন্য সাদর অনুরোধ জানাচ্ছি ${gp}। করতালির মাধ্যমে সকলকে অভিনন্দন জানাই।`
+      : `এখন ভিক্টরি স্ট্যান্ডে উপস্থিত ${evPart}সকল বিজয়ীর হাতে একসঙ্গে পুরস্কারগুলি তুলে দেওয়া হচ্ছে। করতালির মাধ্যমে সকলকে অভিনন্দন জানাই।`;
+    speakViaExistingEngine(txt, prof, 'sa-pr-status');
+  };
+
+  /* অতিথিবরণ (পুরুষ/মহিলা ও সেভ করা তালিকা) */
+  function buildGuestText(g){
+    const gHon = g.gen === 'F' ? 'মাননীয়া' : 'মাননীয়';
+    const gSuf = g.gen === 'F' ? 'মহাশয়াকে' : 'মহাশয়কে';
+    const hSuf = g.hgen === 'F' ? 'মহাশয়াকে' : 'মহাশয়কে';
+    let txt = `মনোযোগ দিন। এখন আমরা পুষ্পস্তবক ও উত্তরীয় পরিয়ে সম্মানের সঙ্গে সাদর অভ্যর্থনা ও বরণ করে নিচ্ছি আমাদের আজকের অনুষ্ঠানের সম্মানীয় অতিথি, `;
+    if(g.desig) txt += `${g.desig}, `;
+    txt += `${gHon} ${g.name || 'বিশিষ্ট অতিথি'} ${gSuf}। `;
+    if(g.host) txt += `তাঁকে বরণ করে নেওয়ার জন্য অনুরোধ জানাচ্ছি ${g.host} ${hSuf}। `;
+    txt += `করতালির মাধ্যমে তাঁকে স্বাগত জানানোর জন্য সকলকে অনুরোধ করছি।`;
+    return txt;
+  }
+
   window.saProAnnounceGuest = function(){
     const prof = document.getElementById('sa-gt-voice').value;
+    const g = {
+      name: document.getElementById('sa-gt-name').value.trim(),
+      desig: document.getElementById('sa-gt-desig').value.trim(),
+      gen: document.getElementById('sa-gt-gen').value || 'M',
+      host: document.getElementById('sa-gt-host').value.trim(),
+      hgen: document.getElementById('sa-gt-hgen').value || 'M'
+    };
+    speakViaExistingEngine(buildGuestText(g), prof, 'sa-gt-status');
+  };
+
+  window.saProSaveGuest = function(){
     const name = document.getElementById('sa-gt-name').value.trim();
-    const desig = document.getElementById('sa-gt-desig').value.trim();
-    const host = document.getElementById('sa-gt-host').value.trim();
+    if(!name){ document.getElementById('sa-gt-status').textContent = '⚠️ আগে অতিথির নাম লিখুন।'; return; }
+    const list = getGuestList();
+    list.push({
+      id: Date.now(),
+      name,
+      desig: document.getElementById('sa-gt-desig').value.trim(),
+      gen: document.getElementById('sa-gt-gen').value || 'M',
+      host: document.getElementById('sa-gt-host').value.trim(),
+      hgen: document.getElementById('sa-gt-hgen').value || 'M'
+    });
+    saveGuestList(list);
+    document.getElementById('sa-gt-name').value = '';
+    document.getElementById('sa-gt-desig').value = '';
+    document.getElementById('sa-gt-status').textContent = '✅ অতিথির নাম তালিকায় সেভ হয়েছে।';
+    window.saProRenderGuests();
+  };
 
-    let txt = `মনোযোগ দিন। এখন আমরা পুষ্পস্তবক ও উত্তরীয় পরিয়ে সম্মানের সঙ্গে সাদর অভ্যর্থনা ও বরণ করে নিচ্ছি আমাদের আজকের অনুষ্ঠানের সম্মানীয় অতিথি, `;
-    if(desig) txt += `${desig}, `;
-    txt += `মাননীয় ${name || 'বিশিষ্ট অতিথি'} মহাশয়কে। `;
-    if(host) txt += `তাঁকে বরণ করে নেওয়ার জন্য অনুরোধ জানাচ্ছি ${host} মহাশয়কে। `;
-    txt += `করতালির মাধ্যমে তাঁকে স্বাগত জানানোর জন্য সকলকে অনুরোধ করছি।`;
+  window.saProRenderGuests = function(){
+    const box = document.getElementById('sa-gt-saved-list');
+    if(!box) return;
+    const list = getGuestList();
+    if(!list.length){
+      box.innerHTML = `<div class="mu" style="font-size:12.5px">কোনো অতিথি এখনও সেভ করা নেই।</div>`;
+      return;
+    }
+    box.innerHTML = `<div style="font-size:13px;font-weight:700;margin-bottom:4px">📋 সেভ করা অতিথি তালিকা (${list.length} জন):</div>` +
+      list.map((g, i) => `
+        <div class="sa-pro-guest-item">
+          <div><b>${esc(g.name)}</b> (${g.gen === 'F' ? 'মহিলা' : 'পুরুষ'})<br><span class="mu">${esc(g.desig || '')}${g.host ? ' • বরণ: ' + esc(g.host) : ''}</span></div>
+          <div style="display:flex;gap:4px">
+            <button class="b s p" onclick="window.saProSpeakSavedGuest(${i})">🔊 বরণ</button>
+            <button class="b d s" onclick="window.saProDelGuest(${i})">✕</button>
+          </div>
+        </div>
+      `).join('');
+  };
 
-    speakViaExistingEngine(txt, prof, 'sa-gt-status');
+  window.saProSpeakSavedGuest = function(idx){
+    const list = getGuestList();
+    const g = list[idx];
+    if(!g) return;
+    const prof = (document.getElementById('sa-gt-voice') || {}).value;
+    speakViaExistingEngine(buildGuestText(g), prof, 'sa-gt-status');
+  };
+
+  window.saProDelGuest = function(idx){
+    const list = getGuestList();
+    list.splice(idx, 1);
+    saveGuestList(list);
+    window.saProRenderGuests();
   };
 })();
 </script>
