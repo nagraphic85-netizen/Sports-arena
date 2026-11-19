@@ -6571,60 +6571,53 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
   }
 
   /* ৪. রোল অনুযায়ী নির্দিষ্ট ট্যাবে বাটন বসানো (হোম ট্যাবে কখনোই নয়) */
+  /* ৪. রোল ও ট্যাব সরাসরি DOM থেকে চিনে বাটন বসানো (১০০% নিশ্চিত) */
   function injectRoleButtons(){
     try {
-      if(typeof ME === 'undefined' || !ME || typeof TAB === 'undefined' || TAB === 'home') return;
       const app = document.getElementById('app');
       if(!app) return;
-      const old = document.getElementById('sa-pro-inline-bar');
-      if(old) old.remove();
+      const tabsEl = app.querySelector('.tabs');
+      if(!tabsEl) return; /* লগইন না থাকলে .tabs থাকে না */
 
-      const r = ME.role;
-      const btns = [];
-
-      /* শুধু Owner-এর সেটিংস ট্যাবে বয়স সীমা */
-      if(r === 'owner' && TAB === 'set'){
-        btns.push(`<button class="b s p" onclick="window.saProOpen('age')">📅 বয়স সীমা সেট করুন</button>`);
+      const activeBtn = tabsEl.querySelector('.b.on');
+      const activeTxt = activeBtn ? activeBtn.textContent.trim() : '';
+      if(activeTxt === 'হোম') {
+        const old = document.getElementById('sa-pro-inline-bar');
+        if(old) old.remove();
+        return;
       }
 
-      /* অ্যাডমিনদের (GP / Circle / Sub) জন্য নির্দিষ্ট ট্যাবে বাটন */
-      if(['gp', 'circle', 'sub'].includes(r)){
-        if(TAB === 'sc'){
-          btns.push(`<button class="b s p" onclick="window.saProOpen('schedule')">🕒 কাস্টম শিডিউল সেট করুন</button>`);
+      const r = (document.body.className || '').trim();
+      if(r === 'school') return;
+
+      const btns = [];
+      if(r === 'owner'){
+        btns.push(`<button class="b s p" onclick="window.saProOpen('age')">📅 বয়স সীমা</button>`);
+        if(activeTxt.includes('ফলাফল')){
+          btns.push(`<button class="b s" onclick="window.saProOpen('prize')">🏆 পুরস্কারদাতা</button>`);
         }
-        if(TAB === 'rs' || TAB === 'rp'){
-          btns.push(`<button class="b s p" onclick="window.saProOpen('prize')">🏆 পুরস্কার বিতরণী ঘোষণা</button>`);
-        }
-        if(['ad', 'sc', 'rs', 'rp', 'ch', 'sh'].includes(TAB)){
-          btns.push(`<button class="b s" onclick="window.saProOpen('guest')">💐 অতিথিবরণ</button>`);
-        }
-      } else if(r === 'owner' && TAB === 'rp'){
-        btns.push(`<button class="b s p" onclick="window.saProOpen('prize')">🏆 পুরস্কার বিতরণী ঘোষণা</button>`);
+      } else if(r === 'gp' || r === 'circle' || r === 'sub'){
+        btns.push(`<button class="b s p" onclick="window.saProOpen('schedule')">🕒 শিডিউল</button>`);
+        btns.push(`<button class="b s p" onclick="window.saProOpen('prize')">🏆 পুরস্কারদাতা</button>`);
+        btns.push(`<button class="b s" onclick="window.saProOpen('guest')">💐 অতিথিবরণ</button>`);
       }
 
       if(!btns.length) return;
+      const existing = document.getElementById('sa-pro-inline-bar');
+      if(existing && existing.dataset.role === r && existing.dataset.tab === activeTxt) return;
+      if(existing) existing.remove();
 
-      const tabsEl = app.querySelector('.tabs');
       const bar = document.createElement('div');
       bar.id = 'sa-pro-inline-bar';
       bar.className = 'sa-pro-bar';
+      bar.dataset.role = r;
+      bar.dataset.tab = activeTxt;
       bar.innerHTML = `<span class="sa-pro-bar-lbl">অতিরিক্ত টুলস:</span>` + btns.join('');
-      if(tabsEl && tabsEl.parentNode){
-        tabsEl.parentNode.insertBefore(bar, tabsEl.nextSibling);
-      }
+      tabsEl.parentNode.insertBefore(bar, tabsEl.nextSibling);
     } catch(e){}
   }
 
-  /* যেকোনো ট্যাব বদলালেই বাটনগুলো নিশ্চিতভাবে দেখাবে */
-  const appEl = document.getElementById('app');
-  if(appEl){
-    new MutationObserver(() => {
-      if(!document.getElementById('sa-pro-inline-bar')) injectRoleButtons();
-    }).observe(appEl, { childList: true });
-  }
-  setInterval(() => {
-    if(!document.getElementById('sa-pro-inline-bar')) injectRoleButtons();
-  }, 600);
+  setInterval(injectRoleButtons, 400);
 
   /* ৫. পপ-আপ মোডাল ওপেন */
   window.saProOpen = function(tab){
