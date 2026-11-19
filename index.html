@@ -5209,4 +5209,272 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     startStadiumAnnouncement(segs, 'result');
   };
 })();
+</script><script id="sa-admin-entry-control">
+/* ==========================================================================
+   ADMIN SUBMISSION CONTROL: DELETE + EDIT + AUTO AGE-INELIGIBILITY ALERT
+   (কোনো পুরনো কোড না বদলে অ্যাডমিনের তালিকায় ডিলিট, এডিট ও ভুল বয়স শনাক্তকরণ)
+   ========================================================================== */
+(function(){
+  const ADM_ROLES = ['owner', 'gp', 'circle', 'sub'];
+  const AGE_MAX = { A: 7, B: 9, C: 11 };
+
+  /* ব্যাজ ও বাটনের স্টাইল */
+  const st = document.createElement('style');
+  st.textContent = `
+    .adm-bad-row { background: rgba(225, 29, 72, 0.10) !important; }
+    .adm-age-tag { display: inline-block; margin-left: 4px; padding: 1px 6px; border-radius: 4px; background: #e11d48; color: #fff; font-size: 11px; font-weight: 700; white-space: nowrap; }
+    .adm-act-cell { white-space: nowrap; text-align: center !important; }
+    .adm-act-cell .b { padding: 3px 7px !important; font-size: 12px !important; min-height: 28px !important; margin: 1px !important; }
+    #admBadAlert { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; padding: 8px 12px; margin: 6px 0 10px; border-radius: 8px; background: rgba(225, 29, 72, 0.12); border: 1.5px solid #e11d48; color: #be123c; font-weight: 700; font-size: 13.5px; }
+  `;
+  document.head.appendChild(st);
+
+  /* আসন্ন ১লা জানুয়ারি অনুযায়ী সঠিক বয়স হিসাব করা */
+  function checkAgeEligibility(a){
+    if(!a || a.cat === 'teach' || !a.dob) return { bad: false };
+    const p = String(a.dob).split('-');
+    if(p.length !== 3) return { bad: false };
+    const dob = new Date(+p[0], +p[1] - 1, +p[2]);
+    if(isNaN(dob)) return { bad: false };
+
+    const refYear = new Date().getFullYear() + 1;
+    const ref = new Date(refYear, 0, 1);
+    let y = ref.getFullYear() - dob.getFullYear();
+    let m = ref.getMonth() - dob.getMonth();
+    let d = ref.getDate() - dob.getDate();
+    if(d < 0){ m--; d += new Date(ref.getFullYear(), ref.getMonth(), 0).getDate(); }
+    if(m < 0){ y--; m += 12; }
+
+    const maxYr = AGE_MAX[a.sec] || 11;
+    const underLimit = (y < maxYr) || (y === maxYr && m === 0 && d === 0);
+    const bad = !underLimit || y < 3;
+    return { bad, y, m, d, maxYr, label: `01/01/${refYear}` };
+  }
+
+  function dobVariants(iso){
+    const s = String(iso || '').trim();
+    const p = s.split('-');
+    if(p.length !== 3) return [s];
+    return [s, `${p[2]}/${p[1]}/${p[0]}`, `${p[2]}-${p[1]}-${p[0]}`, `${p[2]}.${p[1]}.${p[0]}`];
+  }
+
+  /* নিরাপদ এডিট ফাংশন (আসল Numeric ID দিয়ে মূল editA কল করা) */
+  window.admEditEntry = function(strId){
+    const a = (DB.a || []).find(x => String(x.id) === String(strId));
+    if(!a) return info('প্রতিযোগীর তথ্য পাওয়া যায়নি।');
+    if(typeof window.editA === 'function') window.editA(a.id);
+    else info('এই পাতায় এডিট অপশন পাওয়া যায়নি।');
+  };
+
+  /* নিরাপদ ডিলিট ফাংশন (ফলাফল যাচাই ও নিশ্চিতকরণসহ) */
+  window.admDeleteEntry = function(strId){
+    if(!ME || !ADM_ROLES.includes(ME.role)) return info('শুধুমাত্র অ্যাডমিন প্রতিযোগী ডিলিট করতে পারবেন।');
+    const a = (DB.a || []).find(x => String(x.id) === String(strId));
+    if(!a) return info('প্রতিযোগীকে তালিকা থেকে পাওয়া যায়নি।');
+
+    const schName = (typeof U === 'function' && U(a.school)) ? U(a.school).name : (a.sch || '');
+    const inResult = (DB.r || []).some(r =>
+      (r.win || []).some(w =>
+        String(w.pid) === String(a.id) ||
+        (a.chest && String(w.chest).toUpperCase() === String(a.chest).toUpperCase() && r.cat === a.cat)
+      )
+    );
+
+    const ageInfo = checkAgeEligibility(a);
+    let msg = `আপনি কি নিশ্চিতভাবে এই প্রতিযোগীকে তালিকা থেকে বাতিল (Delete) করতে চান?\n\n` +
+              `নাম: ${a.name}${a.bn ? ' (' + a.bn + ')' : ''}\n` +
+              `বিদ্যালয়/ইউনিট: ${schName}${a.sch && a.sch !== schName ? ' (' + a.sch + ')' : ''}\n` +
+              `বিভাগ: ${(CN||{})[a.cat] || a.cat}${a.sec ? ' ' + ((SN||{})[a.sec] || a.sec) : ''}\n` +
+              `জন্মতারিখ: ${a.dob || 'দেওয়া নেই'}${ageInfo.bad ? ` (বয়স: ${ageInfo.y} বছর ${ageInfo.m} মাস — অযোগ্য!)` : ''}\n` +
+              `চেস্ট নম্বর: ${a.chest || 'নেই'}`;
+
+    if(inResult){
+      msg += `\n\n⚠ সতর্কতা: এই প্রতিযোগীর নামে ইতিমধ্যে ফলাফল প্রকাশিত আছে! ডিলিট করলে ফলাফল তালিকাও সংশোধন করে নেবেন।`;
+    }
+
+    if(!confirm(msg)) return;
+
+    DB.a = DB.a.filter(x => String(x.id) !== String(strId));
+    if(typeof sv === 'function') sv();
+    if(typeof draw === 'function') draw();
+    if(typeof info === 'function') info(`"${a.name}"-কে তালিকা থেকে বাতিল করা হয়েছে ✔`);
+  };
+
+  /* শুধু ভুল বয়সের প্রতিযোগীদের দেখানো / লুকানো টগল */
+  let onlyBadFilter = false;
+  window.toggleBadAgeFilter = function(){
+    onlyBadFilter = !onlyBadFilter;
+    const app = document.getElementById('app');
+    if(!app) return;
+    const btn = document.getElementById('admBadFiltBtn');
+    if(btn) btn.textContent = onlyBadFilter ? '📋 সব প্রতিযোগী দেখান' : '🔎 শুধু ভুল বয়স দেখান';
+
+    app.querySelectorAll('.res').forEach(box => {
+      const dt = box.querySelector('details');
+      if(!dt) return;
+      const badRows = box.querySelectorAll('tr[data-bad-age="1"]');
+      if(onlyBadFilter){
+        if(badRows.length){
+          box.style.display = '';
+          dt.open = true;
+          box.querySelectorAll('table tr').forEach((tr, i) => {
+            if(i === 0) return;
+            tr.style.display = tr.dataset.badAge === '1' ? '' : 'none';
+          });
+        } else {
+          box.style.display = 'none';
+        }
+      } else {
+        box.style.display = '';
+        box.querySelectorAll('table tr').forEach(tr => { tr.style.display = ''; });
+      }
+    });
+
+    if(TAB === 'list'){
+      app.querySelectorAll('.cd.tw table tr').forEach((tr, i) => {
+        if(i === 0) return;
+        tr.style.display = (!onlyBadFilter || tr.dataset.badAge === '1') ? '' : 'none';
+      });
+    }
+  };
+
+  /* টেবিলের সারি থেকে সংশ্লিষ্ট প্রতিযোগীকে (DB.a) নিখুঁতভাবে খুঁজে বের করা */
+  function matchAthleteForRow(tr, unitHintText, usedIds){
+    /* ১. সারিতে আগে থেকেই editA(id) বা delA(id) থাকলে সরাসরি সেই ID নেওয়া */
+    const btnWithId = tr.querySelector('[onclick*="editA("], [onclick*="delA("]');
+    if(btnWithId){
+      const m = /(?:editA|delA)\(\s*['"]?([0-9.]+)['"]?\s*\)/.exec(btnWithId.getAttribute('onclick') || '');
+      if(m){
+        const found = (DB.a || []).find(x => String(x.id) === m[1]);
+        if(found) return found;
+      }
+    }
+
+    const rowTxt = (tr.textContent || '').toUpperCase();
+    const candidates = (DB.a || []).filter(a => {
+      if(usedIds.has(String(a.id))) return false;
+      const nm = String(a.name || '').trim().toUpperCase();
+      return nm && rowTxt.includes(nm);
+    });
+    if(!candidates.length) return null;
+    if(candidates.length === 1) return candidates[0];
+
+    /* একাধিক একই নাম থাকলে জন্মতারিখ, বাবার নাম, চেস্ট ও স্কুল দিয়ে নিখুঁত মিল খোঁজা */
+    let best = candidates[0], bestScore = -1;
+    const uHint = String(unitHintText || '').toUpperCase();
+    candidates.forEach(a => {
+      let sc = 0;
+      if(a.dob && dobVariants(a.dob).some(v => v && rowTxt.includes(v.toUpperCase()))) sc += 5;
+      if(a.chest && rowTxt.includes(String(a.chest).toUpperCase())) sc += 4;
+      if(a.father && rowTxt.includes(String(a.father).toUpperCase())) sc += 3;
+      if(a.pen && rowTxt.includes(String(a.pen).toUpperCase())) sc += 3;
+      const uObj = (typeof U === 'function') ? U(a.school) : null;
+      if(uObj && uHint && uHint.includes(String(uObj.name || '').toUpperCase())) sc += 4;
+      if(a.sch && rowTxt.includes(String(a.sch).toUpperCase())) sc += 2;
+      if(sc > bestScore){ bestScore = sc; best = a; }
+    });
+    return best;
+  }
+
+  /* অ্যাডমিনের জমা পড়া তালিকা (sb / list) টেবিলে ডিলিট ও বয়স-সতর্কতা যুক্ত করা */
+  function injectAdminControls(){
+    if(!ME || !ADM_ROLES.includes(ME.role)) return;
+    if(typeof TAB === 'undefined' || (TAB !== 'sb' && TAB !== 'list')) return;
+
+    const app = document.getElementById('app');
+    if(!app) return;
+
+    onlyBadFilter = false;
+    let totalBadAge = 0;
+    const tables = app.querySelectorAll('table');
+
+    tables.forEach(tbl => {
+      if(tbl.dataset.admCtrlDone) return;
+      if(tbl.closest('#clashCard') || tbl.closest('#chmpSum')) return;
+
+      const rows = tbl.querySelectorAll('tr');
+      if(rows.length < 2) return;
+
+      const hdrRow = rows[0];
+      const hdrTxt = hdrRow.textContent || '';
+      /* শুধুমাত্র প্রতিযোগীর তালিকা টেবিল হলেই কাজ করবে */
+      if(!/নাম|Name|চেস্ট|জন্ম/i.test(hdrTxt)) return;
+
+      tbl.dataset.admCtrlDone = '1';
+      const hasActionCol = /অ্যাকশন|কাজ|সংশোধন|বাতিল|Action/i.test(hdrTxt) || !!tbl.querySelector('button[onclick*="editA("]');
+      if(!hasActionCol){
+        hdrRow.insertAdjacentHTML('beforeend', `<th style="text-align:center">অ্যাকশন</th>`);
+      }
+
+      const parentRes = tbl.closest('.res');
+      const unitHint = parentRes ? (parentRes.querySelector('summary, b, h3')?.textContent || '') : '';
+      const usedIds = new Set();
+
+      for(let i = 1; i < rows.length; i++){
+        const tr = rows[i];
+        const tds = tr.querySelectorAll('td');
+        if(tds.length < 3) continue;
+
+        const a = matchAthleteForRow(tr, unitHint, usedIds);
+        if(!a){
+          if(!hasActionCol) tr.insertAdjacentHTML('beforeend', `<td>-</td>`);
+          continue;
+        }
+        usedIds.add(String(a.id));
+
+        /* বয়স যাচাই করে অযোগ্য হলে লাল চিহ্ন ও ব্যাজ দেখানো */
+        const ageRes = checkAgeEligibility(a);
+        if(ageRes.bad){
+          totalBadAge++;
+          tr.classList.add('adm-bad-row');
+          tr.dataset.badAge = '1';
+          /* জন্মতারিখের ঘর বা নামের ঘরে লাল ব্যাজ যুক্ত করা */
+          let targetTd = [...tds].find(td => a.dob && dobVariants(a.dob).some(v => td.textContent.includes(v))) || tds[1] || tds[0];
+          if(targetTd && !targetTd.querySelector('.adm-age-tag')){
+            targetTd.insertAdjacentHTML('beforeend', `<br><span class="adm-age-tag" title="${ageRes.label} তারিখে বয়স: ${ageRes.y} বছর ${ageRes.m} মাস (সর্বোচ্চ ${ageRes.maxYr} বছর)">⚠ বয়স অযোগ্য (${ageRes.y}ব ${ageRes.m}মা)</span>`);
+          }
+        }
+
+        const safeId = String(a.id).replace(/'/g, '');
+        const delBtnHtml = `<button class="b s d" onclick="admDeleteEntry('${safeId}')" title="অযোগ্য প্রতিযোগী বাতিল/ডিলিট করুন">🗑 মুছুন</button>`;
+        const editBtnHtml = (typeof window.editA === 'function')
+          ? `<button class="b s" onclick="admEditEntry('${safeId}')" title="তথ্য সংশোধন করুন">✏</button> `
+          : '';
+
+        if(!hasActionCol){
+          tr.insertAdjacentHTML('beforeend', `<td class="adm-act-cell">${editBtnHtml}${delBtnHtml}</td>`);
+        } else {
+          const lastTd = tds[tds.length - 1];
+          if(lastTd && !lastTd.querySelector('[onclick*="admDeleteEntry"]')){
+            lastTd.classList.add('adm-act-cell');
+            if(!lastTd.querySelector('[onclick*="editA("]') && !lastTd.querySelector('[onclick*="admEditEntry"]')){
+              lastTd.insertAdjacentHTML('beforeend', ` ${editBtnHtml}`);
+            }
+            if(!lastTd.querySelector('[onclick*="delA("]')){
+              lastTd.insertAdjacentHTML('beforeend', ` ${delBtnHtml}`);
+            }
+          }
+        }
+      }
+    });
+
+    /* ভুল বয়সের কোনো প্রতিযোগী থাকলে পাতার ওপরে দ্রুত ফিল্টার বার দেখানো */
+    const oldAlert = document.getElementById('admBadAlert');
+    if(oldAlert) oldAlert.remove();
+    if(totalBadAge > 0){
+      const anchor = app.querySelector('#qSearch') || app.querySelector('.cd h2');
+      if(anchor){
+        anchor.insertAdjacentHTML('afterend', `<div id="admBadAlert"><span>⚠ সতর্কতা: জমা পড়া তালিকায় মোট ${totalBadAge} জন প্রতিযোগীর বয়স নিয়ম অনুযায়ী অযোগ্য (লাল রঙে চিহ্নিত)।</span><button id="admBadFiltBtn" class="b s d" onclick="toggleBadAgeFilter()">🔎 শুধু ভুল বয়স দেখান</button></div>`);
+      }
+    }
+  }
+
+  /* মূল afterDraw-এর সাথে নিরাপদভাবে যুক্ত করা */
+  const prevAD = window.afterDraw;
+  window.afterDraw = function(){
+    if(typeof prevAD === 'function') prevAD.apply(this, arguments);
+    try { injectAdminControls(); } catch(e){ console.error(e); }
+  };
+  setTimeout(() => { try { injectAdminControls(); } catch(e){} }, 250);
+})();
 </script></body></html>
