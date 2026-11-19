@@ -6615,13 +6615,16 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     } catch(e){}
   }
 
-  /* মূল afterDraw-এর সাথে নিরাপদে যুক্ত করা */
-  const _origAfterDraw = window.afterDraw;
-  window.afterDraw = function(){
-    if(typeof _origAfterDraw === 'function') _origAfterDraw.apply(this, arguments);
-    injectRoleButtons();
-  };
-  setTimeout(injectRoleButtons, 300);
+  /* যেকোনো ট্যাব বদলালেই বাটনগুলো নিশ্চিতভাবে দেখাবে */
+  const appEl = document.getElementById('app');
+  if(appEl){
+    new MutationObserver(() => {
+      if(!document.getElementById('sa-pro-inline-bar')) injectRoleButtons();
+    }).observe(appEl, { childList: true });
+  }
+  setInterval(() => {
+    if(!document.getElementById('sa-pro-inline-bar')) injectRoleButtons();
+  }, 600);
 
   /* ৫. পপ-আপ মোডাল ওপেন */
   window.saProOpen = function(tab){
