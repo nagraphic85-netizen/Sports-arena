@@ -6400,152 +6400,91 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
   setTimeout(attachSmartLogin, 250);
 })();
 </script><!-- =========================================================================
-     SPORTS PRO ADDONS: বয়স সীমা (Owner) | শিডিউল (Admin) | পুরস্কারদাতা | অতিথিবরণ
-     (মূল কোডে কোনো পরিবর্তন না করেই সরাসরি আপনার Vercel ভয়েস সার্ভারে চলবে)
+     SPORTS PRO ADDONS v2 (Role-Based: Owner & Admin Tabs Only)
      ========================================================================= -->
-<style id="sa-pro-addons-css">
-  #sa-pro-dock {
-    position: fixed;
-    bottom: 14px;
-    right: 14px;
-    z-index: 9998;
+<style id="sa-pro-v2-css">
+  .sa-pro-bar {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
-    justify-content: flex-end;
-    max-width: calc(100vw - 28px);
-    font-family: system-ui, -apple-system, sans-serif;
+    gap: 8px;
+    margin: 10px 0;
+    padding: 8px 10px;
+    background: rgba(16, 31, 56, 0.9);
+    border: 1px dashed var(--a, #00F0FF);
+    border-radius: 10px;
+    align-items: center;
   }
-  .sa-pro-btn {
-    background: linear-gradient(135deg, #ffffff, #f1f5f9);
-    color: #0f172a;
-    border: 1px solid #cbd5e1;
-    border-radius: 999px;
-    padding: 7px 12px;
+  .sa-pro-bar-lbl {
     font-size: 12.5px;
+    color: var(--mu, #8fa5c2);
     font-weight: 600;
-    cursor: pointer;
-    box-shadow: 0 3px 10px rgba(15, 23, 42, 0.12);
-    transition: transform 0.15s, background 0.15s;
+    margin-right: 4px;
   }
-  .sa-pro-btn:hover { background: #e2e8f0; transform: translateY(-1px); }
   .sa-pro-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(15, 23, 42, 0.55);
+    background: rgba(0, 0, 0, 0.72);
     z-index: 9999;
     display: none;
     align-items: center;
     justify-content: center;
     padding: 14px;
-    font-family: system-ui, -apple-system, sans-serif;
   }
   .sa-pro-overlay.open { display: flex; }
   .sa-pro-modal {
-    background: #ffffff;
-    color: #0f172a;
+    background: #101f38;
+    color: #fff;
     width: 100%;
-    max-width: 500px;
+    max-width: 520px;
     max-height: 88vh;
     overflow-y: auto;
     border-radius: 14px;
     padding: 18px;
-    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.25);
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--a, #00F0FF);
+    box-shadow: 0 0 24px var(--g, rgba(0, 240, 255, 0.4));
   }
   .sa-pro-head {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid #e2e8f0;
-    padding-bottom: 10px;
-    margin-bottom: 14px;
+    border-bottom: 1px solid #27406a;
+    padding-bottom: 8px;
+    margin-bottom: 12px;
   }
-  .sa-pro-head h3 { margin: 0; font-size: 16px; color: #0f172a; }
-  .sa-pro-close {
-    background: #f1f5f9;
-    border: none;
-    border-radius: 8px;
-    padding: 4px 10px;
-    font-size: 15px;
-    cursor: pointer;
-  }
-  .sa-pro-field { margin-bottom: 11px; }
-  .sa-pro-field label {
-    display: block;
-    font-size: 12.5px;
-    font-weight: 600;
-    color: #334155;
-    margin-bottom: 4px;
-  }
-  .sa-pro-field input, .sa-pro-field select {
-    width: 100%;
-    box-sizing: border-box;
-    padding: 8px 10px;
-    border: 1px solid #cbd5e1;
-    border-radius: 8px;
-    font-size: 13.5px;
-    background: #f8fafc;
-  }
+  .sa-pro-head h3 { margin: 0; font-size: 17px; }
   .sa-pro-row { display: flex; gap: 8px; flex-wrap: wrap; }
-  .sa-pro-row > * { flex: 1; min-width: 120px; }
-  .sa-pro-primary {
-    background: #0f172a;
-    color: #ffffff;
-    border: none;
-    border-radius: 8px;
-    padding: 9px 14px;
-    font-size: 13.5px;
-    font-weight: 600;
-    cursor: pointer;
-  }
-  .sa-pro-danger {
-    background: #ef4444;
-    color: #ffffff;
-    border: none;
-    border-radius: 8px;
-    padding: 9px 14px;
-    font-size: 13.5px;
-    font-weight: 600;
-    cursor: pointer;
-  }
-  .sa-pro-sched-item {
-    display: flex;
-    gap: 6px;
-    align-items: center;
-    margin-bottom: 8px;
-  }
-  .sa-pro-sched-item input { padding: 6px 8px; font-size: 13px; border: 1px solid #cbd5e1; border-radius: 6px; }
+  .sa-pro-row > * { flex: 1; min-width: 130px; }
   .sa-pro-note {
-    font-size: 12px;
-    color: #475569;
-    background: #f1f5f9;
+    font-size: 12.5px;
+    color: #cbd5e1;
+    background: rgba(255, 255, 255, 0.06);
     padding: 8px 10px;
     border-radius: 8px;
     margin-top: 8px;
+    border-left: 3px solid var(--a, #00F0FF);
   }
+  .sa-pro-sched-row {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+  .sa-pro-sched-row input { margin: 0; min-height: 38px; padding: 6px 8px; font-size: 13.5px; }
 </style>
-
-<div id="sa-pro-dock">
-  <button class="sa-pro-btn" onclick="window.saProOpen('age')">📅 বয়স সীমা</button>
-  <button class="sa-pro-btn" onclick="window.saProOpen('schedule')">🕒 শিডিউল</button>
-  <button class="sa-pro-btn" onclick="window.saProOpen('prize')">🏆 পুরস্কারদাতা</button>
-  <button class="sa-pro-btn" onclick="window.saProOpen('guest')">💐 অতিথিবরণ</button>
-</div>
 
 <div id="sa-pro-overlay" class="sa-pro-overlay" onclick="if(event.target===this) window.saProClose()">
   <div class="sa-pro-modal">
     <div class="sa-pro-head">
       <h3 id="sa-pro-title">সেটিংস</h3>
-      <button class="sa-pro-close" onclick="window.saProClose()">✕</button>
+      <button class="b s" onclick="window.saProClose()">✕</button>
     </div>
     <div id="sa-pro-body"></div>
   </div>
 </div>
 
-<script id="sa-pro-addons-v1">
+<script id="sa-pro-addons-v2">
 (function(){
-  /* ১. ফাইল থেকে স্বয়ংক্রিয়ভাবে আপনার Vercel TTS লিংক খুঁজে নেওয়া */
+  /* ১. আপনার Vercel TTS লিংক অটো-ডিটেক্ট */
   function detectVercelBase(){
     try {
       const scripts = document.querySelectorAll('script');
@@ -6559,63 +6498,59 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
   const TTS_BASE = detectVercelBase();
   let activeAudio = null;
 
-  /* ২. ১৯/১১/২০২৬ পর্ষদের নতুন সংশোধনী অনুযায়ী ডিফল্ট বয়স-সীমা */
-  const DEFAULT_AGE_LIMITS = {
-    A: '2019-01-01', // বিভাগ ক: ০১/০১/২০১৯ বা তার পরে
-    B: '2017-01-01', // বিভাগ খ: ০১/০১/২০১৭ বা তার পরে
-    C: '2015-01-01'  // বিভাগ গ: ০১/০১/২০১৫ বা তার পরে
-  };
+  /* ২. ১৯/১১/২০২৬ পর্ষদের সংশোধনী অনুযায়ী ডিফল্ট বয়স সীমা */
+  const DEFAULT_AGE = { A: '2019-01-01', B: '2017-01-01', C: '2015-01-01' };
 
   function getAgeLimits(){
     try {
-      return Object.assign({}, DEFAULT_AGE_LIMITS, JSON.parse(localStorage.getItem('sa_age_limits') || '{}'));
-    } catch(e){ return Object.assign({}, DEFAULT_AGE_LIMITS); }
+      const fromDb = (typeof DB !== 'undefined' && DB && DB.cfg && DB.cfg.ageLimits) ? DB.cfg.ageLimits : null;
+      const fromLs = JSON.parse(localStorage.getItem('sa_age_limits') || '{}');
+      return Object.assign({}, DEFAULT_AGE, fromLs, fromDb || {});
+    } catch(e){ return Object.assign({}, DEFAULT_AGE); }
   }
   window.SA_AGE_LIMITS = getAgeLimits();
 
-  /* ৩. ডিফল্ট শিডিউল (অ্যাডমিন নিজের মতো বদলাতে ও স্ল্যাশ দিয়ে যৌথ ইভেন্ট লিখতে পারবেন) */
-  const DEFAULT_SCHEDULE = [
+  const DEFAULT_SCHED = [
     { time: '০৯:৩০ - ১০:০০', event: 'উদ্বোধনী অনুষ্ঠান ও অতিথিবরণ' },
     { time: '১০:০০ - ১১:০০', event: 'দৌড় প্রতিযোগিতা (ক, খ, গ বিভাগ)' },
     { time: '১১:০০ - ১২:০০', event: 'যোগা / জিমন্যাস্টিক (ফিল্ড ইভেন্ট)' },
     { time: '০২:৩০ - ০৩:৩০', event: 'পুরস্কার বিতরণী ও সমাপ্তি' }
   ];
 
-  function getSchedule(){
+  function getSched(){
     try {
-      const saved = JSON.parse(localStorage.getItem('sa_custom_schedule') || 'null');
-      return Array.isArray(saved) && saved.length ? saved : DEFAULT_SCHEDULE.slice();
-    } catch(e){ return DEFAULT_SCHEDULE.slice(); }
+      const fromDb = (typeof DB !== 'undefined' && DB && DB.cfg && Array.isArray(DB.cfg.customSched) && DB.cfg.customSched.length) ? DB.cfg.customSched : null;
+      if(fromDb) return fromDb;
+      const fromLs = JSON.parse(localStorage.getItem('sa_custom_schedule') || 'null');
+      return Array.isArray(fromLs) && fromLs.length ? fromLs : DEFAULT_SCHED.slice();
+    } catch(e){ return DEFAULT_SCHED.slice(); }
   }
 
-  /* ৪. আপনার Vercel সার্ভারে ভয়েস চালানো */
-  window.saProStopAudio = function(){
+  /* ৩. Vercel ভয়েস প্লেয়ার */
+  window.saProStop = function(){
     if(activeAudio){
       try { activeAudio.pause(); activeAudio.currentTime = 0; } catch(e){}
       activeAudio = null;
     }
   };
 
-  window.saProSpeak = function(text, voice, statusElId){
+  window.saProSpeak = function(text, voice, statusId){
     const clean = (text || '').trim();
     if(!clean) return;
-    window.saProStopAudio();
-    const st = document.getElementById(statusElId);
+    window.saProStop();
+    const st = document.getElementById(statusId);
     if(st) st.textContent = '⏳ অডিও তৈরি হচ্ছে...';
 
-    const endpoint = (TTS_BASE ? TTS_BASE : '') +
+    const url = (TTS_BASE || '') +
       `/api/tts?voice=${encodeURIComponent(voice || 'bn-IN-BashkarNeural')}&rate=%2B0%25&pitch=-1Hz&text=${encodeURIComponent(clean)}`;
 
-    fetch(endpoint)
-      .then(r => {
-        if(!r.ok) throw new Error('HTTP ' + r.status);
-        return r.blob();
-      })
+    fetch(url)
+      .then(r => { if(!r.ok) throw new Error('HTTP ' + r.status); return r.blob(); })
       .then(blob => {
-        const url = URL.createObjectURL(blob);
-        activeAudio = new Audio(url);
+        const u = URL.createObjectURL(blob);
+        activeAudio = new Audio(u);
         activeAudio.onended = () => {
-          URL.revokeObjectURL(url);
+          URL.revokeObjectURL(u);
           if(st) st.textContent = '✅ ঘোষণা সম্পন্ন হয়েছে।';
         };
         activeAudio.play();
@@ -6626,19 +6561,69 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
       });
   };
 
-  function voiceSelectHtml(id){
-    return `
-      <div class="sa-pro-field">
-        <label>কণ্ঠস্বর নির্বাচন করুন</label>
-        <select id="${id}">
-          <option value="bn-IN-BashkarNeural">ভাস্কর (পুরুষ কণ্ঠ)</option>
-          <option value="bn-BD-PradeepNeural">প্রদীপ (গম্ভীর পুরুষ কণ্ঠ)</option>
-          <option value="bn-IN-TanishaaNeural">তনিষা (মহিলা কণ্ঠ)</option>
-        </select>
-      </div>`;
+  function voiceSel(id){
+    return `<label class="mu">কণ্ঠস্বর</label>
+      <select id="${id}">
+        <option value="bn-IN-BashkarNeural">ভাস্কর (পুরুষ কণ্ঠ)</option>
+        <option value="bn-BD-PradeepNeural">প্রদীপ (গম্ভীর পুরুষ কণ্ঠ)</option>
+        <option value="bn-IN-TanishaaNeural">তনিষা (মহিলা কণ্ঠ)</option>
+      </select>`;
   }
 
-  /* ৫. প্রতিটি ট্যাবের পপ-আপ UI */
+  /* ৪. রোল অনুযায়ী নির্দিষ্ট ট্যাবে বাটন বসানো (হোম ট্যাবে কখনোই নয়) */
+  function injectRoleButtons(){
+    try {
+      if(typeof ME === 'undefined' || !ME || typeof TAB === 'undefined' || TAB === 'home') return;
+      const app = document.getElementById('app');
+      if(!app) return;
+      const old = document.getElementById('sa-pro-inline-bar');
+      if(old) old.remove();
+
+      const r = ME.role;
+      const btns = [];
+
+      /* শুধু Owner-এর সেটিংস ট্যাবে বয়স সীমা */
+      if(r === 'owner' && TAB === 'set'){
+        btns.push(`<button class="b s p" onclick="window.saProOpen('age')">📅 বয়স সীমা সেট করুন</button>`);
+      }
+
+      /* অ্যাডমিনদের (GP / Circle / Sub) জন্য নির্দিষ্ট ট্যাবে বাটন */
+      if(['gp', 'circle', 'sub'].includes(r)){
+        if(TAB === 'sc'){
+          btns.push(`<button class="b s p" onclick="window.saProOpen('schedule')">🕒 কাস্টম শিডিউল সেট করুন</button>`);
+        }
+        if(TAB === 'rs' || TAB === 'rp'){
+          btns.push(`<button class="b s p" onclick="window.saProOpen('prize')">🏆 পুরস্কার বিতরণী ঘোষণা</button>`);
+        }
+        if(['ad', 'sc', 'rs', 'rp', 'ch', 'sh'].includes(TAB)){
+          btns.push(`<button class="b s" onclick="window.saProOpen('guest')">💐 অতিথিবরণ</button>`);
+        }
+      } else if(r === 'owner' && TAB === 'rp'){
+        btns.push(`<button class="b s p" onclick="window.saProOpen('prize')">🏆 পুরস্কার বিতরণী ঘোষণা</button>`);
+      }
+
+      if(!btns.length) return;
+
+      const tabsEl = app.querySelector('.tabs');
+      const bar = document.createElement('div');
+      bar.id = 'sa-pro-inline-bar';
+      bar.className = 'sa-pro-bar';
+      bar.innerHTML = `<span class="sa-pro-bar-lbl">অতিরিক্ত টুলস:</span>` + btns.join('');
+      if(tabsEl && tabsEl.parentNode){
+        tabsEl.parentNode.insertBefore(bar, tabsEl.nextSibling);
+      }
+    } catch(e){}
+  }
+
+  /* মূল afterDraw-এর সাথে নিরাপদে যুক্ত করা */
+  const _origAfterDraw = window.afterDraw;
+  window.afterDraw = function(){
+    if(typeof _origAfterDraw === 'function') _origAfterDraw.apply(this, arguments);
+    injectRoleButtons();
+  };
+  setTimeout(injectRoleButtons, 300);
+
+  /* ৫. পপ-আপ মোডাল ওপেন */
   window.saProOpen = function(tab){
     const overlay = document.getElementById('sa-pro-overlay');
     const title = document.getElementById('sa-pro-title');
@@ -6648,114 +6633,84 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
       const lim = getAgeLimits();
       title.textContent = '📅 বয়স-সীমা সেটিংস (Owner)';
       body.innerHTML = `
-        <div class="sa-pro-field">
-          <label>বিভাগ ক (সর্বনিম্ন জন্ম তারিখ বা তার পরে)</label>
-          <input type="date" id="sa-age-a" value="${lim.A}">
-        </div>
-        <div class="sa-pro-field">
-          <label>বিভাগ খ (সর্বনিম্ন জন্ম তারিখ বা তার পরে)</label>
-          <input type="date" id="sa-age-b" value="${lim.B}">
-        </div>
-        <div class="sa-pro-field">
-          <label>বিভাগ গ (সর্বনিম্ন জন্ম তারিখ বা তার পরে)</label>
-          <input type="date" id="sa-age-c" value="${lim.C}">
-        </div>
-        <div class="sa-pro-row">
-          <button class="sa-pro-primary" onclick="window.saProSaveAge()">💾 তারিখ সেভ করুন</button>
-        </div>
-        <hr style="margin:14px 0;border:none;border-top:1px solid #e2e8f0;">
-        <div class="sa-pro-field">
-          <label>তাৎক্ষণিক বয়স যাচাই করুন</label>
-          <div class="sa-pro-row">
-            <select id="sa-chk-grp">
-              <option value="A">বিভাগ ক</option>
-              <option value="B">বিভাগ খ</option>
-              <option value="C">বিভাগ গ</option>
-            </select>
-            <input type="date" id="sa-chk-dob">
-          </div>
-        </div>
-        <button class="sa-pro-btn" style="width:100%;" onclick="window.saProCheckAge()">🔍 যোগ্যতা যাচাই করুন</button>
+        <label class="mu">বিভাগ ক (সর্বনিম্ন জন্ম তারিখ বা তার পরে)</label>
+        <input type="date" id="sa-age-a" value="${lim.A}">
+        <label class="mu">বিভাগ খ (সর্বনিম্ন জন্ম তারিখ বা তার পরে)</label>
+        <input type="date" id="sa-age-b" value="${lim.B}">
+        <label class="mu">বিভাগ গ (সর্বনিম্ন জন্ম তারিখ বা তার পরে)</label>
+        <input type="date" id="sa-age-c" value="${lim.C}">
+        <button class="b p" style="width:100%" onclick="window.saProSaveAge()">💾 তারিখ সেভ করুন</button>
         <div id="sa-age-msg" class="sa-pro-note">পর্ষদের ১৯/১১/২০২৬ সংশোধনী অনুযায়ী ডিফল্ট তারিখ সেট করা আছে।</div>
       `;
     }
     else if(tab === 'schedule'){
-      const list = getSchedule();
-      title.textContent = '🕒 প্রতিযোগিতার শিডিউল (Admin)';
-      let rows = list.map((item, idx) => `
-        <div class="sa-pro-sched-item" data-idx="${idx}">
-          <input type="text" class="sa-sc-time" value="${item.time}" placeholder="সময় (যেমন ১০:৩০ - ১১:১৫)" style="width:38%;">
-          <input type="text" class="sa-sc-ev" value="${item.event}" placeholder="ইভেন্ট (যেমন যোগা / জিমন্যাস্টিক)" style="width:52%;">
-          <button class="sa-pro-close" onclick="this.parentElement.remove()">✕</button>
+      const list = getSched();
+      title.textContent = '🕒 কাস্টম শিডিউল সেটিংস (Admin)';
+      const rows = list.map(it => `
+        <div class="sa-pro-sched-row">
+          <input type="text" class="sa-sc-time" value="${(it.time||'').replace(/"/g,'&quot;')}" placeholder="সময় (যেমন ১০:৩০ - ১১:১৫)" style="width:38%">
+          <input type="text" class="sa-sc-ev" value="${(it.event||'').replace(/"/g,'&quot;')}" placeholder="ইভেন্ট (যেমন যোগা / জিমন্যাস্টিক)" style="width:52%">
+          <button class="b d s" onclick="this.parentElement.remove()">✕</button>
         </div>
       `).join('');
       body.innerHTML = `
         <div id="sa-sc-list">${rows}</div>
-        <div class="sa-pro-row" style="margin-top:10px;">
-          <button class="sa-pro-btn" onclick="window.saProAddSchedRow()">+ নতুন স্লট</button>
-          <button class="sa-pro-primary" onclick="window.saProSaveSched()">💾 শিডিউল সেভ করুন</button>
+        <div class="sa-pro-row" style="margin-top:8px">
+          <button class="b s" onclick="window.saProAddSched()">+ নতুন স্লট</button>
+          <button class="b s p" onclick="window.saProSaveSched()">💾 সেভ করুন</button>
         </div>
-        <div id="sa-sc-msg" class="sa-pro-note">একই সময়ে একাধিক ইভেন্ট থাকলে স্ল্যাশ (/) দিয়ে লিখুন—যেমন: যোগা / জিমন্যাস্টিক।</div>
+        <div id="sa-sc-msg" class="sa-pro-note">একই ঘরে একাধিক ইভেন্ট থাকলে স্ল্যাশ (/) দিয়ে লিখুন—যেমন: যোগা / জিমন্যাস্টিক।</div>
       `;
     }
     else if(tab === 'prize'){
       title.textContent = '🏆 পুরস্কার বিতরণী ঘোষণা';
+      const rs = (typeof DB !== 'undefined' && DB && Array.isArray(DB.r)) ? DB.r : [];
+      const myRs = (typeof ME !== 'undefined' && ME && ME.role === 'gp') ? rs.filter(x => x.gp === ME.id) : rs;
+      const opts = myRs.map((x, i) => {
+        const cName = (typeof CN !== 'undefined' && CN[x.cat]) ? CN[x.cat] : x.cat;
+        const sName = (typeof SN !== 'undefined' && SN[x.sec]) ? ' ' + SN[x.sec] + ' বিভাগ' : '';
+        return `<option value="${i}">${cName}${sName} — ${x.ev}</option>`;
+      }).join('');
+
       body.innerHTML = `
-        ${voiceSelectHtml('sa-pr-voice')}
+        ${voiceSel('sa-pr-voice')}
+        <label class="mu">প্রকাশিত ফলাফল বেছে নিন (অটোমেটিক নাম চলে আসবে)</label>
+        <select id="sa-pr-res" onchange="window.saProPreviewPrize()">
+          ${opts || '<option value="">এখনও কোনো ফলাফল প্রকাশিত হয়নি</option>'}
+        </select>
         <div class="sa-pro-row">
-          <div class="sa-pro-field">
-            <label>পুরস্কারদাতার নাম</label>
+          <div>
+            <label class="mu">পুরস্কারদাতার নাম</label>
             <input type="text" id="sa-pr-giver" placeholder="যেমন: শ্রী অরুণ কুমার রায়">
           </div>
-          <div class="sa-pro-field">
-            <label>পদমর্যাদা</label>
+          <div>
+            <label class="mu">পদমর্যাদা</label>
             <input type="text" id="sa-pr-desig" placeholder="যেমন: প্রধান শিক্ষক">
           </div>
         </div>
-        <div class="sa-pro-row">
-          <div class="sa-pro-field">
-            <label>বিভাগ ও ইভেন্ট</label>
-            <input type="text" id="sa-pr-ev" placeholder="যেমন: বিভাগ ক, ১০০ মিটার দৌড়">
-          </div>
-          <div class="sa-pro-field">
-            <label>স্থান</label>
-            <select id="sa-pr-pos">
-              <option value="প্রথম">প্রথম</option>
-              <option value="দ্বিতীয়">দ্বিতীয়</option>
-              <option value="তৃতীয়">তৃতীয়</option>
-            </select>
-          </div>
+        <div id="sa-pr-win-box" class="sa-pro-note">ফলাফল নির্বাচন করুন।</div>
+        <div class="sa-pro-row" style="margin-top:10px">
+          <button class="b p" onclick="window.saProAnnouncePrize()">🔊 ঘোষণা করুন</button>
+          <button class="b d" onclick="window.saProStop()">⏹ বন্ধ করুন</button>
         </div>
-        <div class="sa-pro-field">
-          <label>বিজয়ী প্রতিযোগীর নাম ও বিদ্যালয়</label>
-          <input type="text" id="sa-pr-win" placeholder="যেমন: সায়ন দাস, দাসপুর প্রাথমিক বিদ্যালয়">
-        </div>
-        <div class="sa-pro-row">
-          <button class="sa-pro-primary" onclick="window.saProAnnouncePrize()">🔊 ঘোষণা করুন</button>
-          <button class="sa-pro-danger" onclick="window.saProStopAudio()">⏹ বন্ধ করুন</button>
-        </div>
-        <div id="sa-pr-status" class="sa-pro-note">নাম ও পদ লিখে ঘোষণা বাটনে চাপুন।</div>
+        <div id="sa-pr-status" class="sa-pro-note">প্রস্তুত।</div>
       `;
+      window._saPrizeList = myRs;
+      window.saProPreviewPrize();
     }
     else if(tab === 'guest'){
       title.textContent = '💐 অতিথিবরণ ঘোষণা';
       body.innerHTML = `
-        ${voiceSelectHtml('sa-gt-voice')}
-        <div class="sa-pro-field">
-          <label>অতিথির নাম</label>
-          <input type="text" id="sa-gt-name" placeholder="যেমন: মাননীয় সুব্রত ঘোষ">
-        </div>
-        <div class="sa-pro-field">
-          <label>অতিথির পদমর্যাদা</label>
-          <input type="text" id="sa-gt-desig" placeholder="যেমন: অবর বিদ্যালয় পরিদর্শক">
-        </div>
-        <div class="sa-pro-field">
-          <label>বরণকারীর নাম (ঐচ্ছিক)</label>
-          <input type="text" id="sa-gt-host" placeholder="খালি রাখলে সাধারণভাবে বরণ ঘোষণা হবে">
-        </div>
-        <div class="sa-pro-row">
-          <button class="sa-pro-primary" onclick="window.saProAnnounceGuest()">🔊 বরণ ঘোষণা করুন</button>
-          <button class="sa-pro-danger" onclick="window.saProStopAudio()">⏹ বন্ধ করুন</button>
+        ${voiceSel('sa-gt-voice')}
+        <label class="mu">অতিথির নাম</label>
+        <input type="text" id="sa-gt-name" placeholder="যেমন: মাননীয় সুব্রত ঘোষ">
+        <label class="mu">অতিথির পদমর্যাদা</label>
+        <input type="text" id="sa-gt-desig" placeholder="যেমন: অবর বিদ্যালয় পরিদর্শক">
+        <label class="mu">বরণকারীর নাম (ঐচ্ছিক)</label>
+        <input type="text" id="sa-gt-host" placeholder="খালি রাখলে সাধারণভাবে ঘোষণা হবে">
+        <div class="sa-pro-row" style="margin-top:10px">
+          <button class="b p" onclick="window.saProAnnounceGuest()">🔊 বরণ ঘোষণা করুন</button>
+          <button class="b d" onclick="window.saProStop()">⏹ বন্ধ করুন</button>
         </div>
         <div id="sa-gt-status" class="sa-pro-note">অতিথির নাম ও পদমর্যাদা লিখে ঘোষণা করুন।</div>
       `;
@@ -6767,44 +6722,35 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     document.getElementById('sa-pro-overlay').classList.remove('open');
   };
 
-  /* সেভ ও অ্যাকশন ফাংশন */
   window.saProSaveAge = function(){
     const data = {
-      A: document.getElementById('sa-age-a').value || DEFAULT_AGE_LIMITS.A,
-      B: document.getElementById('sa-age-b').value || DEFAULT_AGE_LIMITS.B,
-      C: document.getElementById('sa-age-c').value || DEFAULT_AGE_LIMITS.C
+      A: document.getElementById('sa-age-a').value || DEFAULT_AGE.A,
+      B: document.getElementById('sa-age-b').value || DEFAULT_AGE.B,
+      C: document.getElementById('sa-age-c').value || DEFAULT_AGE.C
     };
     localStorage.setItem('sa_age_limits', JSON.stringify(data));
+    if(typeof DB !== 'undefined' && DB){
+      DB.cfg = DB.cfg || {};
+      DB.cfg.ageLimits = data;
+      if(typeof sv === 'function') sv();
+    }
     window.SA_AGE_LIMITS = data;
     document.getElementById('sa-age-msg').textContent = '✅ নতুন বয়স-সীমা সফলভাবে সেভ হয়েছে।';
   };
 
-  window.saProCheckAge = function(){
-    const grp = document.getElementById('sa-chk-grp').value;
-    const dob = document.getElementById('sa-chk-dob').value;
-    const msg = document.getElementById('sa-age-msg');
-    if(!dob){ msg.textContent = '⚠️ আগে জন্ম তারিখ দিন।'; return; }
-    const lim = getAgeLimits()[grp];
-    if(dob >= lim){
-      msg.textContent = `✅ যোগ্য: এই প্রতিযোগী নির্ধারিত সীমা (${lim} বা তার পরে) অনুযায়ী অংশগ্রহণ করতে পারবে।`;
-    } else {
-      msg.textContent = `❌ অযোগ্য (বয়স বেশি): নির্ধারিত সীমা ${lim} বা তার পরে।`;
-    }
-  };
-
-  window.saProAddSchedRow = function(){
+  window.saProAddSched = function(){
     const div = document.createElement('div');
-    div.className = 'sa-pro-sched-item';
+    div.className = 'sa-pro-sched-row';
     div.innerHTML = `
-      <input type="text" class="sa-sc-time" placeholder="সময়" style="width:38%;">
-      <input type="text" class="sa-sc-ev" placeholder="প্রতিযোগিতার নাম" style="width:52%;">
-      <button class="sa-pro-close" onclick="this.parentElement.remove()">✕</button>
+      <input type="text" class="sa-sc-time" placeholder="সময়" style="width:38%">
+      <input type="text" class="sa-sc-ev" placeholder="প্রতিযোগিতার নাম" style="width:52%">
+      <button class="b d s" onclick="this.parentElement.remove()">✕</button>
     `;
     document.getElementById('sa-sc-list').appendChild(div);
   };
 
   window.saProSaveSched = function(){
-    const rows = document.querySelectorAll('#sa-sc-list .sa-pro-sched-item');
+    const rows = document.querySelectorAll('#sa-sc-list .sa-pro-sched-row');
     const arr = [];
     rows.forEach(r => {
       const t = r.querySelector('.sa-sc-time').value.trim();
@@ -6812,22 +6758,51 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
       if(t || e) arr.push({ time: t, event: e });
     });
     localStorage.setItem('sa_custom_schedule', JSON.stringify(arr));
-    document.getElementById('sa-sc-msg').textContent = '✅ শিডিউল সফলভাবে সেভ হয়েছে।';
+    if(typeof DB !== 'undefined' && DB){
+      DB.cfg = DB.cfg || {};
+      DB.cfg.customSched = arr;
+      if(typeof sv === 'function') sv();
+    }
+    document.getElementById('sa-sc-msg').textContent = '✅ কাস্টম শিডিউল সেভ হয়েছে।';
+  };
+
+  window.saProPreviewPrize = function(){
+    const sel = document.getElementById('sa-pr-res');
+    const box = document.getElementById('sa-pr-win-box');
+    const list = window._saPrizeList || [];
+    if(!sel || !box || !list.length || sel.value === '') return;
+    const item = list[Number(sel.value)];
+    if(!item) return;
+    const posTxt = { 1: 'প্রথম', 2: 'দ্বিতীয়', 3: 'তৃতীয়', 4: 'চতুর্থ' };
+    box.innerHTML = (item.win || []).map(w =>
+      `<div><b>${posTxt[w.pos] || w.pos + 'ম'}:</b> ${w.name} (${w.school || ''})</div>`
+    ).join('') || 'কোনো বিজয়ীর নাম পাওয়া যায়নি।';
   };
 
   window.saProAnnouncePrize = function(){
+    const list = window._saPrizeList || [];
+    const sel = document.getElementById('sa-pr-res');
+    if(!list.length || !sel || sel.value === ''){
+      document.getElementById('sa-pr-status').textContent = '⚠️ আগে ফলাফল প্রকাশ করুন।';
+      return;
+    }
+    const item = list[Number(sel.value)];
     const voice = document.getElementById('sa-pr-voice').value;
     const giver = document.getElementById('sa-pr-giver').value.trim();
     const desig = document.getElementById('sa-pr-desig').value.trim();
-    const ev = document.getElementById('sa-pr-ev').value.trim();
-    const pos = document.getElementById('sa-pr-pos').value;
-    const win = document.getElementById('sa-pr-win').value.trim();
+    const cName = (typeof CN !== 'undefined' && CN[item.cat]) ? CN[item.cat] : item.cat;
+    const sName = (typeof SN !== 'undefined' && SN[item.sec]) ? ' ' + SN[item.sec] + ' বিভাগ' : '';
+    const posTxt = { 1: 'প্রথম', 2: 'দ্বিতীয়', 3: 'তৃতীয়', 4: 'চতুর্থ' };
 
-    let text = `মনোযোগ দিন। এখন পুরস্কার বিতরণী পর্ব চলছে। `;
-    if(ev) text += `${ev} প্রতিযোগিতায় `;
-    text += `${pos} স্থানাধিকারী ${win || 'বিজয়ী প্রতিযোগী'}-এর হাতে পুরস্কার তুলে দেওয়ার জন্য মঞ্চে সাদর অনুরোধ জানাচ্ছি `;
-    if(desig) text += `আমাদের মাননীয় ${desig}, `;
-    text += `${giver || 'বিশিষ্ট অতিথি'} মহাশয়কে। করতালির মাধ্যমে সকলকে অভিনন্দন জানাই।`;
+    const winLines = (item.win || []).slice(0, 3).map(w =>
+      `${posTxt[w.pos] || w.pos + 'ম'} স্থানাধিকারী ${w.name}, বিদ্যালয় ${w.school || ''}`
+    ).join('। ');
+
+    let text = `মনোযোগ দিন। এখন পুরস্কার বিতরণী পর্ব চলছে। ${cName}${sName}, ${item.ev} প্রতিযোগিতার বিজয়ীগণ হলেন— ${winLines}। `;
+    if(giver || desig){
+      text += `বিজয়ীদের হাতে পুরস্কার তুলে দেওয়ার জন্য মঞ্চে সাদর অনুরোধ জানাচ্ছি আমাদের মাননীয় ${desig ? desig + ', ' : ''}${giver || 'বিশিষ্ট অতিথি'} মহাশয়কে। `;
+    }
+    text += `সকল বিজয়ীকে করতালির মাধ্যমে আন্তরিক অভিনন্দন জানাই।`;
 
     window.saProSpeak(text, voice, 'sa-pr-status');
   };
