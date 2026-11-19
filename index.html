@@ -6401,33 +6401,47 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
 })();
 </script><script id="sa-tts-server-bridge">
 /* ==========================================================================
-   VERCEL FREE PYTHON TTS BRIDGE
-   (ইভেন্ট কলিং, ফলাফল ও স্পেশাল মাইক বোর্ডের সব /api/tts রিকোয়েস্ট Vercel-এ পাঠাবে)
+   VERCEL FREE PYTHON TTS BRIDGE (FETCH + XHR + AUDIO)
    ========================================================================== */
 (function(){
-  /* নিচে শুধু আপনার কাজ করা Vercel লিংকটি বসান (শেষে / দেবেন না) */
-  const VERCEL_TTS_URL = 'https://https://sports-91ejc48vm-nagraphic85-netizen.vercel.app';
+  const VERCEL_TTS_URL = 'https://sports-91ejc48vm-nagraphic85-netizen.vercel.app';
 
   if(!VERCEL_TTS_URL || VERCEL_TTS_URL.includes('sports-91ejc48vm-nagraphic85-netizen')) return;
   const base = VERCEL_TTS_URL.replace(/\/+$/, '');
 
+  function rewriteUrl(rawUrl){
+    try {
+      if(typeof rawUrl !== 'string' || !rawUrl) return rawUrl;
+      if(rawUrl.startsWith('/api/tts')) return base + rawUrl;
+      const u = new URL(rawUrl, location.href);
+      if(u.pathname === '/api/tts') return base + u.pathname + u.search;
+    } catch(e){}
+    return rawUrl;
+  }
+
   const origFetch = window.fetch.bind(window);
   window.fetch = function(input, init){
     try {
-      if(typeof input === 'string' && input.startsWith('/api/tts')){
-        return origFetch(base + input, init);
+      if(typeof input === 'string'){
+        return origFetch(rewriteUrl(input), init);
       }
       if(input && typeof input.url === 'string'){
-        const u = new URL(input.url, location.href);
-        if(u.pathname === '/api/tts'){
-          return origFetch(base + u.pathname + u.search, init);
+        const fixed = rewriteUrl(input.url);
+        if(fixed !== input.url){
+          return origFetch(new Request(fixed, input), init);
         }
       }
     } catch(e){}
     return origFetch(input, init);
   };
 
-  /* ওয়েবসাইট খোলার সাথে সাথে সার্ভার ওয়ার্ম-আপ রাখা */
+  const origOpen = XMLHttpRequest.prototype.open;
+  XMLHttpRequest.prototype.open = function(method, url){
+    const args = Array.prototype.slice.call(arguments);
+    args[1] = rewriteUrl(url);
+    return origOpen.apply(this, args);
+  };
+
   setTimeout(() => { origFetch(base + '/').catch(()=>{}); }, 1000);
 })();
 </script></body></html>
