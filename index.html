@@ -6140,240 +6140,263 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
 })();
 </script><script id="sa-smart-auto-login">
 /* ==========================================================================
-   DIRECT SMART LOGIN CARD (স্তর না বেছেই শুধু আইডি ও পিন দিয়ে অটো-লগইন)
+   SMART AUTO-ROLE LOGIN (লগইন আইডি দেখেই সাব-ডিভিশন/সার্কেল/জিপি/স্কুল অটো-সিলেক্ট)
    ========================================================================== */
 (function(){
   const escH = s => String(s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-  const toEnDigits = s => String(s||'').replace(/[০-৯]/g, d => '0123456789'['০১২৩৪৫৬৭৮৯'.indexOf(d)]);
 
-  const ROLE_INFO = {
-    owner:  { label: 'ওনার / অ্যাডমিন (Owner)',  rx: /owner|admin/i },
-    sub:    { label: 'সাব-ডিভিশন / মহকুমা (Sub)', rx: /subdiv|sub/i },
-    circle: { label: 'সার্কেল / চক্র (Circle)',   rx: /circle|cir|chakra/i },
-    gp:     { label: 'জিপি / অঞ্চল (GP)',        rx: /(?:^|[^a-z])gp(?:[^a-z]|$|\d)/i },
-    school: { label: 'স্কুল / বিদ্যালয় (School)', rx: /school|sch/i }
+  const ROLE_META = {
+    school: { label: 'স্কুল / বিদ্যালয় (School)', uiValRx: /^school$|^sch$/i, uiTxtRx: /স্কুল|বিদ্যালয়|school/i, idRx: /school|sch/i },
+    gp:     { label: 'জিপি / অঞ্চল (GP)',        uiValRx: /^gp$/i,            uiTxtRx: /জিপি|জি\.?পি|অঞ্চল|পঞ্চায়েত|\bgp\b/i, idRx: /(?:^|[^a-z])gp(?:[^a-z]|$|\d)/i },
+    circle: { label: 'সার্কেল / চক্র (Circle)',   uiValRx: /^circle$|^cir$/i,  uiTxtRx: /সার্কেল|চক্র|circle/i, idRx: /circle|cir|chakra/i },
+    sub:    { label: 'সাব-ডিভিশন / মহকুমা (Sub)', uiValRx: /^sub$/i,           uiTxtRx: /সাব|মহকুমা|sub/i, idRx: /subdiv|sub/i },
+    owner:  { label: 'ওনার / অ্যাডমিন (Owner)',  uiValRx: /^owner$|^admin$/i, uiTxtRx: /ওনার|মালিক|অ্যাডমিন|owner|admin/i, idRx: /owner|admin/i }
   };
 
-  /* কার্ডের স্টাইল */
+  /* ব্যাজের স্টাইল */
   const st = document.createElement('style');
   st.textContent = `
-    #saDirectLoginWrap { max-width: 460px; margin: 14px auto 10px; padding: 0 10px; box-sizing: border-box; }
-    #saDirectLoginCard { background: linear-gradient(180deg, #ffffff 0%, #f0f9ff 100%); color: #0f172a; border: 2px solid #0284c7; border-radius: 14px; padding: 14px 16px; box-shadow: 0 8px 24px rgba(2,132,199,.14); }
-    #saDirectLoginCard h3 { margin: 0 0 4px; font-size: 16px; color: #0369a1; display: flex; align-items: center; gap: 6px; }
-    #saDirectLoginCard .sdl-sub { margin: 0 0 10px; font-size: 12.5px; color: #475569; line-height: 1.4; }
-    #saDirectLoginCard .sdl-fld { margin-bottom: 9px; }
-    #saDirectLoginCard label { display: block; font-size: 12.5px; font-weight: 700; margin-bottom: 3px; color: #1e293b; }
-    #saDirectLoginCard input { width: 100%; padding: 9px 11px; border: 1.6px solid #94a3b8; border-radius: 8px; font-size: 14.5px; font-weight: 600; box-sizing: border-box; background: #fff; color: #0f172a; }
-    #saDirectLoginCard input:focus { outline: none; border-color: #0284c7; box-shadow: 0 0 0 3px rgba(2,132,199,.15); }
-    .sdl-pin-row { position: relative; display: flex; align-items: center; }
-    .sdl-pin-row input { padding-right: 42px !important; }
-    .sdl-eye { position: absolute; right: 6px; background: none; border: none; font-size: 16px; cursor: pointer; padding: 4px 6px; color: #475569; }
-    #saDirectBadge { margin: 4px 0 8px; padding: 6px 10px; border-radius: 7px; font-size: 12.5px; font-weight: 700; display: none; line-height: 1.35; }
-    #saDirectBadge.ok { display: block; background: #dcfce7; color: #166534; border: 1px solid #22c55e; }
-    #saDirectBadge.hint { display: block; background: #e0f2fe; color: #075985; border: 1px solid #38bdf8; }
-    #saDirectBadge.err { display: block; background: #ffe4e6; color: #be123c; border: 1px solid #f43f5e; }
-    #saDirectBtn { width: 100%; padding: 10px 14px; border: none; border-radius: 9px; background: linear-gradient(135deg, #0284c7, #1d4ed8); color: #fff; font-size: 14.5px; font-weight: 800; cursor: pointer; margin-top: 2px; }
-    #saDirectBtn:hover { filter: brightness(1.06); }
-    .sdl-div { text-align: center; font-size: 11.5px; color: #64748b; margin-top: 9px; font-weight: 600; }
+    .sa-auto-role-bdg { margin: 3px 0 8px; padding: 5px 10px; border-radius: 7px; font-size: 12.5px; font-weight: 700; display: none; line-height: 1.35; }
+    .sa-auto-role-bdg.ok { background: rgba(22,163,74,.14); color: #15803d; border: 1px solid #22c55e; display: block; }
+    .sa-auto-role-bdg.hint { background: rgba(14,165,233,.12); color: #0369a1; border: 1px solid #38bdf8; display: block; }
   `;
   document.head.appendChild(st);
 
-  /* ডেটাবেস (DB.u) ও আইডির কোড থেকে ইউনিট ও স্তর খুঁজে বের করা */
-  function lookupAccount(rawId){
-    const clean = toEnDigits(String(rawId || '').trim());
-    if(!clean) return null;
-    const low = clean.toLowerCase();
+  /* আইডি দেখে সঠিক স্তর (role) ও ইউনিটের নাম শনাক্ত করা */
+  function detectRoleFromId(rawId){
+    const val = String(rawId || '').trim();
+    if(!val) return null;
+    const low = val.toLowerCase();
 
-    if(typeof DB !== 'undefined' && DB && Array.isArray(DB.u) && DB.u.length){
-      const exact = DB.u.find(u => {
-        const keys = [u.id, u.uid, u.uname, u.login, u.code].filter(Boolean);
-        return keys.some(k => toEnDigits(String(k).trim()).toLowerCase() === low);
-      });
+    /* ১. প্রথমে ডেটাবেসে (DB.u) সরাসরি আইডি মিলিয়ে দেখা (১০০% নির্ভুল) */
+    if(typeof DB !== 'undefined' && DB && Array.isArray(DB.u)){
+      const exact = DB.u.find(u => String(u.id || '').trim().toLowerCase() === low);
       if(exact){
         const r = String(exact.role || exact.lvl || '').toLowerCase();
-        return { user: exact, role: r, exact: true };
+        const lvl = String(exact.lvl || exact.role || '').toLowerCase();
+        return { role: r, altRole: lvl, user: exact, exact: true };
       }
     }
 
+    /* ২. টাইপ করার সময় আইডির কোড (school / gp / circle / sub / owner) দেখে শনাক্ত করা */
     for(const key of ['school', 'gp', 'circle', 'sub', 'owner']){
-      if(ROLE_INFO[key].rx.test(low)){
-        return { user: null, role: key, exact: false };
+      if(ROLE_META[key].idRx.test(low)){
+        return { role: key, altRole: key, user: null, exact: false };
       }
     }
     return null;
   }
 
-  /* পিন যাচাই করা */
-  function verifyPin(u, enteredPin){
-    const pinKeys = ['pin', 'pass', 'pw', 'p', 'pwd', 'password'];
-    const validKeys = pinKeys.filter(k => u[k] !== undefined && u[k] !== null && String(u[k]).trim() !== '');
-    if(!validKeys.length) return true;
-    const cleanIn = toEnDigits(String(enteredPin || '').trim());
-    return validKeys.some(k => toEnDigits(String(u[k]).trim()) === cleanIn);
-  }
+  /* লগইন ফর্ম এবং তার ভেতরের আইডি ও পিন বক্স খুঁজে বের করা */
+  function findLoginElements(){
+    if(typeof ME !== 'undefined' && ME) return null;
 
-  function showBadge(type, html){
-    const b = document.getElementById('saDirectBadge');
-    if(!b) return;
-    b.className = type || '';
-    b.innerHTML = html || '';
-  }
+    const pwInputs = [...document.querySelectorAll('input[type="password"], input[placeholder*="পিন"], input[placeholder*="PIN"], input[placeholder*="পাসওয়ার্ড"], input[id*="pin" i], input[id*="pw" i]')]
+      .filter(el => el.offsetParent !== null);
+    if(!pwInputs.length) return null;
 
-  function handleIdTyping(){
-    const inp = document.getElementById('saDirectId');
-    if(!inp) return;
-    const val = inp.value.trim();
-    if(!val){
-      showBadge('', '');
-      return;
+    for(const pinInp of pwInputs){
+      const box = pinInp.closest('.cd, form, .m, .md, #app') || pinInp.parentElement;
+      if(!box) continue;
+
+      const loginBtn = [...box.querySelectorAll('button')].find(b =>
+        /লগইন|প্রবেশ|login|sign\s*in/i.test(b.textContent || '') && !/বাতিল|বন্ধ|cancel|close/i.test(b.textContent || '')
+      );
+      if(!loginBtn) continue;
+
+      const idInp = [...box.querySelectorAll('input')].find(inp =>
+        inp !== pinInp &&
+        inp.offsetParent !== null &&
+        inp.type !== 'password' &&
+        inp.type !== 'checkbox' &&
+        inp.type !== 'radio' &&
+        inp.type !== 'file' &&
+        inp.type !== 'hidden'
+      );
+      if(idInp) return { box, idInp, pinInp, loginBtn };
     }
-    const found = lookupAccount(val);
-    if(found && found.user){
-      const rLabel = (ROLE_INFO[found.role] || {}).label || found.role;
-      showBadge('ok', `✔ শনাক্ত হয়েছে: <b>${escH(rLabel)}</b> — ${escH(found.user.name || found.user.id)}`);
-    } else if(found && !found.user){
-      const rLabel = (ROLE_INFO[found.role] || {}).label || found.role;
-      showBadge('hint', `🔎 শনাক্ত স্তর: <b>${escH(rLabel)}</b> (সম্পূর্ণ আইডি লিখুন)`);
+    return null;
+  }
+
+  let isAutoSwitching = false;
+
+  /* লগইন কার্ডের ভেতরের স্তর-নির্বাচক বাটন বা ড্রপডাউন অটো-সিলেক্ট করা */
+  function applyDetectedRoleToUI(infoObj, els){
+    if(!infoObj || !els || isAutoSwitching) return;
+    const { box, idInp, pinInp } = els;
+    const tryRoles = [infoObj.role, infoObj.altRole].filter((v, i, a) => v && a.indexOf(v) === i);
+
+    const savedId = idInp.value;
+    const savedPin = pinInp.value;
+    const wasFocused = (document.activeElement === idInp);
+    const selStart = wasFocused ? idInp.selectionStart : null;
+    const selEnd = wasFocused ? idInp.selectionEnd : null;
+
+    let switched = false;
+
+    /* ক. যদি স্তর বাছাই করার জন্য <select> ড্রপডাউন থাকে */
+    const selects = [...box.querySelectorAll('select')].filter(s => s.offsetParent !== null);
+    for(const sel of selects){
+      const opts = [...sel.options];
+      /* যদি ইউনিটের সরাসরি আইডি ড্রপডাউনে থাকে */
+      if(infoObj.user){
+        const exactOpt = opts.find(o => String(o.value).toLowerCase() === String(infoObj.user.id).toLowerCase());
+        if(exactOpt && sel.value !== exactOpt.value){
+          isAutoSwitching = true;
+          sel.value = exactOpt.value;
+          sel.dispatchEvent(new Event('change', { bubbles: true }));
+          switched = true;
+          break;
+        }
+      }
+      /* যদি স্তর (sub/circle/gp/school/owner) ড্রপডাউনে থাকে */
+      for(const r of tryRoles){
+        const meta = ROLE_META[r];
+        if(!meta) continue;
+        const mOpt = opts.find(o => meta.uiValRx.test(o.value) || meta.uiTxtRx.test(o.textContent || ''));
+        if(mOpt){
+          if(sel.value !== mOpt.value){
+            isAutoSwitching = true;
+            sel.value = mOpt.value;
+            sel.dispatchEvent(new Event('change', { bubbles: true }));
+            switched = true;
+          }
+          break;
+        }
+      }
+      if(switched) break;
+    }
+
+    /* খ. যদি স্তর বাছাই করার জন্য বাটন (সাব-ডিভিশন / সার্কেল / জিপি / স্কুল) থাকে */
+    if(!switched){
+      const roleBtns = [...box.querySelectorAll('button')].filter(b =>
+        b !== els.loginBtn &&
+        b.offsetParent !== null &&
+        !/লগইন|প্রবেশ|login|বন্ধ|cancel|close|হোম|home|ভুলে|reset/i.test(b.textContent || '')
+      );
+
+      for(const r of tryRoles){
+        const meta = ROLE_META[r];
+        if(!meta) continue;
+        const targetBtn = roleBtns.find(b => {
+          const oc = b.getAttribute('onclick') || '';
+          const tx = b.textContent || '';
+          return new RegExp(`['"]${r}['"]`, 'i').test(oc) || meta.uiTxtRx.test(tx);
+        });
+
+        if(targetBtn){
+          const alreadyActive = targetBtn.classList.contains('on') || targetBtn.classList.contains('p') || targetBtn.classList.contains('act');
+          if(!alreadyActive){
+            isAutoSwitching = true;
+            targetBtn.click();
+            switched = true;
+          }
+          break;
+        }
+      }
+    }
+
+    /* গ. স্তর বদলানোর পর পেজ রি-রেন্ডার হয়ে থাকলে আইডি, পিন ও কার্সার ঠিকঠাক ফিরিয়ে আনা */
+    if(switched){
+      setTimeout(() => {
+        const fresh = findLoginElements();
+        if(fresh){
+          if(fresh.idInp.value !== savedId) fresh.idInp.value = savedId;
+          if(fresh.pinInp.value !== savedPin) fresh.pinInp.value = savedPin;
+          if(wasFocused){
+            fresh.idInp.focus();
+            try { if(selStart !== null) fresh.idInp.setSelectionRange(selStart, selEnd); } catch(e){}
+          }
+          updateBadge(fresh.idInp, infoObj);
+        }
+        isAutoSwitching = false;
+      }, 20);
     } else {
-      showBadge('', '');
+      isAutoSwitching = false;
     }
   }
 
-  window.toggleDirectPinEye = function(){
-    const pinInp = document.getElementById('saDirectPin');
-    const eyeBtn = document.getElementById('saDirectEye');
-    if(!pinInp) return;
-    const isPw = pinInp.type === 'password';
-    pinInp.type = isPw ? 'text' : 'password';
-    if(eyeBtn) eyeBtn.textContent = isPw ? '🙈' : '👁';
-  };
+  /* আইডি বক্সের নিচে শনাক্তকৃত স্তর ও ইউনিটের নাম দেখানো */
+  function updateBadge(idInp, infoObj){
+    const host = idInp.closest('.micw') || idInp;
+    let bdg = host.parentNode && host.parentNode.querySelector('.sa-auto-role-bdg');
+    if(!bdg && host.parentNode){
+      bdg = document.createElement('div');
+      bdg.className = 'sa-auto-role-bdg';
+      host.insertAdjacentElement('afterend', bdg);
+    }
+    if(!bdg) return;
 
-  window.doSmartDirectLogin = function(){
-    const idEl = document.getElementById('saDirectId');
-    const pinEl = document.getElementById('saDirectPin');
-    if(!idEl || !pinEl) return;
-
-    const rawId = idEl.value.trim();
-    const rawPin = pinEl.value.trim();
-
-    if(!rawId){
-      showBadge('err', '⚠ অনুগ্রহ করে আপনার লগইন আইডি লিখুন।');
-      idEl.focus();
+    if(!idInp.value.trim()){
+      bdg.className = 'sa-auto-role-bdg hint';
+      bdg.innerHTML = '⚡ শুধু লগইন আইডি লিখুন — স্তর (সাব-ডিভিশন / সার্কেল / জিপি / স্কুল) অটোমেটিক নির্বাচিত হয়ে যাবে।';
       return;
     }
 
-    if(typeof DB === 'undefined' || !DB || !Array.isArray(DB.u) || !DB.u.length){
-      showBadge('err', '⏳ ডেটাবেস লোড হচ্ছে, ২ সেকেন্ড অপেক্ষা করে আবার চাপুন।');
+    if(!infoObj){
+      bdg.className = 'sa-auto-role-bdg';
+      bdg.innerHTML = '';
       return;
     }
 
-    const found = lookupAccount(rawId);
-    if(!found || !found.user){
-      showBadge('err', '❌ এই লগইন আইডিটি ডেটাবেসে পাওয়া যায়নি। আইডি বানানটি যাচাই করুন।');
-      idEl.focus();
-      return;
-    }
-
-    const u = found.user;
-    if(!verifyPin(u, rawPin)){
-      showBadge('err', '❌ পিন (PIN) মেলেনি! অনুগ্রহ করে সঠিক পিন দিন।');
-      pinEl.focus();
-      return;
-    }
-
-    /* সরাসরি লগইন সম্পন্ন করা */
-    try { ME = u; } catch(e){ window.ME = u; }
-
-    /* লগইন কার্ডটি লুকিয়ে ইনপুট পরিষ্কার করা */
-    idEl.value = '';
-    pinEl.value = '';
-    showBadge('', '');
-    const wrap = document.getElementById('saDirectLoginWrap');
-    if(wrap) wrap.style.display = 'none';
-
-    /* মূল অ্যাপ রেন্ডার করা */
-    if(typeof draw === 'function') draw();
-
-    /* লগইনের পর সঠিক ড্যাশবোর্ড ট্যাব খোলা আছে কিনা নিশ্চিত করা */
-    setTimeout(() => {
-      const app = document.getElementById('app');
-      const hasActiveTab = document.querySelector('.tabs button.on, .nav button.on, nav button.on, .tb.on');
-      if(!hasActiveTab){
-        const firstTab = document.querySelector('.tabs button, .nav button, nav button, .tb');
-        if(firstTab) firstTab.click();
-      }
-      if(typeof info === 'function'){
-        const rLabel = (ROLE_INFO[found.role] || {}).label || found.role;
-        info(`স্বাগতম, ${u.name || u.id} (${rLabel}) ✔`);
-      }
-    }, 60);
-  };
-
-  function ensureDirectLoginCard(){
-    const isLoggedIn = (typeof ME !== 'undefined' && !!ME);
-    let wrap = document.getElementById('saDirectLoginWrap');
-
-    if(isLoggedIn){
-      if(wrap) wrap.style.display = 'none';
-      return;
-    }
-
-    if(!wrap){
-      wrap = document.createElement('div');
-      wrap.id = 'saDirectLoginWrap';
-      wrap.innerHTML = `<div id="saDirectLoginCard">
-        <h3>⚡ ডাইরেক্ট স্মার্ট লগইন</h3>
-        <p class="sdl-sub">সাব-ডিভিশন, সার্কেল, জিপি বা স্কুল আলাদা করে বাছতে হবে না—শুধু আপনার <b>লগইন আইডি ও পিন</b> দিন।</p>
-        <div class="sdl-fld">
-          <label for="saDirectId">লগইন আইডি (Login ID)</label>
-          <input id="saDirectId" type="text" autocomplete="username" placeholder="যেমন: SUB... / CIRCLE... / GP... / SCHOOL...">
-        </div>
-        <div id="saDirectBadge"></div>
-        <div class="sdl-fld">
-          <label for="saDirectPin">পিন / পাসওয়ার্ড (PIN)</label>
-          <div class="sdl-pin-row">
-            <input id="saDirectPin" type="password" autocomplete="current-password" placeholder="আপনার পিন লিখুন">
-            <button id="saDirectEye" type="button" class="sdl-eye" onclick="toggleDirectPinEye()" title="পিন দেখুন/লুকান">👁</button>
-          </div>
-        </div>
-        <button id="saDirectBtn" type="button" onclick="doSmartDirectLogin()">🔓 সরাসরি লগইন করুন</button>
-        <div class="sdl-div">▼ অথবা নিচের সাধারণ অপশন ব্যবহার করুন ▼</div>
-      </div>`;
-
-      const app = document.getElementById('app');
-      if(app && app.parentNode){
-        app.parentNode.insertBefore(wrap, app);
-      } else if(document.body){
-        document.body.prepend(wrap);
-      }
-
-      const idEl = document.getElementById('saDirectId');
-      const pinEl = document.getElementById('saDirectPin');
-      if(idEl){
-        idEl.addEventListener('input', handleIdTyping);
-        idEl.addEventListener('change', handleIdTyping);
-        idEl.addEventListener('keydown', e => {
-          if(e.key === 'Enter'){ e.preventDefault(); if(pinEl) pinEl.focus(); }
-        });
-      }
-      if(pinEl){
-        pinEl.addEventListener('keydown', e => {
-          if(e.key === 'Enter'){ e.preventDefault(); window.doSmartDirectLogin(); }
-        });
-      }
-    }
-
-    wrap.style.display = 'block';
+    const meta = ROLE_META[infoObj.role] || ROLE_META[infoObj.altRole];
+    const rLabel = meta ? meta.label : infoObj.role;
+    bdg.className = 'sa-auto-role-bdg ok';
+    bdg.innerHTML = infoObj.user
+      ? `✔ অটো-শনাক্ত: <b>${escH(rLabel)}</b> — ${escH(infoObj.user.name)}`
+      : `✔ অটো-শনাক্ত স্তর: <b>${escH(rLabel)}</b>`;
   }
 
-  /* afterDraw ও স্টার্টআপে কার্ডের অবস্থা সিঙ্ক রাখা */
+  /* লগইন ফর্মে স্মার্ট লিসেনার যুক্ত করা */
+  function attachSmartLogin(){
+    const els = findLoginElements();
+    if(!els) return;
+
+    const { idInp, loginBtn } = els;
+    if(!idInp.dataset.saAutoLogin){
+      idInp.dataset.saAutoLogin = '1';
+
+      const handleInput = () => {
+        if(isAutoSwitching) return;
+        const infoObj = detectRoleFromId(idInp.value);
+        updateBadge(idInp, infoObj);
+        if(infoObj) applyDetectedRoleToUI(infoObj, findLoginElements() || els);
+      };
+
+      idInp.addEventListener('input', handleInput);
+      idInp.addEventListener('change', handleInput);
+      idInp.addEventListener('paste', () => setTimeout(handleInput, 30));
+
+      /* শুরুতে হালকা নির্দেশনা বা বর্তমান আইডি অনুযায়ী ব্যাজ দেখানো */
+      updateBadge(idInp, detectRoleFromId(idInp.value));
+    }
+
+    /* লগইন বাটনে চাপার ঠিক আগেই স্তর সিঙ্ক নিশ্চিত করা */
+    if(!loginBtn.dataset.saAutoLoginBtn){
+      loginBtn.dataset.saAutoLoginBtn = '1';
+      loginBtn.addEventListener('click', () => {
+        const curEls = findLoginElements();
+        if(!curEls) return;
+        const infoObj = detectRoleFromId(curEls.idInp.value);
+        if(infoObj) applyDetectedRoleToUI(infoObj, curEls);
+      }, true);
+    }
+  }
+
+  /* afterDraw এবং DOM পরিবর্তনের সাথে সাথে লগইন পেজ ধরার ব্যবস্থা */
   const prevAD = window.afterDraw;
   window.afterDraw = function(){
     if(typeof prevAD === 'function') prevAD.apply(this, arguments);
-    ensureDirectLoginCard();
+    setTimeout(attachSmartLogin, 30);
   };
 
-  setTimeout(ensureDirectLoginCard, 120);
-  setInterval(ensureDirectLoginCard, 1200);
+  let obsTimer = null;
+  const obs = new MutationObserver(() => {
+    if(isAutoSwitching) return;
+    clearTimeout(obsTimer);
+    obsTimer = setTimeout(attachSmartLogin, 80);
+  });
+  if(document.body) obs.observe(document.body, { childList: true, subtree: true });
+  setTimeout(attachSmartLogin, 250);
 })();
 </script></body></html>
