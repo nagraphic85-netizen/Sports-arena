@@ -4585,10 +4585,20 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
 })();
 </script><script id="sa-voice-engine-hotfix">
 /* ==========================================================================
-   CLOUDFLARE /api/tts NEURAL VOICE + TRUE WEB-AUDIO STADIUM ECHO + BG MUSIC
-   (ভাস্কর ও প্রদীপ আসল পুরুষ কণ্ঠ + তনিষা মহিলা কণ্ঠ + প্রি-ফেচ + ৩১মিমি QR)
+   CLASSIC FEMALE ECHO + CLOUDFLARE NEURAL MALE/FEMALE + ZERO-CUTOFF ENGINE
+   (আগের সেরা ইকো মহিলা কণ্ঠ + ভাস্কর/প্রদীপ/তনিষা + শব্দ কাটা বন্ধ + ৩১মিমি QR)
    ========================================================================== */
 (function(){
+  /* ০. লাইভ সার্ভারে ক্লাসিক মহিলা অডিও স্ট্রিম ব্লক আটকানোর জন্য No-Referrer মেটা নিশ্চিত করা */
+  if(!document.querySelector('meta[name="referrer"]')){
+    const m = document.createElement('meta');
+    m.name = 'referrer';
+    m.content = 'no-referrer';
+    document.head.appendChild(m);
+  } else {
+    document.querySelector('meta[name="referrer"]').content = 'no-referrer';
+  }
+
   /* ১. ছোট সার্টিফিকেটের (A4-এ ২টি) QR কোড 31mm বড় ও স্পষ্ট রাখা */
   const qrUpgradeStyle = document.createElement('style');
   qrUpgradeStyle.textContent = `
@@ -4639,10 +4649,15 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
   }
 
   /* ------------------------------------------------------------------------
-     ২. Web Audio স্টুডিও ইঞ্জিন: আসল হর্ন-মাইক ইকো (DelayNode) + ব্যাকগ্রাউন্ড মিউজিক
+     ২. Web Audio স্টুডিও ইঞ্জিন: স্টেডিয়াম ইকো (DelayNode) + ব্যাকগ্রাউন্ড মিউজিক
      ------------------------------------------------------------------------ */
   let audioCtx = null, bgMaster = null, bgTimer = null, bgVolLevel = 0.14;
   let voiceMaster = null, echoInput = null, activeSource = null;
+
+  /* ক্লাসিক মহিলা ইকো প্লেয়ারের জন্য ৪-লেয়ার অডিও পুল (মোবাইল ও পিসিতে সমান কাজ করে) */
+  const poolMain = new Audio(), poolE1 = new Audio(), poolE2 = new Audio(), poolE3 = new Audio();
+  [poolMain, poolE1, poolE2, poolE3].forEach(a => { a.referrerPolicy = 'no-referrer'; a.preload = 'auto'; });
+  let echoT1 = null, echoT2 = null, echoT3 = null;
 
   function ensureAudioCtx(){
     const AC = window.AudioContext || window.webkitAudioContext;
@@ -4652,7 +4667,6 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     return audioCtx;
   }
 
-  /* আসল স্টেডিয়াম পিএ-মাইকের প্রাকৃতিক ইকো বাস তৈরি করা (145ms ডিলে + লো-পাস ওয়ার্মথ ফিল্টার + ফিডব্যাক) */
   function rebuildVoiceEchoBus(){
     const ctx = ensureAudioCtx();
     if(!ctx) return null;
@@ -4663,22 +4677,21 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     voiceMaster.connect(ctx.destination);
 
     const delay = ctx.createDelay(1.0);
-    delay.delayTime.value = 0.145; // ১৪৫ms আসল মাঠের মাইকের প্রতিধ্বনি
+    delay.delayTime.value = 0.145;
 
     const toneFilter = ctx.createBiquadFilter();
     toneFilter.type = 'lowpass';
-    toneFilter.frequency.value = 2400; // প্রতিধ্বনিকে কানে আরামদায়ক ও স্বাভাবিক রাখা
+    toneFilter.frequency.value = 2400;
 
     const feedback = ctx.createGain();
-    feedback.gain.value = 0.36; // ক্রমে মিলিয়ে যাওয়া ৩-৪টি নরম প্রতিধ্বনি
+    feedback.gain.value = 0.36;
 
     const wetGain = ctx.createGain();
-    wetGain.gain.value = 0.42; // স্পষ্ট কিন্তু কণ্ঠ না ঢেকে সুন্দর স্টেডিয়াম ইকো
+    wetGain.gain.value = 0.42;
 
     echoInput = ctx.createGain();
     echoInput.gain.value = 1.0;
 
-    /* ড্রাই (মূল স্পষ্ট কণ্ঠ) + ওয়েট (স্টেডিয়াম ইকো লুপ) */
     echoInput.connect(voiceMaster);
     echoInput.connect(delay);
     delay.connect(toneFilter);
@@ -4790,15 +4803,26 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     }
   }
 
+  function stopClassicPools(){
+    clearTimeout(echoT1); clearTimeout(echoT2); clearTimeout(echoT3);
+    [poolMain, poolE1, poolE2, poolE3].forEach(a => {
+      if(a){
+        try {
+          a.onplaying = null; a.onended = null; a.onerror = null;
+          a.pause(); a.currentTime = 0; a.removeAttribute('src');
+        } catch(e){}
+      }
+    });
+  }
+
   /* ------------------------------------------------------------------------
-     ৩. Cloudflare /api/tts ক্লায়েন্ট + প্রি-ফেচিং + অটো অফলাইন ফলব্যাক
+     ৩. ভয়েস প্রোফাইল ও প্লেব্যাক ইঞ্জিন (কোনো শব্দ কাটা ছাড়া পূর্ণ উচ্চারণ)
      ------------------------------------------------------------------------ */
   window.__saUtterHold = [];
-  let vQueue = [], vLastSegments = [], vActive = false, vMode = 'callout', vRunId = 0, vWatch = null;
+  let vQueue = [], vLastSegments = [], vActive = false, vMode = 'callout', vRunId = 0, vWatch = null, vStartWatch = null;
   let prefetchMap = new Map();
 
-  /* কণ্ঠস্বর ও স্পিড সেটিংস */
-  const VALID_PROFS = ['male_bashkar', 'male_pradeep', 'female_tanishaa', 'male_native'];
+  const VALID_PROFS = ['male_bashkar', 'male_pradeep', 'female_classic', 'female_tanishaa', 'male_native'];
   let savedProf = localStorage.getItem('sa_vprof_cf') || 'male_bashkar';
   if(!VALID_PROFS.includes(savedProf)) savedProf = 'male_bashkar';
   window.__saVoiceProfile = savedProf;
@@ -4836,7 +4860,8 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     return `<select class="sa-vprof-sel" onchange="setVoiceProfile(this.value)" title="কণ্ঠস্বর বেছে নিন">
       <option value="male_bashkar" ${curP==='male_bashkar'?'selected':''}>🎙 ভাস্কর পুরুষ কণ্ঠ (ইকোসহ • সেরা)</option>
       <option value="male_pradeep" ${curP==='male_pradeep'?'selected':''}>🎙 প্রদীপ গম্ভীর পুরুষ কণ্ঠ (ইকোসহ)</option>
-      <option value="female_tanishaa" ${curP==='female_tanishaa'?'selected':''}>🎙 তনিষা মহিলা কণ্ঠ (ইকোসহ)</option>
+      <option value="female_classic" ${curP==='female_classic'?'selected':''}>🎙 ক্লাসিক মহিলা কণ্ঠ (আগের সেই সেরা ইকো • মোবাইল ও পিসি)</option>
+      <option value="female_tanishaa" ${curP==='female_tanishaa'?'selected':''}>🎙 তনিষা মহিলা কণ্ঠ (Neural ইকো)</option>
       <option value="male_native" ${curP==='male_native'?'selected':''}>📱 ডিভাইস নিজস্ব পুরুষ কণ্ঠ (অফলাইন)</option>
     </select><select class="sa-vspd-sel" onchange="setVoiceSpeed(this.value)" title="কথা বলার গতি (Speed)">
       <option value="auto" ${curS==='auto'?'selected':''}>⚡ অটো স্পিড (ইভেন্টে দ্রুত / ফলাফলে স্বাভাবিক)</option>
@@ -4848,6 +4873,141 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     </select>`;
   }
 
+  /* বড় বাক্যকে কখনোই মাঝপথে না কেটে শব্দের সীমানা ধরে নিরাপদ অংশে ভাগ করা (স্কুলের নাম যেন কখনোই না কাটে!) */
+  function splitSafelyForTTS(text, maxLen){
+    const raw = String(text || '').trim().replace(/\s+/g, ' ');
+    if(!raw) return [];
+    if(raw.length <= maxLen) return [raw];
+    const chunks = [];
+    const clauses = raw.split(/(?<=[।,!—])\s+/).filter(Boolean);
+    let cur = '';
+    for(const cl of clauses){
+      if((cur ? cur + ' ' + cl : cl).length <= maxLen){
+        cur = cur ? cur + ' ' + cl : cl;
+      } else {
+        if(cur) chunks.push(cur);
+        if(cl.length <= maxLen){
+          cur = cl;
+        } else {
+          const words = cl.split(' ');
+          cur = '';
+          for(const w of words){
+            if((cur ? cur + ' ' + w : w).length <= maxLen) cur = cur ? cur + ' ' + w : w;
+            else { if(cur) chunks.push(cur); cur = w; }
+          }
+        }
+      }
+    }
+    if(cur) chunks.push(cur);
+    return chunks;
+  }
+
+  /* ক. আগের সেই সেরা ক্লাসিক মহিলা কণ্ঠ (৩-স্তরের জোরালো স্টেডিয়াম ইকো • মোবাইল ও পিসি সব জায়গাতেই একরকম বাজে এবং কোনো শব্দ কাটে না) */
+  function playClassicFemaleSingleChunk(chunkText, speedNum, runId, onDone){
+    if(!vActive || runId !== vRunId) return;
+    stopClassicPools();
+    if('speechSynthesis' in window){ try { window.speechSynthesis.cancel(); } catch(e){} }
+
+    const q = encodeURIComponent(chunkText);
+    const urls = [
+      `https://translate.googleapis.com/translate_tts?ie=UTF-8&client=tw-ob&tl=bn&q=${q}`,
+      `https://translate.googleapis.com/translate_tts?ie=UTF-8&client=gtx&tl=bn&q=${q}`,
+      `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=bn-IN&q=${q}`
+    ];
+
+    const tryNextUrl = () => {
+      if(!vActive || runId !== vRunId) return;
+      if(!urls.length) return onDone();
+      const url = urls.shift();
+
+      try {
+        const setupAud = (a, vol) => {
+          a.referrerPolicy = 'no-referrer';
+          a.src = url;
+          a.volume = vol;
+          a.preservesPitch = true;
+          a.mozPreservesPitch = true;
+          a.webkitPreservesPitch = true;
+          a.playbackRate = speedNum;
+        };
+
+        setupAud(poolMain, 1.0);
+        setupAud(poolE1, 0.38);
+        setupAud(poolE2, 0.20);
+        setupAud(poolE3, 0.09);
+
+        let started = false, doneFlag = false;
+        const finishOnce = () => {
+          if(doneFlag) return;
+          doneFlag = true;
+          clearTimeout(vStartWatch);
+          clearTimeout(vWatch);
+          /* শেষ শব্দের ইকো টেইল পুরোপুরি শোনার জন্য 150ms প্রাকৃতিক বিরতি */
+          setTimeout(() => { if(vActive && runId === vRunId) onDone(); }, 150);
+        };
+
+        /* শুধু অডিও শুরু না হলে ২.৮ সেকেন্ড পর পরের URL-এ যাবে — শুরু হয়ে গেলে কখনোই মাঝপথে কাটবে না! */
+        clearTimeout(vStartWatch);
+        vStartWatch = setTimeout(() => {
+          if(!started && vActive && runId === vRunId){
+            try { poolMain.pause(); } catch(e){}
+            tryNextUrl();
+          }
+        }, 2800);
+
+        poolMain.onplaying = () => {
+          started = true;
+          clearTimeout(vStartWatch);
+          echoT1 = setTimeout(() => { if(vActive && runId === vRunId && !doneFlag) poolE1.play().catch(()=>{}); }, 125);
+          echoT2 = setTimeout(() => { if(vActive && runId === vRunId && !doneFlag) poolE2.play().catch(()=>{}); }, 245);
+          echoT3 = setTimeout(() => { if(vActive && runId === vRunId && !doneFlag) poolE3.play().catch(()=>{}); }, 365);
+
+          /* অত্যন্ত পর্যাপ্ত নিরাপত্তা সময়সীমা যাতে বড় নামও কখনো মাঝপথে না কাটে */
+          const estMs = poolMain.duration && isFinite(poolMain.duration)
+            ? Math.ceil((poolMain.duration / speedNum) * 1000) + 3500
+            : Math.max(12000, chunkText.length * 180);
+          clearTimeout(vWatch);
+          vWatch = setTimeout(finishOnce, estMs);
+        };
+
+        poolMain.onended = () => {
+          clearTimeout(vStartWatch);
+          finishOnce();
+        };
+        poolMain.onerror = () => {
+          clearTimeout(vStartWatch);
+          if(!started) tryNextUrl();
+          else finishOnce();
+        };
+
+        const p = poolMain.play();
+        if(p && typeof p.catch === 'function'){
+          p.catch(() => {
+            clearTimeout(vStartWatch);
+            if(!started) tryNextUrl();
+          });
+        }
+      } catch(e){
+        tryNextUrl();
+      }
+    };
+
+    tryNextUrl();
+  }
+
+  function playClassicFemaleFullText(text, speedNum, runId, onDone){
+    const parts = splitSafelyForTTS(text, 165);
+    if(!parts.length) return onDone();
+    const runPart = () => {
+      if(!vActive || runId !== vRunId) return;
+      if(!parts.length) return onDone();
+      const piece = parts.shift();
+      playClassicFemaleSingleChunk(piece, speedNum, runId, runPart);
+    };
+    runPart();
+  }
+
+  /* খ. Cloudflare /api/tts ক্লায়েন্ট (ভাস্কর, প্রদীপ, তনিষা) */
   function getCloudflareApiParams(prof, speedPct){
     if(prof === 'male_pradeep') return { voice: 'bn-BD-PradeepNeural', rate: speedPct, pitch: '-2Hz' };
     if(prof === 'female_tanishaa') return { voice: 'bn-IN-TanishaaNeural', rate: speedPct, pitch: '+0Hz' };
@@ -4858,7 +5018,6 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     return (location.protocol === 'https:' || location.protocol === 'http:') && navigator.onLine;
   }
 
-  /* সার্ভার থেকে MP3 অডিও এনে ক্যাশ/প্রি-ফেচ করা */
   function fetchCloudflareAudio(text, prof, speedPct){
     const clean = String(text || '').trim();
     if(!clean || !canUseCloudflareTTS()) return Promise.reject(new Error('Offline'));
@@ -4871,13 +5030,14 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
       if(!r.ok) throw new Error('HTTP ' + r.status);
       const ct = r.headers.get('content-type') || '';
       if(!ct.includes('audio')) throw new Error('Not audio');
-      return await r.arrayBuffer();
+      const ab = await r.arrayBuffer();
+      if(!ab || ab.byteLength < 600) throw new Error('Incomplete audio');
+      return ab;
     });
     prefetchMap.set(key, req);
     return req;
   }
 
-  /* Web Audio API-তে MP3 ডিকোড করে আসল স্টেডিয়াম ইকোসহ বাজানো */
   async function playArrayBufferWithEcho(arrBuf, runId, onDone){
     if(!vActive || runId !== vRunId) return;
     const ctx = ensureAudioCtx();
@@ -4902,10 +5062,13 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
       if(done) return;
       done = true;
       clearTimeout(vWatch);
-      onDone();
+      /* ইকো যেন পুরোপুরি শেষ হয় সেজন্য 140ms স্বাভাবিক বিরতি */
+      setTimeout(() => { if(vActive && runId === vRunId) onDone(); }, 140);
     };
 
-    vWatch = setTimeout(finishOnce, Math.ceil(decoded.duration * 1000) + 1200);
+    /* অডিওর প্রকৃত দৈর্ঘ্যের চেয়ে ৩.৫ সেকেন্ড বাড়তি সময় রাখা যাতে কোনো শব্দ কখনোই মাঝপথে না কাটে */
+    clearTimeout(vWatch);
+    vWatch = setTimeout(finishOnce, Math.ceil(decoded.duration * 1000) + 3500);
     src.onended = () => {
       if(activeSource === src) activeSource = null;
       finishOnce();
@@ -4913,7 +5076,6 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     src.start(0);
   }
 
-  /* ইউজারের নিজস্ব রেকর্ড করা অডিও ক্লিপও একই স্টেডিয়াম ইকো বাসে বাজানো */
   async function playCustomDataUrlWithEcho(dataUrl, speedNum, runId, onDone, onErr){
     try {
       const resp = await fetch(dataUrl);
@@ -4936,37 +5098,62 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     }
   }
 
-  /* অফলাইন বা file:// মোডে সিস্টেমের নিজস্ব একক বাংলা ভয়েস ব্যাকআপ (কখনোই ২টি ভয়েস মেশাবে না) */
-  function speakNativeFallback(cleanText, isFemale, speedNum, runId, onDone){
+  /* গ. অফলাইন/ডিভাইস নিজস্ব পুরুষ ভয়েস (টাইমার শুধু কথা শুরু হলে তবেই গুনবে + 60ms সেফ গ্যাপ, যাতে স্কুলের নাম কখনো না কাটে বা বাদ না পড়ে) */
+  function speakNativeMaleSafe(cleanText, speedNum, runId, onDone){
     if(!vActive || runId !== vRunId) return;
     if(!('speechSynthesis' in window)) return onDone();
 
     try {
       window.speechSynthesis.cancel();
-      window.speechSynthesis.resume();
-      const list = window.speechSynthesis.getVoices() || [];
-      const bn = list.filter(v => /bn[-_](IN|BD)/i.test(v.lang) || /bengali|bangla|বাংলা/i.test(v.name));
-      let voice = null;
-      if(bn.length){
-        voice = isFemale
-          ? (bn.find(v => /tanishaa|nabanita|female|মহিলা/i.test(v.name)) || bn[0])
-          : (bn.find(v => /bashkar|pradeep|male|পুরুষ/i.test(v.name)) || bn[bn.length > 1 ? 1 : 0]);
-      }
+      /* cancel()-এর পর 60ms অপেক্ষা না করলে Android/Chrome মাঝেমধ্যে পুরো লাইন বাদ দিয়ে দেয় */
+      setTimeout(() => {
+        if(!vActive || runId !== vRunId) return;
+        try {
+          window.speechSynthesis.resume();
+          const list = window.speechSynthesis.getVoices() || [];
+          const bn = list.filter(v => /bn[-_](IN|BD)/i.test(v.lang) || /bengali|bangla|বাংলা/i.test(v.name));
+          let voice = null;
+          if(bn.length){
+            voice = bn.find(v => /bashkar|pradeep|male|পুরুষ/i.test(v.name)) || bn[bn.length > 1 ? 1 : 0];
+          }
 
-      const u = new SpeechSynthesisUtterance(cleanText);
-      window.__saUtterHold.push(u);
-      if(voice) u.voice = voice;
-      u.lang = (voice && voice.lang) ? voice.lang : 'bn-IN';
-      u.rate = speedNum;
-      u.pitch = isFemale ? 1.02 : 0.94;
-      u.volume = 1.0;
+          const u = new SpeechSynthesisUtterance(cleanText);
+          window.__saUtterHold.push(u);
+          if(voice) u.voice = voice;
+          u.lang = (voice && voice.lang) ? voice.lang : 'bn-IN';
+          u.rate = speedNum;
+          u.pitch = 0.94;
+          u.volume = 1.0;
 
-      let done = false;
-      const finishOnce = () => { if(!done){ done = true; clearTimeout(vWatch); onDone(); } };
-      vWatch = setTimeout(finishOnce, Math.max(2600, (cleanText.length * 100) / speedNum));
-      u.onend = finishOnce;
-      u.onerror = finishOnce;
-      window.speechSynthesis.speak(u);
+          let started = false, done = false;
+          const finishOnce = () => {
+            if(done) return;
+            done = true;
+            clearTimeout(vStartWatch);
+            clearTimeout(vWatch);
+            onDone();
+          };
+
+          /* কথা শুরু হওয়ার জন্য ৪.৫ সেকেন্ড অপেক্ষা */
+          clearTimeout(vStartWatch);
+          vStartWatch = setTimeout(() => {
+            if(!started && vActive && runId === vRunId) finishOnce();
+          }, 4500);
+
+          /* কথা শুরু হওয়ার পর থেকে পর্যাপ্ত সময়সীমা (অক্ষর প্রতি 260ms, সর্বনিম্ন ১২ সেকেন্ড) — ফলে শেষের স্কুলের নাম কখনোই কাটবে না! */
+          u.onstart = () => {
+            started = true;
+            clearTimeout(vStartWatch);
+            clearTimeout(vWatch);
+            const generousMs = Math.max(12000, Math.ceil((cleanText.length * 260) / Math.max(0.8, speedNum)));
+            vWatch = setTimeout(finishOnce, generousMs);
+          };
+
+          u.onend = finishOnce;
+          u.onerror = finishOnce;
+          window.speechSynthesis.speak(u);
+        } catch(e){ onDone(); }
+      }, 65);
     } catch(e){
       onDone();
     }
@@ -5014,7 +5201,6 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     return s.replace(/[-_]/g, ' ').replace(/\s+/g, ' ').trim();
   }
 
-  /* একক সেগমেন্ট বাজানো + পরের সেগমেন্টটি আগে থেকেই ব্যাকগ্রাউন্ডে প্রি-ফেচ করে রাখা */
   function playNextSegment(runId){
     if(!vActive || runId !== vRunId) return;
     if(!vQueue.length){
@@ -5027,13 +5213,13 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     const isFast = (vMode === 'callout');
     const prof = window.__saVoiceProfile || 'male_bashkar';
     const spd = getSpeedSettings(isFast);
-    const gapMs = isFast ? 30 : (seg.pause || 90);
+    const gapMs = isFast ? 45 : (seg.pause || 100);
 
     const tp = document.getElementById('tpTxt');
     if(tp && seg.text) tp.textContent = seg.text;
 
-    /* পরের বাক্যটি এখনই ব্যাকগ্রাউন্ডে ফেচ শুরু করে দেওয়া যাতে কোনো বিরতি ছাড়াই পরপর বাজে */
-    if(prof !== 'male_native' && canUseCloudflareTTS() && vQueue.length > 0 && !vQueue[0].audioUrl){
+    const isCloudProf = (prof === 'male_bashkar' || prof === 'male_pradeep' || prof === 'female_tanishaa');
+    if(isCloudProf && canUseCloudflareTTS() && vQueue.length > 0 && !vQueue[0].audioUrl){
       fetchCloudflareAudio(vQueue[0].text, prof, spd.pct).catch(()=>{});
     }
 
@@ -5042,7 +5228,6 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
       setTimeout(() => playNextSegment(runId), gapMs);
     };
 
-    /* ১. ইউজারের নিজস্ব রেকর্ড করা অডিও ক্লিপ থাকলে */
     if(seg.audioUrl){
       playCustomDataUrlWithEcho(seg.audioUrl, spd.num, runId, proceed, () => {
         speakSegmentCore(seg.text, prof, spd, runId, proceed);
@@ -5057,25 +5242,36 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     const clean = String(text || '').trim();
     if(!clean) return proceed();
 
-    /* যদি ইউজার অফলাইন ডিভাইস ভয়েস বেছে নেন */
-    if(prof === 'male_native'){
-      speakNativeFallback(clean, false, spd.num, runId, proceed);
+    /* ১. আগের সেই সেরা ক্লাসিক মহিলা কণ্ঠ (মোবাইল ও পিসি উভয় জায়গাতেই সরাসরি ৩-লেয়ার ইকোসহ বাজবে) */
+    if(prof === 'female_classic'){
+      playClassicFemaleFullText(clean, spd.num, runId, proceed);
       return;
     }
 
-    /* Cloudflare Pages Function (/api/tts) থেকে আসল ভাস্কর/প্রদীপ/তনিষা MP3 অডিও এনে স্টুডিও ইকোসহ বাজানো */
+    /* ২. ডিভাইস নিজস্ব পুরুষ কণ্ঠ (অফলাইন) */
+    if(prof === 'male_native'){
+      speakNativeMaleSafe(clean, spd.num, runId, proceed);
+      return;
+    }
+
+    /* ৩. Cloudflare Neural (/api/tts — ভাস্কর / প্রদীপ / তনিষা) */
     if(canUseCloudflareTTS()){
       fetchCloudflareAudio(clean, prof, spd.pct)
         .then(arrBuf => playArrayBufferWithEcho(arrBuf, runId, proceed))
         .catch(() => {
-          /* কোনো কারণে /api/tts না পাওয়া গেলে নিরাপদে ডিভাইস ভয়েসে ফলব্যাক */
-          speakNativeFallback(clean, prof === 'female_tanishaa', spd.num, runId, proceed);
+          /* তনিষা (মহিলা) ফেল করলে কখনোই মোবাইলের পুরুষ কণ্ঠে না গিয়ে ক্লাসিক ইকো মহিলা কণ্ঠেই বাজবে! */
+          if(prof === 'female_tanishaa'){
+            playClassicFemaleFullText(clean, spd.num, runId, proceed);
+          } else {
+            speakNativeMaleSafe(clean, spd.num, runId, proceed);
+          }
         });
       return;
     }
 
-    /* অফলাইনে ফাইল খুললে সরাসরি সিস্টেম ভয়েস */
-    speakNativeFallback(clean, prof === 'female_tanishaa', spd.num, runId, proceed);
+    /* অফলাইন ফলব্যাক */
+    if(prof === 'female_tanishaa') playClassicFemaleFullText(clean, spd.num, runId, proceed);
+    else speakNativeMaleSafe(clean, spd.num, runId, proceed);
   }
 
   const origStop = window.stopVoice;
@@ -5084,7 +5280,9 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     vActive = false;
     vQueue = [];
     clearTimeout(vWatch);
+    clearTimeout(vStartWatch);
     window.__saUtterHold = [];
+    stopClassicPools();
     if(activeSource){
       try { activeSource.onended = null; activeSource.stop(); } catch(e){}
       activeSource = null;
@@ -5114,7 +5312,6 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     window.pauseVoiceOnly();
     if(!segments || !segments.length) return;
 
-    /* ইউজারের ক্লিকের মুহূর্তেই AudioContext ও Echo Bus আনলক করা (মোবাইলে ১০০% কাজ করার চাবিকাঠি) */
     ensureAudioCtx();
     rebuildVoiceEchoBus();
 
@@ -5133,12 +5330,12 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     bar.style.display = 'block';
     const fullTxt = segments.map(s=>s.text).join(' ');
 
-    bar.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:6px;font-size:13px;color:#38bdf8"><span>📢 লাইভ স্টেডিয়াম মাইকিং (${vMode==='callout'?'ইভেন্ট কলিং':'ফলাফল ঘোষণা'} • Cloudflare Neural ইকো ও মিউজিক)</span><div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">${voiceControlsHTML()}<small style="color:#cbd5e1">🎵 মিউজিক:</small><input type="range" min="0.04" max="0.32" step="0.02" value="${bgVolLevel}" oninput="setBgMusicVol(this.value)" style="width:60px;margin:0"><button class="b s p" onclick="replayLastVoice()">🔄 পুনরায়</button><button class="b s" onclick="openVoiceStudio()">🎙 স্টুডিও</button><button class="b s d" onclick="stopVoice()">✕ বন্ধ</button></div></div><div id="tpTxt">${esc(fullTxt)}</div>`;
+    bar.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:6px;font-size:13px;color:#38bdf8"><span>📢 লাইভ স্টেডিয়াম মাইকিং (${vMode==='callout'?'ইভেন্ট কলিং':'ফলাফল ঘোষণা'} • ইকো ও মিউজিকসহ)</span><div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">${voiceControlsHTML()}<small style="color:#cbd5e1">🎵 মিউজিক:</small><input type="range" min="0.04" max="0.32" step="0.02" value="${bgVolLevel}" oninput="setBgMusicVol(this.value)" style="width:60px;margin:0"><button class="b s p" onclick="replayLastVoice()">🔄 পুনরায়</button><button class="b s" onclick="openVoiceStudio()">🎙 স্টুডিও</button><button class="b s d" onclick="stopVoice()">✕ বন্ধ</button></div></div><div id="tpTxt">${esc(fullTxt)}</div>`;
 
-    /* প্রারম্ভিক মাইক চাইম শেষ হতেই (380ms পর) প্রথম বাক্যটি বলা শুরু করা */
     const spd = getSpeedSettings(vMode === 'callout');
     const prof = window.__saVoiceProfile || 'male_bashkar';
-    if(prof !== 'male_native' && canUseCloudflareTTS() && vQueue.length > 0 && !vQueue[0].audioUrl){
+    const isCloudProf = (prof === 'male_bashkar' || prof === 'male_pradeep' || prof === 'female_tanishaa');
+    if(isCloudProf && canUseCloudflareTTS() && vQueue.length > 0 && !vQueue[0].audioUrl){
       fetchCloudflareAudio(vQueue[0].text, prof, spd.pct).catch(()=>{});
     }
     setTimeout(() => playNextSegment(myRunId), 360);
@@ -5175,17 +5372,17 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     const catStr = toPureBanglaText(`${CN[c]}${s?' '+SN[s]+' বিভাগ':''}`);
     const evStr = toPureBanglaText(e);
     const segs = [
-      { text: `মনোযোগ দিন! এখনই শুরু হচ্ছে ${catStr}-এর ${evStr} প্রতিযোগিতা। প্রস্তুত থাকো প্রতিযোগীরা! চেস্ট নম্বর ও নাম ডাকা হচ্ছে—`, pause: 30 }
+      { text: `মনোযোগ দিন! এখনই শুরু হচ্ছে ${catStr}-এর ${evStr} প্রতিযোগিতা। প্রস্তুত থাকো প্রতিযোগীরা! চেস্ট নম্বর ও নাম ডাকা হচ্ছে—`, pause: 45 }
     ];
     a.forEach(x => {
       const l = loc(x), rawUnit = ME.role==='gp' ? l.s : (l.u || l.s);
       const pName = toPureBanglaText(x.bn || x.name), uName = toPureBanglaText(rawUnit), chStr = toPureBanglaText(x.chest);
       const clip = getCustomAudio(rawUnit);
       if(clip){
-        segs.push({ text: `চেস্ট ${chStr}, ${pName},`, pause: 10 });
-        segs.push({ text: uName, audioUrl: clip, pause: 30 });
+        segs.push({ text: `চেস্ট ${chStr}, ${pName},`, pause: 20 });
+        segs.push({ text: uName, audioUrl: clip, pause: 45 });
       } else {
-        segs.push({ text: `চেস্ট ${chStr}, ${pName}, ${uName}।`, pause: 30 });
+        segs.push({ text: `চেস্ট ${chStr}, ${pName}, ${uName}।`, pause: 45 });
       }
     });
     segs.push({ text: `সকল প্রতিযোগীকে অবিলম্বে শুরুর লাইনে উপস্থিত হওয়ার জন্য অনুরোধ করা হচ্ছে।` });
@@ -5199,17 +5396,17 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     const evStr = toPureBanglaText(x.ev);
     const pWords = ['প্রথম স্থান অধিকার করেছে','দ্বিতীয় স্থান অধিকার করেছে','তৃতীয় স্থান অধিকার করেছে','চতুর্থ স্থান অধিকার করেছে'];
     const segs = [
-      { text: `সুধী দর্শকবৃন্দ, এখন ঘোষণা করা হচ্ছে ${catStr}-এর ${evStr} প্রতিযোগিতার চূড়ান্ত ফলাফল।`, pause: 70 }
+      { text: `সুধী দর্শকবৃন্দ, এখন ঘোষণা করা হচ্ছে ${catStr}-এর ${evStr} প্রতিযোগিতার চূড়ান্ত ফলাফল।`, pause: 80 }
     ];
     (x.win||[]).sort((a,b)=>a.pos-b.pos).forEach(w=>{
       const a = byChest(w.chest, x.cat);
       const pName = toPureBanglaText((a&&a.bn) ? a.bn : w.name), uName = toPureBanglaText(w.school), chStr = toPureBanglaText(w.chest);
       const clip = getCustomAudio(w.school);
       if(clip){
-        segs.push({ text: `${pWords[w.pos-1]||w.pos+'ম স্থান'}, চেস্ট নম্বর ${chStr}, ${pName},`, pause: 20 });
-        segs.push({ text: uName, audioUrl: clip, pause: 90 });
+        segs.push({ text: `${pWords[w.pos-1]||w.pos+'ম স্থান'}, চেস্ট নম্বর ${chStr}, ${pName},`, pause: 25 });
+        segs.push({ text: uName, audioUrl: clip, pause: 100 });
       } else {
-        segs.push({ text: `${pWords[w.pos-1]||w.pos+'ম স্থান'}, চেস্ট নম্বর ${chStr}, ${pName}, ${uName}।`, pause: 90 });
+        segs.push({ text: `${pWords[w.pos-1]||w.pos+'ম স্থান'}, চেস্ট নম্বর ${chStr}, ${pName}, ${uName}।`, pause: 100 });
       }
     });
     segs.push({ text: `বিজয়ী সকল প্রতিযোগীকে আমাদের পক্ষ থেকে জানাই আন্তরিক অভিনন্দন!` });
@@ -5221,15 +5418,15 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     const rs = (ME && typeof rsScope==='function') ? rsScope() : (DB.r||[]);
     if(!rs.length) return info('এখনও কোনো ফলাফল প্রকাশিত হয়নি।');
     const pWords = ['প্রথম স্থান','দ্বিতীয় স্থান','তৃতীয় স্থান','চতুর্থ স্থান'];
-    const segs = [{ text: `সুধী দর্শকবৃন্দ, এখন ঘোষণা করা হচ্ছে আজকের প্রতিযোগিতার প্রকাশিত ফলাফলসমূহ।`, pause: 70 }];
+    const segs = [{ text: `সুধী দর্শকবৃন্দ, এখন ঘোষণা করা হচ্ছে আজকের প্রতিযোগিতার প্রকাশিত ফলাফলসমূহ।`, pause: 80 }];
     rs.forEach(x=>{
       const catStr = toPureBanglaText(`${CN[x.cat]}${x.sec?' '+SN[x.sec]+' বিভাগ':''}`);
       const evStr = toPureBanglaText(x.ev);
-      segs.push({ text: `${catStr}-এর ${evStr} প্রতিযোগিতা—`, pause: 45 });
+      segs.push({ text: `${catStr}-এর ${evStr} প্রতিযোগিতা—`, pause: 55 });
       (x.win||[]).sort((a,b)=>a.pos-b.pos).forEach(w=>{
         const a = byChest(w.chest, x.cat);
         const pName = toPureBanglaText((a&&a.bn) ? a.bn : w.name), uName = toPureBanglaText(w.school);
-        segs.push({ text: `${pWords[w.pos-1]}, চেস্ট নম্বর ${toPureBanglaText(w.chest)}, ${pName}, ${uName}।`, pause: 80 });
+        segs.push({ text: `${pWords[w.pos-1]}, চেস্ট নম্বর ${toPureBanglaText(w.chest)}, ${pName}, ${uName}।`, pause: 90 });
       });
     });
     startStadiumAnnouncement(segs, 'result');
@@ -5237,10 +5434,20 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
 })();
 </script><script id="sa-quick-pa-board">
 /* ==========================================================================
-   LIVE STADIUM SPECIAL PA ANNOUNCEMENT BOARD
-   (এক-ক্লিক জরুরি ঘোষণা + কাস্টম টেক্সট + মুখে বললে পুরুষ ঘোষক কণ্ঠে রূপান্তর)
+   LIVE STADIUM SPECIAL PA ANNOUNCEMENT BOARD (UPDATED)
+   (ক্লাসিক ইকো মহিলা কণ্ঠ + Cloudflare ভাস্কর/প্রদীপ/তনিষা + শব্দ না কাটার সুরক্ষা)
    ========================================================================== */
 (function(){
+  /* লাইভ সার্ভারে ক্লাসিক মহিলা স্ট্রিম যেন ব্লক না হয় */
+  if(!document.querySelector('meta[name="referrer"]')){
+    const m = document.createElement('meta');
+    m.name = 'referrer';
+    m.content = 'no-referrer';
+    document.head.appendChild(m);
+  } else {
+    document.querySelector('meta[name="referrer"]').content = 'no-referrer';
+  }
+
   const ADM_ROLES = ['owner', 'gp', 'circle', 'sub'];
   const escH = s => String(s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 
@@ -5314,9 +5521,14 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
   `;
   document.head.appendChild(st);
 
-  /* Web Audio ইঞ্জিন (Cloudflare /api/tts + আসল স্টেডিয়াম ইকো + ব্যাকগ্রাউন্ড মিউজিক) */
+  /* Web Audio ও ক্লাসিক মহিলা ইকো পুল */
+  window.__saPaUtterHold = [];
   let paCtx = null, paBgMaster = null, paBgTimer = null, paVoiceMaster = null, paEchoIn = null, paActiveSrc = null;
-  let paPlaying = false, paRunId = 0, paQueue = [], paWatch = null, paPrefetch = new Map();
+  let paPlaying = false, paRunId = 0, paQueue = [], paWatch = null, paStartWatch = null, paPrefetch = new Map();
+
+  const paPoolMain = new Audio(), paPoolE1 = new Audio(), paPoolE2 = new Audio(), paPoolE3 = new Audio();
+  [paPoolMain, paPoolE1, paPoolE2, paPoolE3].forEach(a => { a.referrerPolicy = 'no-referrer'; a.preload = 'auto'; });
+  let paEchoT1 = null, paEchoT2 = null, paEchoT3 = null;
 
   function getCtx(){
     const AC = window.AudioContext || window.webkitAudioContext;
@@ -5350,6 +5562,18 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     return paEchoIn;
   }
 
+  function stopClassicPaPools(){
+    clearTimeout(paEchoT1); clearTimeout(paEchoT2); clearTimeout(paEchoT3);
+    [paPoolMain, paPoolE1, paPoolE2, paPoolE3].forEach(a => {
+      if(a){
+        try {
+          a.onplaying = null; a.onended = null; a.onerror = null;
+          a.pause(); a.currentTime = 0; a.removeAttribute('src');
+        } catch(e){}
+      }
+    });
+  }
+
   function startPaMusic(){
     stopPaMusic();
     try {
@@ -5359,7 +5583,6 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
       paBgMaster.gain.linearRampToValueAtTime(0.13, ctx.currentTime + 0.35);
       paBgMaster.connect(ctx.destination);
 
-      /* মাইক অন চাইম */
       const t0 = ctx.currentTime;
       [[523.25,0],[659.25,0.13],[783.99,0.26]].forEach(([f,dt])=>{
         const o = ctx.createOscillator(), g = ctx.createGain();
@@ -5421,6 +5644,9 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     paPlaying = false;
     paQueue = [];
     clearTimeout(paWatch);
+    clearTimeout(paStartWatch);
+    window.__saPaUtterHold = [];
+    stopClassicPaPools();
     if(paActiveSrc){ try { paActiveSrc.onended = null; paActiveSrc.stop(); } catch(e){} paActiveSrc = null; }
     if(paVoiceMaster){ try { paVoiceMaster.disconnect(); } catch(e){} paVoiceMaster = null; paEchoIn = null; }
     stopPaMusic();
@@ -5428,7 +5654,7 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     setPaStatus('');
   };
 
-  /* মূল stopVoice-এর সাথে সিঙ্ক করা যাতে অন্য কোনো ঘোষণা শুরু হলে এটি থেমে যায় */
+  /* মূল stopVoice-এর সাথে সিঙ্ক করা */
   const origGlobalStop = window.stopVoice;
   if(typeof origGlobalStop === 'function'){
     window.stopVoice = function(){
@@ -5436,6 +5662,13 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
       return origGlobalStop.apply(this, arguments);
     };
   }
+
+  /* স্পেশাল বোর্ডের ভেতর থেকে কণ্ঠস্বর বদলালে পুরো অ্যাপের সাথে সিঙ্ক করা */
+  window.paSetVoiceProfile = function(p){
+    window.__saVoiceProfile = p;
+    try { localStorage.setItem('sa_vprof_cf', p); } catch(e){}
+    document.querySelectorAll('.sa-vprof-sel, #paVoiceSel').forEach(el => { if(el.value !== p) el.value = p; });
+  };
 
   function decodeBuf(ctx, ab){
     return new Promise((res, rej)=>{
@@ -5446,7 +5679,8 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
   }
 
   function getApiParams(){
-    const prof = window.__saVoiceProfile || localStorage.getItem('sa_vprof_cf') || 'male_bashkar';
+    const selEl = document.getElementById('paVoiceSel');
+    const prof = (selEl && selEl.value) || window.__saVoiceProfile || localStorage.getItem('sa_vprof_cf') || 'male_bashkar';
     const spdRaw = window.__saVoiceSpeed || localStorage.getItem('sa_vspd') || 'auto';
     const numSpd = spdRaw === 'auto' ? 1.05 : (parseFloat(spdRaw) || 1.05);
     const diff = Math.round((numSpd - 1.0) * 100);
@@ -5456,59 +5690,203 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     return { prof, voice: 'bn-IN-BashkarNeural', rate, pitch: '-1Hz', numSpd };
   }
 
+  /* বড় বাক্যকে মাঝপথে না কেটে দাড়ি/কমা বা শব্দের সীমানা ধরে নিরাপদ অংশে ভাগ করা */
+  function splitSafelyForPA(txt, maxLen){
+    const raw = String(txt || '').trim().replace(/\s+/g, ' ');
+    if(!raw) return [];
+    if(raw.length <= maxLen) return [raw];
+    const chunks = [];
+    const clauses = raw.split(/(?<=[।!?,—])\s+/).filter(Boolean);
+    let cur = '';
+    for(const cl of clauses){
+      if((cur ? cur + ' ' + cl : cl).length <= maxLen){
+        cur = cur ? cur + ' ' + cl : cl;
+      } else {
+        if(cur) chunks.push(cur);
+        if(cl.length <= maxLen){
+          cur = cl;
+        } else {
+          const words = cl.split(' ');
+          cur = '';
+          for(const w of words){
+            if((cur ? cur + ' ' + w : w).length <= maxLen) cur = cur ? cur + ' ' + w : w;
+            else { if(cur) chunks.push(cur); cur = w; }
+          }
+        }
+      }
+    }
+    if(cur) chunks.push(cur);
+    return chunks;
+  }
+
+  /* ১. ক্লাসিক মহিলা কণ্ঠ (৩-স্তরের সেরা স্টেডিয়াম ইকো • মোবাইল ও পিসিতে সমান চলে এবং কোনো শব্দ কাটে না) */
+  function playClassicFemalePaChunk(chunkText, speedNum, useEcho, runId, onDone){
+    if(!paPlaying || runId !== paRunId) return;
+    stopClassicPaPools();
+    if('speechSynthesis' in window){ try { window.speechSynthesis.cancel(); } catch(e){} }
+
+    const q = encodeURIComponent(chunkText);
+    const urls = [
+      `https://translate.googleapis.com/translate_tts?ie=UTF-8&client=tw-ob&tl=bn&q=${q}`,
+      `https://translate.googleapis.com/translate_tts?ie=UTF-8&client=gtx&tl=bn&q=${q}`,
+      `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=bn-IN&q=${q}`
+    ];
+
+    const tryNextUrl = () => {
+      if(!paPlaying || runId !== paRunId) return;
+      if(!urls.length) return onDone();
+      const url = urls.shift();
+
+      try {
+        const setupAud = (a, vol) => {
+          a.referrerPolicy = 'no-referrer';
+          a.src = url;
+          a.volume = vol;
+          a.preservesPitch = true;
+          a.mozPreservesPitch = true;
+          a.webkitPreservesPitch = true;
+          a.playbackRate = speedNum;
+        };
+
+        setupAud(paPoolMain, 1.0);
+        if(useEcho){
+          setupAud(paPoolE1, 0.38);
+          setupAud(paPoolE2, 0.20);
+          setupAud(paPoolE3, 0.09);
+        }
+
+        let started = false, doneFlag = false;
+        const finishOnce = () => {
+          if(doneFlag) return;
+          doneFlag = true;
+          clearTimeout(paStartWatch);
+          clearTimeout(paWatch);
+          setTimeout(() => { if(paPlaying && runId === paRunId) onDone(); }, useEcho ? 160 : 60);
+        };
+
+        clearTimeout(paStartWatch);
+        paStartWatch = setTimeout(() => {
+          if(!started && paPlaying && runId === paRunId){
+            try { paPoolMain.pause(); } catch(e){}
+            tryNextUrl();
+          }
+        }, 2800);
+
+        paPoolMain.onplaying = () => {
+          started = true;
+          clearTimeout(paStartWatch);
+          if(useEcho){
+            paEchoT1 = setTimeout(() => { if(paPlaying && runId === paRunId && !doneFlag) paPoolE1.play().catch(()=>{}); }, 125);
+            paEchoT2 = setTimeout(() => { if(paPlaying && runId === paRunId && !doneFlag) paPoolE2.play().catch(()=>{}); }, 245);
+            paEchoT3 = setTimeout(() => { if(paPlaying && runId === paRunId && !doneFlag) paPoolE3.play().catch(()=>{}); }, 365);
+          }
+
+          const estMs = paPoolMain.duration && isFinite(paPoolMain.duration)
+            ? Math.ceil((paPoolMain.duration / speedNum) * 1000) + 3500
+            : Math.max(12000, chunkText.length * 180);
+          clearTimeout(paWatch);
+          paWatch = setTimeout(finishOnce, estMs);
+        };
+
+        paPoolMain.onended = () => {
+          clearTimeout(paStartWatch);
+          finishOnce();
+        };
+        paPoolMain.onerror = () => {
+          clearTimeout(paStartWatch);
+          if(!started) tryNextUrl();
+          else finishOnce();
+        };
+
+        const p = paPoolMain.play();
+        if(p && typeof p.catch === 'function'){
+          p.catch(() => {
+            clearTimeout(paStartWatch);
+            if(!started) tryNextUrl();
+          });
+        }
+      } catch(e){
+        tryNextUrl();
+      }
+    };
+
+    tryNextUrl();
+  }
+
+  function playClassicFemalePaText(text, speedNum, useEcho, runId, onDone){
+    const parts = splitSafelyForPA(text, 165);
+    if(!parts.length) return onDone();
+    const runPart = () => {
+      if(!paPlaying || runId !== paRunId) return;
+      if(!parts.length) return onDone();
+      playClassicFemalePaChunk(parts.shift(), speedNum, useEcho, runId, runPart);
+    };
+    runPart();
+  }
+
+  /* ২. Cloudflare /api/tts ক্লায়েন্ট */
   function fetchTtsChunk(text, params){
-    const key = `${params.voice}|${params.rate}|${text}`;
+    const key = `${params.voice}|${params.rate}|${params.pitch}|${text}`;
     if(paPrefetch.has(key)) return paPrefetch.get(key);
     const url = `/api/tts?voice=${encodeURIComponent(params.voice)}&rate=${encodeURIComponent(params.rate)}&pitch=${encodeURIComponent(params.pitch)}&text=${encodeURIComponent(text)}`;
     const req = fetch(url).then(async r => {
       if(!r.ok) throw new Error('HTTP ' + r.status);
       if(!(r.headers.get('content-type')||'').includes('audio')) throw new Error('Not audio');
-      return await r.arrayBuffer();
+      const ab = await r.arrayBuffer();
+      if(!ab || ab.byteLength < 600) throw new Error('Incomplete audio');
+      return ab;
     });
     paPrefetch.set(key, req);
     return req;
   }
 
-  function fallbackSpeak(text, params, runId, next){
+  /* ৩. অফলাইন/ডিভাইস পুরুষ কণ্ঠ (onstart টাইমার + 65ms সেফ গ্যাপ — মাঝপথে শব্দ কাটা বন্ধ) */
+  function fallbackSpeakNativeMale(text, params, runId, next){
     if(!paPlaying || runId !== paRunId) return;
     if(!('speechSynthesis' in window)) return next();
     try {
       window.speechSynthesis.cancel();
-      const list = window.speechSynthesis.getVoices() || [];
-      const bn = list.filter(v => /bn[-_](IN|BD)/i.test(v.lang) || /bengali|bangla|বাংলা/i.test(v.name));
-      const v = params.prof === 'female_tanishaa'
-        ? (bn.find(x=>/tanishaa|nabanita|female/i.test(x.name)) || bn[0])
-        : (bn.find(x=>/bashkar|pradeep|male/i.test(x.name)) || bn[bn.length>1?1:0]);
-      const u = new SpeechSynthesisUtterance(text);
-      if(v) u.voice = v;
-      u.lang = (v && v.lang) ? v.lang : 'bn-IN';
-      u.rate = params.numSpd;
-      u.pitch = params.prof === 'female_tanishaa' ? 1.02 : 0.94;
-      let done = false;
-      const fin = () => { if(!done){ done = true; clearTimeout(paWatch); next(); } };
-      paWatch = setTimeout(fin, Math.max(3000, text.length * 110));
-      u.onend = fin; u.onerror = fin;
-      window.speechSynthesis.speak(u);
-    } catch(e){ next(); }
-  }
+      setTimeout(() => {
+        if(!paPlaying || runId !== paRunId) return;
+        try {
+          window.speechSynthesis.resume();
+          const list = window.speechSynthesis.getVoices() || [];
+          const bn = list.filter(v => /bn[-_](IN|BD)/i.test(v.lang) || /bengali|bangla|বাংলা/i.test(v.name));
+          const v = bn.length ? (bn.find(x=>/bashkar|pradeep|male|পুরুষ/i.test(x.name)) || bn[bn.length>1?1:0]) : null;
+          const u = new SpeechSynthesisUtterance(text);
+          window.__saPaUtterHold.push(u);
+          if(v) u.voice = v;
+          u.lang = (v && v.lang) ? v.lang : 'bn-IN';
+          u.rate = params.numSpd;
+          u.pitch = 0.94;
+          u.volume = 1.0;
 
-  function splitSentences(txt){
-    const raw = String(txt || '').trim().replace(/\s+/g, ' ');
-    if(!raw) return [];
-    const parts = raw.split(/(?<=[।!?])\s+/).filter(Boolean);
-    const out = [];
-    parts.forEach(p => {
-      if(p.length <= 240) out.push(p);
-      else {
-        const words = p.split(' '); let cur = '';
-        words.forEach(w => {
-          if((cur + ' ' + w).length > 220){ out.push(cur.trim()); cur = w; }
-          else cur += (cur ? ' ' : '') + w;
-        });
-        if(cur.trim()) out.push(cur.trim());
-      }
-    });
-    return out;
+          let started = false, done = false;
+          const fin = () => {
+            if(done) return;
+            done = true;
+            clearTimeout(paStartWatch);
+            clearTimeout(paWatch);
+            next();
+          };
+
+          clearTimeout(paStartWatch);
+          paStartWatch = setTimeout(() => { if(!started && paPlaying && runId === paRunId) fin(); }, 4500);
+
+          u.onstart = () => {
+            started = true;
+            clearTimeout(paStartWatch);
+            clearTimeout(paWatch);
+            const generousMs = Math.max(12000, Math.ceil((text.length * 260) / Math.max(0.8, params.numSpd)));
+            paWatch = setTimeout(fin, generousMs);
+          };
+
+          u.onend = fin;
+          u.onerror = fin;
+          window.speechSynthesis.speak(u);
+        } catch(e){ next(); }
+      }, 65);
+    } catch(e){ next(); }
   }
 
   window.announcePaText = function(customText){
@@ -5524,7 +5902,9 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     const useMusic = (document.getElementById('paUseMusic') || {checked:true}).checked;
     const useEcho = (document.getElementById('paUseEcho') || {checked:true}).checked;
     const params = getApiParams();
-    const canCloud = (location.protocol === 'https:' || location.protocol === 'http:') && navigator.onLine && params.prof !== 'male_native';
+    const isClassicFem = (params.prof === 'female_classic');
+    const isNativeMale = (params.prof === 'male_native');
+    const canCloud = (location.protocol === 'https:' || location.protocol === 'http:') && navigator.onLine && !isClassicFem && !isNativeMale;
 
     getCtx();
     setupEchoBus(useEcho);
@@ -5533,7 +5913,7 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     paRunId++;
     const myRun = paRunId;
     paPlaying = true;
-    paQueue = splitSentences(txt);
+    paQueue = splitSafelyForPA(txt, isClassicFem ? 165 : 240);
     paPrefetch.clear();
     setPaStatus('📢 ঘোষণা চলছে: ' + txt);
 
@@ -5543,14 +5923,27 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
       if(!paPlaying || myRun !== paRunId) return;
       if(!paQueue.length){
         paPlaying = false;
-        setTimeout(()=>{ if(!paPlaying && myRun === paRunId) window.stopPaAnnouncement(); }, 950);
+        setTimeout(()=>{ if(!paPlaying && myRun === paRunId) window.stopPaAnnouncement(); }, 1050);
         return;
       }
       const chunk = paQueue.shift();
       if(canCloud && paQueue.length) fetchTtsChunk(paQueue[0], params).catch(()=>{});
 
-      const proceed = () => { if(paPlaying && myRun === paRunId) setTimeout(playNext, 110); };
+      const proceed = () => { if(paPlaying && myRun === paRunId) setTimeout(playNext, 100); };
 
+      /* ক. ক্লাসিক মহিলা কণ্ঠ (আগের সেরা ৩-লেয়ার ইকো) */
+      if(isClassicFem){
+        playClassicFemalePaText(chunk, params.numSpd, useEcho, myRun, proceed);
+        return;
+      }
+
+      /* খ. অফলাইন ডিভাইস পুরুষ কণ্ঠ */
+      if(isNativeMale){
+        fallbackSpeakNativeMale(chunk, params, myRun, proceed);
+        return;
+      }
+
+      /* গ. Cloudflare Neural (ভাস্কর / প্রদীপ / তনিষা) */
       if(canCloud){
         fetchTtsChunk(chunk, params).then(async ab => {
           if(!paPlaying || myRun !== paRunId) return;
@@ -5562,20 +5955,35 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
           src.connect(paEchoIn || ctx.destination);
           paActiveSrc = src;
           let d = false;
-          const fin = () => { if(!d){ d = true; clearTimeout(paWatch); if(paActiveSrc===src) paActiveSrc=null; proceed(); } };
-          paWatch = setTimeout(fin, Math.ceil(buf.duration * 1000) + 1200);
+          const fin = () => {
+            if(d) return;
+            d = true;
+            clearTimeout(paWatch);
+            if(paActiveSrc === src) paActiveSrc = null;
+            setTimeout(() => { if(paPlaying && myRun === paRunId) proceed(); }, useEcho ? 140 : 40);
+          };
+          clearTimeout(paWatch);
+          paWatch = setTimeout(fin, Math.ceil(buf.duration * 1000) + 3500);
           src.onended = fin;
           src.start(0);
-        }).catch(() => fallbackSpeak(chunk, params, myRun, proceed));
+        }).catch(() => {
+          /* তনিষা (মহিলা) ফেল করলে কখনোই পুরুষ কণ্ঠে না গিয়ে ক্লাসিক ইকো মহিলা কণ্ঠে বাজবে */
+          if(params.prof === 'female_tanishaa'){
+            playClassicFemalePaText(chunk, params.numSpd, useEcho, myRun, proceed);
+          } else {
+            fallbackSpeakNativeMale(chunk, params, myRun, proceed);
+          }
+        });
       } else {
-        fallbackSpeak(chunk, params, myRun, proceed);
+        if(params.prof === 'female_tanishaa') playClassicFemalePaText(chunk, params.numSpd, useEcho, myRun, proceed);
+        else fallbackSpeakNativeMale(chunk, params, myRun, proceed);
       }
     };
 
     setTimeout(playNext, useMusic ? 360 : 40);
   };
 
-  /* মুখে বললে বাংলা টেক্সটে রূপান্তর করে পুরুষ ঘোষক কণ্ঠে বলানো (Speech-to-Text -> Neural Male) */
+  /* মুখে বললে বাংলা টেক্সটে রূপান্তর করে নির্বাচিত ঘোষক কণ্ঠে বাজানো */
   let speechRec = null, isListening = false;
   window.togglePaVoiceDictation = function(autoSpeakAfter){
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -5612,12 +6020,12 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
       };
       speechRec.onerror = (e) => {
         isListening = false;
-        if(btn){ btn.classList.remove('pa-rec-on'); btn.textContent = '🎙 মুখে বলুন ➔ পুরুষ কণ্ঠে ঘোষণা'; }
+        if(btn){ btn.classList.remove('pa-rec-on'); btn.textContent = '🎙 মুখে বলুন ➔ ঘোষক কণ্ঠে ঘোষণা'; }
         setPaStatus('⚠ মাইক্রোফোন সমস্যা (' + (e.error||'অনুমতি দিন') + ')');
       };
       speechRec.onend = () => {
         isListening = false;
-        if(btn){ btn.classList.remove('pa-rec-on'); btn.textContent = '🎙 মুখে বলুন ➔ পুরুষ কণ্ঠে ঘোষণা'; }
+        if(btn){ btn.classList.remove('pa-rec-on'); btn.textContent = '🎙 মুখে বলুন ➔ ঘোষক কণ্ঠে ঘোষণা'; }
         const box = document.getElementById('paCustomTxt');
         const spoken = (box && box.value || '').trim();
         if(spoken && autoSpeakAfter){
@@ -5664,6 +6072,7 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
   }
 
   window.openPaBoard = function(){
+    const curP = window.__saVoiceProfile || localStorage.getItem('sa_vprof_cf') || 'male_bashkar';
     let m = document.getElementById('paBoardModal');
     if(!m){
       m = document.createElement('div');
@@ -5671,34 +6080,44 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
       m.innerHTML = `<div class="pa-box">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px">
           <h3 style="margin:0;color:#0284c7">📢 স্পেশাল লাইভ মাইকিং বোর্ড (Quick PA)</h3>
-          <button class="b s d" onclick="$('paBoardModal').style.display='none'">✕ বন্ধ করুন</button>
+          <button class="b s d" onclick="document.getElementById('paBoardModal').style.display='none'">✕ বন্ধ করুন</button>
         </div>
-        <p class="mu" style="font-size:12.5px;margin:0 0 6px">যেকোনো বাটনে চাপলেই সাথে সাথে <b>পুরুষ/মহিলা ঘোষক কণ্ঠে ইকো ও মিউজিকসহ</b> ঘোষণা শুরু হবে।</p>
+        <div class="pa-bar" style="margin:0 0 8px;padding:6px 8px;background:rgba(2,132,199,.08);border-radius:8px">
+          <label style="font-size:12.5px;font-weight:700">🗣 কণ্ঠস্বর:</label>
+          <select id="paVoiceSel" class="sa-vprof-sel" onchange="paSetVoiceProfile(this.value)" style="margin:0;min-height:30px">
+            <option value="male_bashkar">🎙 ভাস্কর পুরুষ কণ্ঠ (ইকোসহ • সেরা)</option>
+            <option value="male_pradeep">🎙 প্রদীপ গম্ভীর পুরুষ কণ্ঠ (ইকোসহ)</option>
+            <option value="female_classic">🎙 ক্লাসিক মহিলা কণ্ঠ (আগের সেই সেরা ইকো)</option>
+            <option value="female_tanishaa">🎙 তনিষা মহিলা কণ্ঠ (Neural ইকো)</option>
+            <option value="male_native">📱 ডিভাইস নিজস্ব পুরুষ কণ্ঠ (অফলাইন)</option>
+          </select>
+        </div>
+        <p class="mu" style="font-size:12.5px;margin:0 0 6px">যেকোনো বাটনে চাপলেই সাথে সাথে নির্বাচিত কণ্ঠে <b>ইকো ও মিউজিকসহ</b> পূর্ণ ঘোষণা বাজবে।</p>
         <div id="paPresetGrid" class="pa-grid"></div>
         <div style="border-top:1.5px dashed var(--bd,#cbd5e1);padding-top:10px;margin-top:4px">
           <label style="font-weight:700;font-size:13.5px;display:block;margin-bottom:4px">✍️ নিজের ইচ্ছেমতো ঘোষণা লিখুন অথবা মুখে বলুন:</label>
-          <textarea id="paCustomTxt" placeholder="এখানে বাংলায় যেকোনো জরুরি ঘোষণা লিখুন... অথবা নিচের 'মুখে বলুন' বাটনে চেপে বললেই সেটি পুরুষ ঘোষক কণ্ঠে রূপান্তর হয়ে বাজবে।"></textarea>
+          <textarea id="paCustomTxt" placeholder="এখানে বাংলায় যেকোনো জরুরি ঘোষণা লিখুন... অথবা নিচের 'মুখে বলুন' বাটনে চেপে বললেই সেটি ঘোষক কণ্ঠে রূপান্তর হয়ে বাজবে।"></textarea>
           <div class="pa-bar">
             <button class="b p" onclick="announcePaText()">📢 ঘোষণা করুন</button>
-            <button id="paMicDictBtn" class="b" style="background:#0f766e;color:#fff" onclick="togglePaVoiceDictation(true)">🎙 মুখে বলুন ➔ পুরুষ কণ্ঠে ঘোষণা</button>
+            <button id="paMicDictBtn" class="b" style="background:#0f766e;color:#fff" onclick="togglePaVoiceDictation(true)">🎙 মুখে বলুন ➔ ঘোষক কণ্ঠে ঘোষণা</button>
             <button class="b s" onclick="saveNewPaPreset()">💾 বাটন হিসেবে সেভ করুন</button>
             <button class="b d" onclick="stopPaAnnouncement()">⏹ থামান</button>
           </div>
           <div class="pa-bar" style="font-size:13px;font-weight:600">
             <label style="cursor:pointer;display:inline-flex;align-items:center;gap:4px"><input type="checkbox" id="paUseEcho" checked style="width:auto;margin:0"> 🔊 স্টেডিয়াম ইকো</label>
             <label style="cursor:pointer;display:inline-flex;align-items:center;gap:4px;margin-left:10px"><input type="checkbox" id="paUseMusic" checked style="width:auto;margin:0"> 🎵 ব্যাকগ্রাউন্ড মিউজিক</label>
-            <span class="mu" style="font-size:12px;margin-left:auto">(কণ্ঠস্বর ও স্পিড আপনার বর্তমান সেটিংস অনুযায়ী চলবে)</span>
           </div>
           <div id="paStatusBox" class="pa-status"></div>
         </div>
       </div>`;
       document.body.appendChild(m);
     }
+    const sel = document.getElementById('paVoiceSel');
+    if(sel) sel.value = curP;
     m.style.display = 'grid';
     renderPaPresetGrid();
   };
 
-  /* শুধুমাত্র অ্যাডমিন লগইন থাকলেই নিচে ডানদিকে ভাসমান '📢 স্পেশাল মাইক' বাটনটি দেখাবে */
   function syncPaFabVisibility(){
     let fab = document.getElementById('paFabBtn');
     if(!fab){
@@ -5718,5 +6137,243 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     syncPaFabVisibility();
   };
   setTimeout(syncPaFabVisibility, 350);
+})();
+</script><script id="sa-smart-auto-login">
+/* ==========================================================================
+   DIRECT SMART LOGIN CARD (স্তর না বেছেই শুধু আইডি ও পিন দিয়ে অটো-লগইন)
+   ========================================================================== */
+(function(){
+  const escH = s => String(s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const toEnDigits = s => String(s||'').replace(/[০-৯]/g, d => '0123456789'['০১২৩৪৫৬৭৮৯'.indexOf(d)]);
+
+  const ROLE_INFO = {
+    owner:  { label: 'ওনার / অ্যাডমিন (Owner)',  rx: /owner|admin/i },
+    sub:    { label: 'সাব-ডিভিশন / মহকুমা (Sub)', rx: /subdiv|sub/i },
+    circle: { label: 'সার্কেল / চক্র (Circle)',   rx: /circle|cir|chakra/i },
+    gp:     { label: 'জিপি / অঞ্চল (GP)',        rx: /(?:^|[^a-z])gp(?:[^a-z]|$|\d)/i },
+    school: { label: 'স্কুল / বিদ্যালয় (School)', rx: /school|sch/i }
+  };
+
+  /* কার্ডের স্টাইল */
+  const st = document.createElement('style');
+  st.textContent = `
+    #saDirectLoginWrap { max-width: 460px; margin: 14px auto 10px; padding: 0 10px; box-sizing: border-box; }
+    #saDirectLoginCard { background: linear-gradient(180deg, #ffffff 0%, #f0f9ff 100%); color: #0f172a; border: 2px solid #0284c7; border-radius: 14px; padding: 14px 16px; box-shadow: 0 8px 24px rgba(2,132,199,.14); }
+    #saDirectLoginCard h3 { margin: 0 0 4px; font-size: 16px; color: #0369a1; display: flex; align-items: center; gap: 6px; }
+    #saDirectLoginCard .sdl-sub { margin: 0 0 10px; font-size: 12.5px; color: #475569; line-height: 1.4; }
+    #saDirectLoginCard .sdl-fld { margin-bottom: 9px; }
+    #saDirectLoginCard label { display: block; font-size: 12.5px; font-weight: 700; margin-bottom: 3px; color: #1e293b; }
+    #saDirectLoginCard input { width: 100%; padding: 9px 11px; border: 1.6px solid #94a3b8; border-radius: 8px; font-size: 14.5px; font-weight: 600; box-sizing: border-box; background: #fff; color: #0f172a; }
+    #saDirectLoginCard input:focus { outline: none; border-color: #0284c7; box-shadow: 0 0 0 3px rgba(2,132,199,.15); }
+    .sdl-pin-row { position: relative; display: flex; align-items: center; }
+    .sdl-pin-row input { padding-right: 42px !important; }
+    .sdl-eye { position: absolute; right: 6px; background: none; border: none; font-size: 16px; cursor: pointer; padding: 4px 6px; color: #475569; }
+    #saDirectBadge { margin: 4px 0 8px; padding: 6px 10px; border-radius: 7px; font-size: 12.5px; font-weight: 700; display: none; line-height: 1.35; }
+    #saDirectBadge.ok { display: block; background: #dcfce7; color: #166534; border: 1px solid #22c55e; }
+    #saDirectBadge.hint { display: block; background: #e0f2fe; color: #075985; border: 1px solid #38bdf8; }
+    #saDirectBadge.err { display: block; background: #ffe4e6; color: #be123c; border: 1px solid #f43f5e; }
+    #saDirectBtn { width: 100%; padding: 10px 14px; border: none; border-radius: 9px; background: linear-gradient(135deg, #0284c7, #1d4ed8); color: #fff; font-size: 14.5px; font-weight: 800; cursor: pointer; margin-top: 2px; }
+    #saDirectBtn:hover { filter: brightness(1.06); }
+    .sdl-div { text-align: center; font-size: 11.5px; color: #64748b; margin-top: 9px; font-weight: 600; }
+  `;
+  document.head.appendChild(st);
+
+  /* ডেটাবেস (DB.u) ও আইডির কোড থেকে ইউনিট ও স্তর খুঁজে বের করা */
+  function lookupAccount(rawId){
+    const clean = toEnDigits(String(rawId || '').trim());
+    if(!clean) return null;
+    const low = clean.toLowerCase();
+
+    if(typeof DB !== 'undefined' && DB && Array.isArray(DB.u) && DB.u.length){
+      const exact = DB.u.find(u => {
+        const keys = [u.id, u.uid, u.uname, u.login, u.code].filter(Boolean);
+        return keys.some(k => toEnDigits(String(k).trim()).toLowerCase() === low);
+      });
+      if(exact){
+        const r = String(exact.role || exact.lvl || '').toLowerCase();
+        return { user: exact, role: r, exact: true };
+      }
+    }
+
+    for(const key of ['school', 'gp', 'circle', 'sub', 'owner']){
+      if(ROLE_INFO[key].rx.test(low)){
+        return { user: null, role: key, exact: false };
+      }
+    }
+    return null;
+  }
+
+  /* পিন যাচাই করা */
+  function verifyPin(u, enteredPin){
+    const pinKeys = ['pin', 'pass', 'pw', 'p', 'pwd', 'password'];
+    const validKeys = pinKeys.filter(k => u[k] !== undefined && u[k] !== null && String(u[k]).trim() !== '');
+    if(!validKeys.length) return true;
+    const cleanIn = toEnDigits(String(enteredPin || '').trim());
+    return validKeys.some(k => toEnDigits(String(u[k]).trim()) === cleanIn);
+  }
+
+  function showBadge(type, html){
+    const b = document.getElementById('saDirectBadge');
+    if(!b) return;
+    b.className = type || '';
+    b.innerHTML = html || '';
+  }
+
+  function handleIdTyping(){
+    const inp = document.getElementById('saDirectId');
+    if(!inp) return;
+    const val = inp.value.trim();
+    if(!val){
+      showBadge('', '');
+      return;
+    }
+    const found = lookupAccount(val);
+    if(found && found.user){
+      const rLabel = (ROLE_INFO[found.role] || {}).label || found.role;
+      showBadge('ok', `✔ শনাক্ত হয়েছে: <b>${escH(rLabel)}</b> — ${escH(found.user.name || found.user.id)}`);
+    } else if(found && !found.user){
+      const rLabel = (ROLE_INFO[found.role] || {}).label || found.role;
+      showBadge('hint', `🔎 শনাক্ত স্তর: <b>${escH(rLabel)}</b> (সম্পূর্ণ আইডি লিখুন)`);
+    } else {
+      showBadge('', '');
+    }
+  }
+
+  window.toggleDirectPinEye = function(){
+    const pinInp = document.getElementById('saDirectPin');
+    const eyeBtn = document.getElementById('saDirectEye');
+    if(!pinInp) return;
+    const isPw = pinInp.type === 'password';
+    pinInp.type = isPw ? 'text' : 'password';
+    if(eyeBtn) eyeBtn.textContent = isPw ? '🙈' : '👁';
+  };
+
+  window.doSmartDirectLogin = function(){
+    const idEl = document.getElementById('saDirectId');
+    const pinEl = document.getElementById('saDirectPin');
+    if(!idEl || !pinEl) return;
+
+    const rawId = idEl.value.trim();
+    const rawPin = pinEl.value.trim();
+
+    if(!rawId){
+      showBadge('err', '⚠ অনুগ্রহ করে আপনার লগইন আইডি লিখুন।');
+      idEl.focus();
+      return;
+    }
+
+    if(typeof DB === 'undefined' || !DB || !Array.isArray(DB.u) || !DB.u.length){
+      showBadge('err', '⏳ ডেটাবেস লোড হচ্ছে, ২ সেকেন্ড অপেক্ষা করে আবার চাপুন।');
+      return;
+    }
+
+    const found = lookupAccount(rawId);
+    if(!found || !found.user){
+      showBadge('err', '❌ এই লগইন আইডিটি ডেটাবেসে পাওয়া যায়নি। আইডি বানানটি যাচাই করুন।');
+      idEl.focus();
+      return;
+    }
+
+    const u = found.user;
+    if(!verifyPin(u, rawPin)){
+      showBadge('err', '❌ পিন (PIN) মেলেনি! অনুগ্রহ করে সঠিক পিন দিন।');
+      pinEl.focus();
+      return;
+    }
+
+    /* সরাসরি লগইন সম্পন্ন করা */
+    try { ME = u; } catch(e){ window.ME = u; }
+
+    /* লগইন কার্ডটি লুকিয়ে ইনপুট পরিষ্কার করা */
+    idEl.value = '';
+    pinEl.value = '';
+    showBadge('', '');
+    const wrap = document.getElementById('saDirectLoginWrap');
+    if(wrap) wrap.style.display = 'none';
+
+    /* মূল অ্যাপ রেন্ডার করা */
+    if(typeof draw === 'function') draw();
+
+    /* লগইনের পর সঠিক ড্যাশবোর্ড ট্যাব খোলা আছে কিনা নিশ্চিত করা */
+    setTimeout(() => {
+      const app = document.getElementById('app');
+      const hasActiveTab = document.querySelector('.tabs button.on, .nav button.on, nav button.on, .tb.on');
+      if(!hasActiveTab){
+        const firstTab = document.querySelector('.tabs button, .nav button, nav button, .tb');
+        if(firstTab) firstTab.click();
+      }
+      if(typeof info === 'function'){
+        const rLabel = (ROLE_INFO[found.role] || {}).label || found.role;
+        info(`স্বাগতম, ${u.name || u.id} (${rLabel}) ✔`);
+      }
+    }, 60);
+  };
+
+  function ensureDirectLoginCard(){
+    const isLoggedIn = (typeof ME !== 'undefined' && !!ME);
+    let wrap = document.getElementById('saDirectLoginWrap');
+
+    if(isLoggedIn){
+      if(wrap) wrap.style.display = 'none';
+      return;
+    }
+
+    if(!wrap){
+      wrap = document.createElement('div');
+      wrap.id = 'saDirectLoginWrap';
+      wrap.innerHTML = `<div id="saDirectLoginCard">
+        <h3>⚡ ডাইরেক্ট স্মার্ট লগইন</h3>
+        <p class="sdl-sub">সাব-ডিভিশন, সার্কেল, জিপি বা স্কুল আলাদা করে বাছতে হবে না—শুধু আপনার <b>লগইন আইডি ও পিন</b> দিন।</p>
+        <div class="sdl-fld">
+          <label for="saDirectId">লগইন আইডি (Login ID)</label>
+          <input id="saDirectId" type="text" autocomplete="username" placeholder="যেমন: SUB... / CIRCLE... / GP... / SCHOOL...">
+        </div>
+        <div id="saDirectBadge"></div>
+        <div class="sdl-fld">
+          <label for="saDirectPin">পিন / পাসওয়ার্ড (PIN)</label>
+          <div class="sdl-pin-row">
+            <input id="saDirectPin" type="password" autocomplete="current-password" placeholder="আপনার পিন লিখুন">
+            <button id="saDirectEye" type="button" class="sdl-eye" onclick="toggleDirectPinEye()" title="পিন দেখুন/লুকান">👁</button>
+          </div>
+        </div>
+        <button id="saDirectBtn" type="button" onclick="doSmartDirectLogin()">🔓 সরাসরি লগইন করুন</button>
+        <div class="sdl-div">▼ অথবা নিচের সাধারণ অপশন ব্যবহার করুন ▼</div>
+      </div>`;
+
+      const app = document.getElementById('app');
+      if(app && app.parentNode){
+        app.parentNode.insertBefore(wrap, app);
+      } else if(document.body){
+        document.body.prepend(wrap);
+      }
+
+      const idEl = document.getElementById('saDirectId');
+      const pinEl = document.getElementById('saDirectPin');
+      if(idEl){
+        idEl.addEventListener('input', handleIdTyping);
+        idEl.addEventListener('change', handleIdTyping);
+        idEl.addEventListener('keydown', e => {
+          if(e.key === 'Enter'){ e.preventDefault(); if(pinEl) pinEl.focus(); }
+        });
+      }
+      if(pinEl){
+        pinEl.addEventListener('keydown', e => {
+          if(e.key === 'Enter'){ e.preventDefault(); window.doSmartDirectLogin(); }
+        });
+      }
+    }
+
+    wrap.style.display = 'block';
+  }
+
+  /* afterDraw ও স্টার্টআপে কার্ডের অবস্থা সিঙ্ক রাখা */
+  const prevAD = window.afterDraw;
+  window.afterDraw = function(){
+    if(typeof prevAD === 'function') prevAD.apply(this, arguments);
+    ensureDirectLoginCard();
+  };
+
+  setTimeout(ensureDirectLoginCard, 120);
+  setInterval(ensureDirectLoginCard, 1200);
 })();
 </script></body></html>
