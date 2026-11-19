@@ -5025,7 +5025,7 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     const key = `${voice}|${rate}|${pitch}|${clean}`;
     if(prefetchMap.has(key)) return prefetchMap.get(key);
 
-    const url = `/api/tts?voice=${encodeURIComponent(voice)}&rate=${encodeURIComponent(rate)}&pitch=${encodeURIComponent(pitch)}&text=${encodeURIComponent(clean)}`;
+    const url = `https://sports-91ejc48vm-nagraphic85-netizen.vercel.app/api/tts?voice=${encodeURIComponent(voice)}&rate=${encodeURIComponent(rate)}&pitch=${encodeURIComponent(pitch)}&text=${encodeURIComponent(clean)}`;
     const req = fetch(url).then(async r => {
       if(!r.ok) throw new Error('HTTP ' + r.status);
       const ct = r.headers.get('content-type') || '';
@@ -5828,7 +5828,7 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
   function fetchTtsChunk(text, params){
     const key = `${params.voice}|${params.rate}|${params.pitch}|${text}`;
     if(paPrefetch.has(key)) return paPrefetch.get(key);
-    const url = `/api/tts?voice=${encodeURIComponent(params.voice)}&rate=${encodeURIComponent(params.rate)}&pitch=${encodeURIComponent(params.pitch)}&text=${encodeURIComponent(text)}`;
+    const url = `https://sports-91ejc48vm-nagraphic85-netizen.vercel.app/api/tts?voice=${encodeURIComponent(params.voice)}&rate=${encodeURIComponent(params.rate)}&pitch=${encodeURIComponent(params.pitch)}&text=${encodeURIComponent(text)}`;
     const req = fetch(url).then(async r => {
       if(!r.ok) throw new Error('HTTP ' + r.status);
       if(!(r.headers.get('content-type')||'').includes('audio')) throw new Error('Not audio');
@@ -6399,49 +6399,4 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
   if(document.body) obs.observe(document.body, { childList: true, subtree: true });
   setTimeout(attachSmartLogin, 250);
 })();
-</script><script id="sa-tts-server-bridge">
-/* ==========================================================================
-   VERCEL FREE PYTHON TTS BRIDGE (FETCH + XHR + AUDIO)
-   ========================================================================== */
-(function(){
-  const VERCEL_TTS_URL = 'https://sports-91ejc48vm-nagraphic85-netizen.vercel.app';
-
-  if(!VERCEL_TTS_URL || VERCEL_TTS_URL.includes('sports-91ejc48vm-nagraphic85-netizen')) return;
-  const base = VERCEL_TTS_URL.replace(/\/+$/, '');
-
-  function rewriteUrl(rawUrl){
-    try {
-      if(typeof rawUrl !== 'string' || !rawUrl) return rawUrl;
-      if(rawUrl.startsWith('/api/tts')) return base + rawUrl;
-      const u = new URL(rawUrl, location.href);
-      if(u.pathname === '/api/tts') return base + u.pathname + u.search;
-    } catch(e){}
-    return rawUrl;
-  }
-
-  const origFetch = window.fetch.bind(window);
-  window.fetch = function(input, init){
-    try {
-      if(typeof input === 'string'){
-        return origFetch(rewriteUrl(input), init);
-      }
-      if(input && typeof input.url === 'string'){
-        const fixed = rewriteUrl(input.url);
-        if(fixed !== input.url){
-          return origFetch(new Request(fixed, input), init);
-        }
-      }
-    } catch(e){}
-    return origFetch(input, init);
-  };
-
-  const origOpen = XMLHttpRequest.prototype.open;
-  XMLHttpRequest.prototype.open = function(method, url){
-    const args = Array.prototype.slice.call(arguments);
-    args[1] = rewriteUrl(url);
-    return origOpen.apply(this, args);
-  };
-
-  setTimeout(() => { origFetch(base + '/').catch(()=>{}); }, 1000);
-})();
-</script></body></html>
+</script>
