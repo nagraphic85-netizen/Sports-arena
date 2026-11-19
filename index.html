@@ -4585,19 +4585,10 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
 })();
 </script><script id="sa-voice-engine-hotfix">
 /* ==========================================================================
-   STRICT SINGLE-VOICE ENGINE (ZERO VOICE MIXING) + FULL ECHO + FAST MALE SPEED
+   CLOUDFLARE /api/tts NEURAL VOICE + TRUE WEB-AUDIO STADIUM ECHO + BG MUSIC
+   (ভাস্কর ও প্রদীপ আসল পুরুষ কণ্ঠ + তনিষা মহিলা কণ্ঠ + প্রি-ফেচ + ৩১মিমি QR)
    ========================================================================== */
 (function(){
-  /* ০. লাইভ সার্ভারে অডিও ব্লক আটকানোর জন্য মূল পেজের হেডে No-Referrer মেটা বসানো */
-  if(!document.querySelector('meta[name="referrer"]')){
-    const m = document.createElement('meta');
-    m.name = 'referrer';
-    m.content = 'no-referrer';
-    document.head.appendChild(m);
-  } else {
-    document.querySelector('meta[name="referrer"]').content = 'no-referrer';
-  }
-
   /* ১. ছোট সার্টিফিকেটের (A4-এ ২টি) QR কোড 31mm বড় ও স্পষ্ট রাখা */
   const qrUpgradeStyle = document.createElement('style');
   qrUpgradeStyle.textContent = `
@@ -4648,21 +4639,72 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
   }
 
   /* ------------------------------------------------------------------------
-     ২. স্টেডিয়াম ব্যাকগ্রাউন্ড মিউজিক ও অ্যাকোস্টিক ইকো ইঞ্জিন
+     ২. Web Audio স্টুডিও ইঞ্জিন: আসল হর্ন-মাইক ইকো (DelayNode) + ব্যাকগ্রাউন্ড মিউজিক
      ------------------------------------------------------------------------ */
-  let bgCtx = null, bgMaster = null, bgTimer = null, bgVolLevel = 0.14;
+  let audioCtx = null, bgMaster = null, bgTimer = null, bgVolLevel = 0.14;
+  let voiceMaster = null, echoInput = null, activeSource = null;
 
   function ensureAudioCtx(){
     const AC = window.AudioContext || window.webkitAudioContext;
     if(!AC) return null;
-    if(!bgCtx || bgCtx.state === 'closed') bgCtx = new AC();
-    if(bgCtx.state === 'suspended') bgCtx.resume();
-    return bgCtx;
+    if(!audioCtx || audioCtx.state === 'closed') audioCtx = new AC();
+    if(audioCtx.state === 'suspended') audioCtx.resume().catch(()=>{});
+    return audioCtx;
+  }
+
+  /* আসল স্টেডিয়াম পিএ-মাইকের প্রাকৃতিক ইকো বাস তৈরি করা (145ms ডিলে + লো-পাস ওয়ার্মথ ফিল্টার + ফিডব্যাক) */
+  function rebuildVoiceEchoBus(){
+    const ctx = ensureAudioCtx();
+    if(!ctx) return null;
+    if(voiceMaster){ try { voiceMaster.disconnect(); } catch(e){} }
+
+    voiceMaster = ctx.createGain();
+    voiceMaster.gain.value = 1.05;
+    voiceMaster.connect(ctx.destination);
+
+    const delay = ctx.createDelay(1.0);
+    delay.delayTime.value = 0.145; // ১৪৫ms আসল মাঠের মাইকের প্রতিধ্বনি
+
+    const toneFilter = ctx.createBiquadFilter();
+    toneFilter.type = 'lowpass';
+    toneFilter.frequency.value = 2400; // প্রতিধ্বনিকে কানে আরামদায়ক ও স্বাভাবিক রাখা
+
+    const feedback = ctx.createGain();
+    feedback.gain.value = 0.36; // ক্রমে মিলিয়ে যাওয়া ৩-৪টি নরম প্রতিধ্বনি
+
+    const wetGain = ctx.createGain();
+    wetGain.gain.value = 0.42; // স্পষ্ট কিন্তু কণ্ঠ না ঢেকে সুন্দর স্টেডিয়াম ইকো
+
+    echoInput = ctx.createGain();
+    echoInput.gain.value = 1.0;
+
+    /* ড্রাই (মূল স্পষ্ট কণ্ঠ) + ওয়েট (স্টেডিয়াম ইকো লুপ) */
+    echoInput.connect(voiceMaster);
+    echoInput.connect(delay);
+    delay.connect(toneFilter);
+    toneFilter.connect(wetGain);
+    wetGain.connect(voiceMaster);
+    toneFilter.connect(feedback);
+    feedback.connect(delay);
+
+    return echoInput;
+  }
+
+  function decodeAudioSafe(ctx, arrBuf){
+    return new Promise((resolve, reject) => {
+      let done = false;
+      const ok = b => { if(!done){ done = true; resolve(b); } };
+      const err = e => { if(!done){ done = true; reject(e); } };
+      try {
+        const p = ctx.decodeAudioData(arrBuf.slice(0), ok, err);
+        if(p && typeof p.then === 'function') p.then(ok, err);
+      } catch(e){ err(e); }
+    });
   }
 
   window.setBgMusicVol = function(v){
     bgVolLevel = Math.max(0.02, Math.min(0.35, parseFloat(v)||0.14));
-    if(bgCtx && bgMaster) bgMaster.gain.setTargetAtTime(bgVolLevel, bgCtx.currentTime, 0.12);
+    if(audioCtx && bgMaster) bgMaster.gain.setTargetAtTime(bgVolLevel, audioCtx.currentTime, 0.12);
   };
 
   function startStadiumMusic(){
@@ -4694,13 +4736,13 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
       ];
       let step = 0;
       const playBar = () => {
-        if(!bgCtx || !bgMaster) return;
-        const now = bgCtx.currentTime;
+        if(!audioCtx || !bgMaster) return;
+        const now = audioCtx.currentTime;
         const c = chords[step % chords.length];
         c.pad.forEach((freq, idx) => {
-          const osc = bgCtx.createOscillator(), g = bgCtx.createGain();
+          const osc = audioCtx.createOscillator(), g = audioCtx.createGain();
           osc.type = idx === 0 ? 'sawtooth' : 'triangle';
-          const flt = bgCtx.createBiquadFilter();
+          const flt = audioCtx.createBiquadFilter();
           flt.type = 'lowpass'; flt.frequency.setValueAtTime(1150, now);
           osc.frequency.setValueAtTime(freq, now);
           g.gain.setValueAtTime(0.001, now);
@@ -4710,7 +4752,7 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
           osc.start(now); osc.stop(now + 2.0);
         });
         [0, 0.5, 1.0, 1.5].forEach((bt, bi) => {
-          const bOsc = bgCtx.createOscillator(), bG = bgCtx.createGain();
+          const bOsc = audioCtx.createOscillator(), bG = audioCtx.createGain();
           bOsc.type = 'sine';
           bOsc.frequency.setValueAtTime(bi%2===0 ? c.bass : c.bass*1.5, now + bt);
           bOsc.frequency.exponentialRampToValueAtTime(55, now + bt + 0.22);
@@ -4722,7 +4764,7 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
         });
         c.mel.forEach((mf, mi) => {
           const mt = now + mi * 0.48 + 0.12;
-          const mOsc = bgCtx.createOscillator(), mG = bgCtx.createGain();
+          const mOsc = audioCtx.createOscillator(), mG = audioCtx.createGain();
           mOsc.type = 'triangle';
           mOsc.frequency.setValueAtTime(mf, mt);
           mG.gain.setValueAtTime(0.001, mt);
@@ -4740,31 +4782,31 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
 
   function stopStadiumMusic(){
     if(bgTimer){ clearInterval(bgTimer); bgTimer = null; }
-    if(bgCtx && bgMaster){
+    if(audioCtx && bgMaster){
       try {
-        bgMaster.gain.linearRampToValueAtTime(0.0001, bgCtx.currentTime + 0.22);
+        bgMaster.gain.linearRampToValueAtTime(0.0001, audioCtx.currentTime + 0.22);
         bgMaster = null;
       } catch(e){}
     }
   }
 
   /* ------------------------------------------------------------------------
-     ৩. ১০০% একক কণ্ঠস্বর (পুরুষ ও মহিলা কখনোই একসাথে মেশে না!) + জোরালো ইকো + দ্রুত স্পিড
+     ৩. Cloudflare /api/tts ক্লায়েন্ট + প্রি-ফেচিং + অটো অফলাইন ফলব্যাক
      ------------------------------------------------------------------------ */
   window.__saUtterHold = [];
-  let vQueue = [], vLastSegments = [], vActive = false, vMode = 'callout', vWatch = null;
-  let echoT1 = null, echoT2 = null, echoT3 = null, trimTimer = null;
+  let vQueue = [], vLastSegments = [], vActive = false, vMode = 'callout', vRunId = 0, vWatch = null;
+  let prefetchMap = new Map();
 
-  /* ৪-লেয়ার অডিও পুল (Main + 3 Stadium Echo Taps) */
-  const poolMain = new Audio(), poolE1 = new Audio(), poolE2 = new Audio(), poolE3 = new Audio();
-  [poolMain, poolE1, poolE2, poolE3].forEach(a => { a.referrerPolicy = 'no-referrer'; a.preload = 'auto'; });
-
-  window.__saVoiceProfile = localStorage.getItem('sa_vprof') || 'male_clear';
+  /* কণ্ঠস্বর ও স্পিড সেটিংস */
+  const VALID_PROFS = ['male_bashkar', 'male_pradeep', 'female_tanishaa', 'male_native'];
+  let savedProf = localStorage.getItem('sa_vprof_cf') || 'male_bashkar';
+  if(!VALID_PROFS.includes(savedProf)) savedProf = 'male_bashkar';
+  window.__saVoiceProfile = savedProf;
   window.__saVoiceSpeed = localStorage.getItem('sa_vspd') || 'auto';
 
   window.setVoiceProfile = function(p){
     window.__saVoiceProfile = p;
-    try { localStorage.setItem('sa_vprof', p); } catch(e){}
+    try { localStorage.setItem('sa_vprof_cf', p); } catch(e){}
     document.querySelectorAll('.sa-vprof-sel').forEach(el => { if(el.value !== p) el.value = p; });
     if(vActive && vLastSegments.length) startStadiumAnnouncement(vLastSegments, vMode);
   };
@@ -4776,163 +4818,158 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     if(vActive && vLastSegments.length) startStadiumAnnouncement(vLastSegments, vMode);
   };
 
-  /* পুরুষ কণ্ঠে স্পিড যাতে একটুও কম না থাকে সেজন্য পুরুষ প্রোফাইলে অটো স্পিড আরও বেশি (1.38x ও 1.15x) রাখা হয়েছে */
-  function getEffectiveRate(isFastCallout, isMale){
+  function getSpeedSettings(isFastCallout){
     const sp = window.__saVoiceSpeed || 'auto';
     if(sp === 'auto'){
-      if(isMale) return isFastCallout ? 1.38 : 1.15;
-      return isFastCallout ? 1.26 : 1.05;
+      return isFastCallout
+        ? { pct: '+24%', num: 1.26 }
+        : { pct: '+4%',  num: 1.05 };
     }
-    const base = parseFloat(sp) || 1.15;
-    return isMale ? Math.min(1.75, base * 1.12) : base;
+    const n = parseFloat(sp) || 1.12;
+    const diff = Math.round((n - 1.0) * 100);
+    return { pct: (diff >= 0 ? '+' : '') + diff + '%', num: n };
   }
 
   function voiceControlsHTML(){
-    const curP = window.__saVoiceProfile || 'male_clear';
+    const curP = window.__saVoiceProfile || 'male_bashkar';
     const curS = window.__saVoiceSpeed || 'auto';
     return `<select class="sa-vprof-sel" onchange="setVoiceProfile(this.value)" title="কণ্ঠস্বর বেছে নিন">
-      <option value="male_clear" ${curP==='male_clear'?'selected':''}>🎙 স্পষ্ট পুরুষ কণ্ঠ (Pure Male Fast)</option>
-      <option value="male_echo" ${curP==='male_echo'?'selected':''}>🎙 স্টেডিয়াম ইকো পুরুষ কণ্ঠ (Stadium Echo Male)</option>
-      <option value="female" ${curP==='female'?'selected':''}>🎙 স্পষ্ট মহিলা কণ্ঠ (Pure Female Echo)</option>
-    </select><select class="sa-vspd-sel" onchange="setVoiceSpeed(this.value)" title="কথা বলার গতি (Speed) বেছে নিন">
+      <option value="male_bashkar" ${curP==='male_bashkar'?'selected':''}>🎙 ভাস্কর পুরুষ কণ্ঠ (ইকোসহ • সেরা)</option>
+      <option value="male_pradeep" ${curP==='male_pradeep'?'selected':''}>🎙 প্রদীপ গম্ভীর পুরুষ কণ্ঠ (ইকোসহ)</option>
+      <option value="female_tanishaa" ${curP==='female_tanishaa'?'selected':''}>🎙 তনিষা মহিলা কণ্ঠ (ইকোসহ)</option>
+      <option value="male_native" ${curP==='male_native'?'selected':''}>📱 ডিভাইস নিজস্ব পুরুষ কণ্ঠ (অফলাইন)</option>
+    </select><select class="sa-vspd-sel" onchange="setVoiceSpeed(this.value)" title="কথা বলার গতি (Speed)">
       <option value="auto" ${curS==='auto'?'selected':''}>⚡ অটো স্পিড (ইভেন্টে দ্রুত / ফলাফলে স্বাভাবিক)</option>
+      <option value="0.95" ${curS==='0.95'?'selected':''}>🐢 ধীর গতি (0.95x)</option>
       <option value="1.05" ${curS==='1.05'?'selected':''}>🚶 স্বাভাবিক গতি (1.05x)</option>
-      <option value="1.22" ${curS==='1.22'?'selected':''}>🏃 মাঝারি দ্রুত (1.22x)</option>
-      <option value="1.38" ${curS==='1.38'?'selected':''}>⚡ দ্রুত গতি (1.38x)</option>
-      <option value="1.55" ${curS==='1.55'?'selected':''}>🚀 সুপার ফাস্ট (1.55x)</option>
+      <option value="1.18" ${curS==='1.18'?'selected':''}>🏃 মাঝারি দ্রুত (1.18x)</option>
+      <option value="1.30" ${curS==='1.30'?'selected':''}>⚡ দ্রুত গতি (1.30x)</option>
+      <option value="1.45" ${curS==='1.45'?'selected':''}>🚀 সুপার ফাস্ট (1.45x)</option>
     </select>`;
   }
 
-  let allVoices = [];
-  function refreshVoices(){
-    if(!('speechSynthesis' in window)) return;
-    allVoices = window.speechSynthesis.getVoices() || [];
-  }
-  refreshVoices();
-  if('speechSynthesis' in window && window.speechSynthesis.onvoiceschanged !== undefined){
-    window.speechSynthesis.onvoiceschanged = refreshVoices;
+  function getCloudflareApiParams(prof, speedPct){
+    if(prof === 'male_pradeep') return { voice: 'bn-BD-PradeepNeural', rate: speedPct, pitch: '-2Hz' };
+    if(prof === 'female_tanishaa') return { voice: 'bn-IN-TanishaaNeural', rate: speedPct, pitch: '+0Hz' };
+    return { voice: 'bn-IN-BashkarNeural', rate: speedPct, pitch: '-1Hz' };
   }
 
-  function pickNativeBanglaMaleVoice(){
-    refreshVoices();
-    const bn = allVoices.filter(v => /bn[-_](IN|BD)/i.test(v.lang) || /bengali|bangla|বাংলা/i.test(v.name));
-    if(!bn.length) return { voice: null, isTrueMale: false };
-    /* আসল বাংলা পুরুষ ভয়েস খোঁজা */
-    const mBn = bn.find(v => /pradeep|bashkar|male|পুরুষ|indranil|sagar| voice 2|network/i.test(v.name));
-    if(mBn) return { voice: mBn, isTrueMale: true };
-    /* যদি একাধিক বাংলা ভয়েস থাকে তবে ২য় ভয়েসটি নেওয়া */
-    return { voice: bn[bn.length > 1 ? 1 : 0], isTrueMale: bn.length > 1 };
+  function canUseCloudflareTTS(){
+    return (location.protocol === 'https:' || location.protocol === 'http:') && navigator.onLine;
   }
 
-  function stopDirectAudios(){
-    clearTimeout(echoT1); clearTimeout(echoT2); clearTimeout(echoT3); clearInterval(trimTimer);
-    [poolMain, poolE1, poolE2, poolE3].forEach(a => {
-      if(a){ try { a.pause(); a.currentTime = 0; a.src = ''; } catch(e){} }
+  /* সার্ভার থেকে MP3 অডিও এনে ক্যাশ/প্রি-ফেচ করা */
+  function fetchCloudflareAudio(text, prof, speedPct){
+    const clean = String(text || '').trim();
+    if(!clean || !canUseCloudflareTTS()) return Promise.reject(new Error('Offline'));
+    const { voice, rate, pitch } = getCloudflareApiParams(prof, speedPct);
+    const key = `${voice}|${rate}|${pitch}|${clean}`;
+    if(prefetchMap.has(key)) return prefetchMap.get(key);
+
+    const url = `/api/tts?voice=${encodeURIComponent(voice)}&rate=${encodeURIComponent(rate)}&pitch=${encodeURIComponent(pitch)}&text=${encodeURIComponent(clean)}`;
+    const req = fetch(url).then(async r => {
+      if(!r.ok) throw new Error('HTTP ' + r.status);
+      const ct = r.headers.get('content-type') || '';
+      if(!ct.includes('audio')) throw new Error('Not audio');
+      return await r.arrayBuffer();
     });
+    prefetchMap.set(key, req);
+    return req;
   }
 
-  /* একক অডিও স্ট্রিম প্লেয়ার (মহিলা কণ্ঠ অথবা স্টেডিয়াম-ইকো পুরুষ কণ্ঠ — এখানে অন্য কোনো ইঞ্জিন বা দ্বিতীয় কণ্ঠ কখনোই চলবে না!) */
-  function playSingleStreamWithStadiumEcho(urls, isMaleTone, speedRate, isFastCallout, onDone){
-    stopDirectAudios();
-    if('speechSynthesis' in window){ try { window.speechSynthesis.cancel(); } catch(e){} }
+  /* Web Audio API-তে MP3 ডিকোড করে আসল স্টেডিয়াম ইকোসহ বাজানো */
+  async function playArrayBufferWithEcho(arrBuf, runId, onDone){
+    if(!vActive || runId !== vRunId) return;
+    const ctx = ensureAudioCtx();
+    if(!ctx) return onDone();
+    if(!echoInput) rebuildVoiceEchoBus();
 
-    const urlList = Array.isArray(urls) ? urls.slice() : [urls];
+    const decoded = await decodeAudioSafe(ctx, arrBuf);
+    if(!vActive || runId !== vRunId) return;
 
-    const tryNextUrl = () => {
-      if(!vActive) return;
-      if(!urlList.length) return onDone();
-      const url = urlList.shift();
+    if(activeSource){
+      try { activeSource.onended = null; activeSource.stop(); } catch(e){}
+      activeSource = null;
+    }
 
-      try {
-        let playRate = speedRate;
-        let preserve = true;
+    const src = ctx.createBufferSource();
+    src.buffer = decoded;
+    src.connect(echoInput);
+    activeSource = src;
 
-        if(isMaleTone){
-          /* স্টেডিয়াম পুরুষ কণ্ঠ: পিচ সামান্য নামিয়ে (0.91) পুরুষালি ভরাট স্বর এবং শেষের ফাঁকা নীরবতা কেটে দ্রুত গতি বজায় রাখা */
-          preserve = false;
-          playRate = isFastCallout ? 0.94 : 0.90;
-        }
-
-        const setupAud = (a, vol) => {
-          a.referrerPolicy = 'no-referrer';
-          a.src = url;
-          a.volume = vol;
-          a.preservesPitch = preserve;
-          a.mozPreservesPitch = preserve;
-          a.webkitPreservesPitch = preserve;
-          a.playbackRate = playRate;
-        };
-
-        setupAud(poolMain, 1.0);
-        /* ৩-স্তরের জোরালো ও পরিষ্কার স্টেডিয়াম ইকো (125ms, 245ms, 365ms) */
-        setupAud(poolE1, 0.38);
-        setupAud(poolE2, 0.20);
-        setupAud(poolE3, 0.09);
-
-        let started = false, doneFlag = false;
-        const finishOnce = () => {
-          if(doneFlag) return;
-          doneFlag = true;
-          clearInterval(trimTimer);
-          onDone();
-        };
-
-        const guard = setTimeout(() => {
-          if(!started){
-            try { poolMain.pause(); } catch(e){}
-            tryNextUrl();
-          }
-        }, 1900);
-
-        poolMain.onplaying = () => {
-          started = true;
-          clearTimeout(guard);
-          echoT1 = setTimeout(() => { if(vActive && !doneFlag) poolE1.play().catch(()=>{}); }, 125);
-          echoT2 = setTimeout(() => { if(vActive && !doneFlag) poolE2.play().catch(()=>{}); }, 245);
-          echoT3 = setTimeout(() => { if(vActive && !doneFlag) poolE3.play().catch(()=>{}); }, 365);
-
-          /* কথা যাতে একদম চটপটে ও দ্রুত চলে সেজন্য অডিওর শেষের নীরব অংশ কেটে সাথে সাথে পরের অংশে যাওয়া */
-          const cutTail = isMaleTone ? (isFastCallout ? 0.34 : 0.24) : (isFastCallout ? 0.20 : 0.12);
-          trimTimer = setInterval(() => {
-            if(!vActive || doneFlag){ clearInterval(trimTimer); return; }
-            if(poolMain.duration && poolMain.currentTime > 0.10 && (poolMain.duration - poolMain.currentTime) <= cutTail){
-              finishOnce();
-            }
-          }, 20);
-        };
-
-        poolMain.onended = () => { clearTimeout(guard); finishOnce(); };
-        poolMain.onerror = () => { clearTimeout(guard); if(!started) tryNextUrl(); else finishOnce(); };
-
-        const p = poolMain.play();
-        if(p && typeof p.catch === 'function'){
-          p.catch(() => { clearTimeout(guard); if(!started) tryNextUrl(); });
-        }
-      } catch(e){
-        tryNextUrl();
-      }
+    let done = false;
+    const finishOnce = () => {
+      if(done) return;
+      done = true;
+      clearTimeout(vWatch);
+      onDone();
     };
 
-    tryNextUrl();
+    vWatch = setTimeout(finishOnce, Math.ceil(decoded.duration * 1000) + 1200);
+    src.onended = () => {
+      if(activeSource === src) activeSource = null;
+      finishOnce();
+    };
+    src.start(0);
   }
 
-  /* ফোনের নিজস্ব পুরুষ ভয়েসের (`male_clear`) জন্য পরিষ্কার স্টেডিয়াম হল-রুম ইকো রেজোন্যান্স (কোনো মহিলা অডিও ছাড়া!) */
-  function playPureAcousticHallPulse(){
+  /* ইউজারের নিজস্ব রেকর্ড করা অডিও ক্লিপও একই স্টেডিয়াম ইকো বাসে বাজানো */
+  async function playCustomDataUrlWithEcho(dataUrl, speedNum, runId, onDone, onErr){
     try {
+      const resp = await fetch(dataUrl);
+      const arrBuf = await resp.arrayBuffer();
       const ctx = ensureAudioCtx();
-      if(!ctx) return;
-      const now = ctx.currentTime;
-      /* ৩টি মৃদু হর্ন-মাইক ইকো পালস (110ms, 220ms, 330ms) যা শুধু অ্যাকোস্টিক ইকোর অনুভূতি দেবে, কোনো কণ্ঠ মেশাবে না */
-      [0.05, 0.16, 0.28].forEach((dt, i) => {
-        const osc = ctx.createOscillator(), g = ctx.createGain();
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(340 - i*35, now + dt);
-        g.gain.setValueAtTime(0.024 / (i+1), now + dt);
-        g.gain.exponentialRampToValueAtTime(0.0004, now + dt + 0.18);
-        osc.connect(g); g.connect(ctx.destination);
-        osc.start(now + dt); osc.stop(now + dt + 0.19);
-      });
-    } catch(e){}
+      if(!ctx) return onErr();
+      if(!echoInput) rebuildVoiceEchoBus();
+      const decoded = await decodeAudioSafe(ctx, arrBuf);
+      if(!vActive || runId !== vRunId) return;
+
+      const src = ctx.createBufferSource();
+      src.buffer = decoded;
+      src.playbackRate.value = Math.min(1.35, Math.max(0.95, speedNum));
+      src.connect(echoInput);
+      activeSource = src;
+      src.onended = () => { if(activeSource === src) activeSource = null; onDone(); };
+      src.start(0);
+    } catch(e){
+      onErr();
+    }
+  }
+
+  /* অফলাইন বা file:// মোডে সিস্টেমের নিজস্ব একক বাংলা ভয়েস ব্যাকআপ (কখনোই ২টি ভয়েস মেশাবে না) */
+  function speakNativeFallback(cleanText, isFemale, speedNum, runId, onDone){
+    if(!vActive || runId !== vRunId) return;
+    if(!('speechSynthesis' in window)) return onDone();
+
+    try {
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.resume();
+      const list = window.speechSynthesis.getVoices() || [];
+      const bn = list.filter(v => /bn[-_](IN|BD)/i.test(v.lang) || /bengali|bangla|বাংলা/i.test(v.name));
+      let voice = null;
+      if(bn.length){
+        voice = isFemale
+          ? (bn.find(v => /tanishaa|nabanita|female|মহিলা/i.test(v.name)) || bn[0])
+          : (bn.find(v => /bashkar|pradeep|male|পুরুষ/i.test(v.name)) || bn[bn.length > 1 ? 1 : 0]);
+      }
+
+      const u = new SpeechSynthesisUtterance(cleanText);
+      window.__saUtterHold.push(u);
+      if(voice) u.voice = voice;
+      u.lang = (voice && voice.lang) ? voice.lang : 'bn-IN';
+      u.rate = speedNum;
+      u.pitch = isFemale ? 1.02 : 0.94;
+      u.volume = 1.0;
+
+      let done = false;
+      const finishOnce = () => { if(!done){ done = true; clearTimeout(vWatch); onDone(); } };
+      vWatch = setTimeout(finishOnce, Math.max(2600, (cleanText.length * 100) / speedNum));
+      u.onend = finishOnce;
+      u.onerror = finishOnce;
+      window.speechSynthesis.speak(u);
+    } catch(e){
+      onDone();
+    }
   }
 
   /* রোমান সংখ্যা (-I, -II), ইংরেজি শব্দ ও সংক্ষেপণকে ১০০% বাংলা অক্ষরে রূপান্তর */
@@ -4977,96 +5014,82 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     return s.replace(/[-_]/g, ' ').replace(/\s+/g, ' ').trim();
   }
 
-  function playSegmentWithEcho(seg, onDone){
-    if(!vActive) return;
-    clearTimeout(vWatch);
+  /* একক সেগমেন্ট বাজানো + পরের সেগমেন্টটি আগে থেকেই ব্যাকগ্রাউন্ডে প্রি-ফেচ করে রাখা */
+  function playNextSegment(runId){
+    if(!vActive || runId !== vRunId) return;
+    if(!vQueue.length){
+      vActive = false;
+      setTimeout(() => { if(!vActive && runId === vRunId) window.pauseVoiceOnly(); }, 1100);
+      return;
+    }
+
+    const seg = vQueue.shift();
+    const isFast = (vMode === 'callout');
+    const prof = window.__saVoiceProfile || 'male_bashkar';
+    const spd = getSpeedSettings(isFast);
+    const gapMs = isFast ? 30 : (seg.pause || 90);
+
     const tp = document.getElementById('tpTxt');
     if(tp && seg.text) tp.textContent = seg.text;
 
-    const isFast = (vMode === 'callout');
-    const prof = window.__saVoiceProfile || 'male_clear';
-    const isMale = (prof !== 'female');
-    const rate = getEffectiveRate(isFast, isMale);
-    const gapMs = isFast ? 5 : (seg.pause || 35);
+    /* পরের বাক্যটি এখনই ব্যাকগ্রাউন্ডে ফেচ শুরু করে দেওয়া যাতে কোনো বিরতি ছাড়াই পরপর বাজে */
+    if(prof !== 'male_native' && canUseCloudflareTTS() && vQueue.length > 0 && !vQueue[0].audioUrl){
+      fetchCloudflareAudio(vQueue[0].text, prof, spd.pct).catch(()=>{});
+    }
 
-    let done = false;
-    const finish = () => {
-      if(done) return;
-      done = true;
-      clearTimeout(vWatch);
-      setTimeout(onDone, gapMs);
+    const proceed = () => {
+      if(!vActive || runId !== vRunId) return;
+      setTimeout(() => playNextSegment(runId), gapMs);
     };
 
+    /* ১. ইউজারের নিজস্ব রেকর্ড করা অডিও ক্লিপ থাকলে */
     if(seg.audioUrl){
-      playSingleStreamWithStadiumEcho([seg.audioUrl], false, rate, isFast, finish);
+      playCustomDataUrlWithEcho(seg.audioUrl, spd.num, runId, proceed, () => {
+        speakSegmentCore(seg.text, prof, spd, runId, proceed);
+      });
       return;
     }
-    speakCore(seg.text, prof, rate, isFast, finish);
+
+    speakSegmentCore(seg.text, prof, spd, runId, proceed);
   }
 
-  function speakCore(cleanText, prof, rate, isFast, finish){
-    const clean = String(cleanText || '').trim();
-    if(!clean) return finish();
+  function speakSegmentCore(text, prof, spd, runId, proceed){
+    const clean = String(text || '').trim();
+    if(!clean) return proceed();
 
-    /* ক. যদি ইউজার 'স্পষ্ট পুরুষ কণ্ঠ (Pure Male Fast)' বেছে নেন এবং ফোনে/ব্রাউজারে বাংলা ভয়েস থাকে:
-       - এখানে গুগলের মহিলা অডিও স্ট্রিম সম্পূর্ণ বন্ধ থাকবে (কখনোই একসাথে দুটি কণ্ঠ বাজবে না!)
-       - ফোনের নিজস্ব পুরুষ কণ্ঠে একদম পরিষ্কার ও স্বচ্ছ পিচে (0.90) এবং দ্রুত স্পিডে (1.38x / 1.15x) বলবে */
-    if(prof === 'male_clear'){
-      const picked = pickNativeBanglaMaleVoice();
-      if(picked.voice && 'speechSynthesis' in window){
-        try {
-          stopDirectAudios(); // অন্য সব অডিও স্ট্রিম শতভাগ বন্ধ রাখা
-          window.speechSynthesis.cancel();
-          window.speechSynthesis.resume();
-
-          /* কণ্ঠস্বর একদম পরিষ্কার ও স্বচ্ছ রাখার জন্য পিচ 0.90 (আসল পুরুষ ভয়েসে 0.96) এবং স্পিড চটপটে রাখা হয়েছে */
-          const pitchVal = picked.isTrueMale ? 0.96 : 0.88;
-
-          const u = new SpeechSynthesisUtterance(clean);
-          window.__saUtterHold.push(u);
-          u.voice = picked.voice;
-          u.lang = picked.voice.lang || 'bn-IN';
-          u.rate = rate;
-          u.pitch = pitchVal;
-          u.volume = 1.0;
-
-          playPureAcousticHallPulse();
-          vWatch = setTimeout(finish, Math.max(2500, (clean.length * 95) / rate));
-
-          u.onend = () => {
-            clearTimeout(vWatch);
-            playPureAcousticHallPulse();
-            finish();
-          };
-          u.onerror = () => {
-            clearTimeout(vWatch);
-            finish();
-          };
-          window.speechSynthesis.speak(u);
-          return;
-        } catch(e){}
-      }
+    /* যদি ইউজার অফলাইন ডিভাইস ভয়েস বেছে নেন */
+    if(prof === 'male_native'){
+      speakNativeFallback(clean, false, spd.num, runId, proceed);
+      return;
     }
 
-    /* খ. যদি ইউজার 'স্টেডিয়াম ইকো পুরুষ কণ্ঠ (male_echo)' অথবা 'মহিলা কণ্ঠ (female)' বেছে নেন (কিংবা ব্রাউজারে সিস্টেম ভয়েস না থাকে):
-       - এখানে `speechSynthesis` সম্পূর্ণ বন্ধ থাকবে।
-       - শুধুমাত্র ৩-স্তরের স্টেডিয়াম ইকো স্ট্রিম চলবে (male_echo হলে পুরুষালি ব্যারিটোন পিচে, আর female হলে মহিলা কণ্ঠে)। */
-    const q = encodeURIComponent(clean.slice(0, 185));
-    const streamUrls = [
-      `https://translate.googleapis.com/translate_tts?ie=UTF-8&client=tw-ob&tl=bn&q=${q}`,
-      `https://translate.googleapis.com/translate_tts?ie=UTF-8&client=gtx&tl=bn&q=${q}`,
-      `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=bn-IN&q=${q}`
-    ];
-    playSingleStreamWithStadiumEcho(streamUrls, prof !== 'female', rate, isFast, finish);
+    /* Cloudflare Pages Function (/api/tts) থেকে আসল ভাস্কর/প্রদীপ/তনিষা MP3 অডিও এনে স্টুডিও ইকোসহ বাজানো */
+    if(canUseCloudflareTTS()){
+      fetchCloudflareAudio(clean, prof, spd.pct)
+        .then(arrBuf => playArrayBufferWithEcho(arrBuf, runId, proceed))
+        .catch(() => {
+          /* কোনো কারণে /api/tts না পাওয়া গেলে নিরাপদে ডিভাইস ভয়েসে ফলব্যাক */
+          speakNativeFallback(clean, prof === 'female_tanishaa', spd.num, runId, proceed);
+        });
+      return;
+    }
+
+    /* অফলাইনে ফাইল খুললে সরাসরি সিস্টেম ভয়েস */
+    speakNativeFallback(clean, prof === 'female_tanishaa', spd.num, runId, proceed);
   }
 
   const origStop = window.stopVoice;
   window.pauseVoiceOnly = function(){
+    vRunId++;
     vActive = false;
     vQueue = [];
     clearTimeout(vWatch);
     window.__saUtterHold = [];
-    stopDirectAudios();
+    if(activeSource){
+      try { activeSource.onended = null; activeSource.stop(); } catch(e){}
+      activeSource = null;
+    }
+    if(voiceMaster){ try { voiceMaster.disconnect(); } catch(e){} voiceMaster = null; echoInput = null; }
     stopStadiumMusic();
     if('speechSynthesis' in window){ try { window.speechSynthesis.cancel(); } catch(e){} }
     const bar = document.getElementById('tpBar');
@@ -5091,10 +5114,17 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     window.pauseVoiceOnly();
     if(!segments || !segments.length) return;
 
+    /* ইউজারের ক্লিকের মুহূর্তেই AudioContext ও Echo Bus আনলক করা (মোবাইলে ১০০% কাজ করার চাবিকাঠি) */
+    ensureAudioCtx();
+    rebuildVoiceEchoBus();
+
+    vRunId++;
+    const myRunId = vRunId;
     vLastSegments = segments.slice();
     vQueue = segments.slice();
     vActive = true;
     vMode = mode || 'result';
+    prefetchMap.clear();
 
     startStadiumMusic();
 
@@ -5103,18 +5133,15 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     bar.style.display = 'block';
     const fullTxt = segments.map(s=>s.text).join(' ');
 
-    bar.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:6px;font-size:13px;color:#38bdf8"><span>📢 লাইভ স্টেডিয়াম মাইকিং (${vMode==='callout'?'ইভেন্ট কলিং':'ফলাফল ঘোষণা'} • একক কণ্ঠ ও মিউজিক)</span><div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">${voiceControlsHTML()}<small style="color:#cbd5e1">🎵 মিউজিক:</small><input type="range" min="0.04" max="0.32" step="0.02" value="${bgVolLevel}" oninput="setBgMusicVol(this.value)" style="width:60px;margin:0"><button class="b s p" onclick="replayLastVoice()">🔄 পুনরায়</button><button class="b s" onclick="openVoiceStudio()">🎙 স্টুডিও</button><button class="b s d" onclick="stopVoice()">✕ বন্ধ</button></div></div><div id="tpTxt">${esc(fullTxt)}</div>`;
+    bar.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:6px;font-size:13px;color:#38bdf8"><span>📢 লাইভ স্টেডিয়াম মাইকিং (${vMode==='callout'?'ইভেন্ট কলিং':'ফলাফল ঘোষণা'} • Cloudflare Neural ইকো ও মিউজিক)</span><div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">${voiceControlsHTML()}<small style="color:#cbd5e1">🎵 মিউজিক:</small><input type="range" min="0.04" max="0.32" step="0.02" value="${bgVolLevel}" oninput="setBgMusicVol(this.value)" style="width:60px;margin:0"><button class="b s p" onclick="replayLastVoice()">🔄 পুনরায়</button><button class="b s" onclick="openVoiceStudio()">🎙 স্টুডিও</button><button class="b s d" onclick="stopVoice()">✕ বন্ধ</button></div></div><div id="tpTxt">${esc(fullTxt)}</div>`;
 
-    const runNext = () => {
-      if(!vActive || !vQueue.length){
-        vActive = false;
-        setTimeout(() => { if(!vActive) window.pauseVoiceOnly(); }, 900);
-        return;
-      }
-      const seg = vQueue.shift();
-      playSegmentWithEcho(seg, runNext);
-    };
-    runNext();
+    /* প্রারম্ভিক মাইক চাইম শেষ হতেই (380ms পর) প্রথম বাক্যটি বলা শুরু করা */
+    const spd = getSpeedSettings(vMode === 'callout');
+    const prof = window.__saVoiceProfile || 'male_bashkar';
+    if(prof !== 'male_native' && canUseCloudflareTTS() && vQueue.length > 0 && !vQueue[0].audioUrl){
+      fetchCloudflareAudio(vQueue[0].text, prof, spd.pct).catch(()=>{});
+    }
+    setTimeout(() => playNextSegment(myRunId), 360);
   }
 
   function injectPermanentVoiceSelectors(){
@@ -5138,7 +5165,7 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
   const cmpC = (x,y) => String(x.chest).replace('T','') - String(y.chest).replace('T','');
   const getCustomAudio = k => (DB.vaudio||{})[String(k||'').trim().toUpperCase()] || null;
 
-  /* ১. ইভেন্ট শিট কলিং ঘোষণা: ছোট ও চটপটে ফ্রেজে ভাগ করা যাতে পুরুষ ও মহিলা উভয় কণ্ঠেই একদম দ্রুত চলে */
+  /* ১. ইভেন্ট শিট কলিং ঘোষণা */
   window.speakEventCallout = function(){
     const [c,s,e] = ALLEV[SHSEL] || [];
     if(!e) return;
@@ -5148,21 +5175,20 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     const catStr = toPureBanglaText(`${CN[c]}${s?' '+SN[s]+' বিভাগ':''}`);
     const evStr = toPureBanglaText(e);
     const segs = [
-      { text: `মনোযোগ দিন! এখনই শুরু হচ্ছে ${catStr}-এর ${evStr}। প্রস্তুত থাকো প্রতিযোগীরা!`, pause: 10 },
-      { text: `চেস্ট নম্বর ও নাম ডাকা হচ্ছে—`, pause: 10 }
+      { text: `মনোযোগ দিন! এখনই শুরু হচ্ছে ${catStr}-এর ${evStr} প্রতিযোগিতা। প্রস্তুত থাকো প্রতিযোগীরা! চেস্ট নম্বর ও নাম ডাকা হচ্ছে—`, pause: 30 }
     ];
     a.forEach(x => {
       const l = loc(x), rawUnit = ME.role==='gp' ? l.s : (l.u || l.s);
       const pName = toPureBanglaText(x.bn || x.name), uName = toPureBanglaText(rawUnit), chStr = toPureBanglaText(x.chest);
       const clip = getCustomAudio(rawUnit);
       if(clip){
-        segs.push({ text: `চেস্ট ${chStr}, ${pName}`, pause: 5 });
-        segs.push({ text: uName, audioUrl: clip, pause: 10 });
+        segs.push({ text: `চেস্ট ${chStr}, ${pName},`, pause: 10 });
+        segs.push({ text: uName, audioUrl: clip, pause: 30 });
       } else {
-        segs.push({ text: `চেস্ট ${chStr}, ${pName}, ${uName}।`, pause: 10 });
+        segs.push({ text: `চেস্ট ${chStr}, ${pName}, ${uName}।`, pause: 30 });
       }
     });
-    segs.push({ text: `সকল প্রতিযোগী অবিলম্বে শুরুর লাইনে উপস্থিত হও।` });
+    segs.push({ text: `সকল প্রতিযোগীকে অবিলম্বে শুরুর লাইনে উপস্থিত হওয়ার জন্য অনুরোধ করা হচ্ছে।` });
     startStadiumAnnouncement(segs, 'callout');
   };
 
@@ -5173,17 +5199,17 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     const evStr = toPureBanglaText(x.ev);
     const pWords = ['প্রথম স্থান অধিকার করেছে','দ্বিতীয় স্থান অধিকার করেছে','তৃতীয় স্থান অধিকার করেছে','চতুর্থ স্থান অধিকার করেছে'];
     const segs = [
-      { text: `সুধী দর্শকবৃন্দ, এখন ঘোষণা করা হচ্ছে ${catStr}-এর ${evStr} প্রতিযোগিতার চূড়ান্ত ফলাফল।`, pause: 35 }
+      { text: `সুধী দর্শকবৃন্দ, এখন ঘোষণা করা হচ্ছে ${catStr}-এর ${evStr} প্রতিযোগিতার চূড়ান্ত ফলাফল।`, pause: 70 }
     ];
     (x.win||[]).sort((a,b)=>a.pos-b.pos).forEach(w=>{
       const a = byChest(w.chest, x.cat);
       const pName = toPureBanglaText((a&&a.bn) ? a.bn : w.name), uName = toPureBanglaText(w.school), chStr = toPureBanglaText(w.chest);
       const clip = getCustomAudio(w.school);
       if(clip){
-        segs.push({ text: `${pWords[w.pos-1]||w.pos+'ম স্থান'}, চেস্ট নম্বর ${chStr}, ${pName},`, pause: 10 });
-        segs.push({ text: uName, audioUrl: clip, pause: 45 });
+        segs.push({ text: `${pWords[w.pos-1]||w.pos+'ম স্থান'}, চেস্ট নম্বর ${chStr}, ${pName},`, pause: 20 });
+        segs.push({ text: uName, audioUrl: clip, pause: 90 });
       } else {
-        segs.push({ text: `${pWords[w.pos-1]||w.pos+'ম স্থান'}, চেস্ট নম্বর ${chStr}, ${pName}, ${uName}।`, pause: 45 });
+        segs.push({ text: `${pWords[w.pos-1]||w.pos+'ম স্থান'}, চেস্ট নম্বর ${chStr}, ${pName}, ${uName}।`, pause: 90 });
       }
     });
     segs.push({ text: `বিজয়ী সকল প্রতিযোগীকে আমাদের পক্ষ থেকে জানাই আন্তরিক অভিনন্দন!` });
@@ -5195,286 +5221,502 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     const rs = (ME && typeof rsScope==='function') ? rsScope() : (DB.r||[]);
     if(!rs.length) return info('এখনও কোনো ফলাফল প্রকাশিত হয়নি।');
     const pWords = ['প্রথম স্থান','দ্বিতীয় স্থান','তৃতীয় স্থান','চতুর্থ স্থান'];
-    const segs = [{ text: `সুধী দর্শকবৃন্দ, এখন ঘোষণা করা হচ্ছে আজকের প্রতিযোগিতার প্রকাশিত ফলাফলসমূহ।`, pause: 35 }];
+    const segs = [{ text: `সুধী দর্শকবৃন্দ, এখন ঘোষণা করা হচ্ছে আজকের প্রতিযোগিতার প্রকাশিত ফলাফলসমূহ।`, pause: 70 }];
     rs.forEach(x=>{
       const catStr = toPureBanglaText(`${CN[x.cat]}${x.sec?' '+SN[x.sec]+' বিভাগ':''}`);
       const evStr = toPureBanglaText(x.ev);
-      segs.push({ text: `${catStr}-এর ${evStr} প্রতিযোগিতা—`, pause: 25 });
+      segs.push({ text: `${catStr}-এর ${evStr} প্রতিযোগিতা—`, pause: 45 });
       (x.win||[]).sort((a,b)=>a.pos-b.pos).forEach(w=>{
         const a = byChest(w.chest, x.cat);
         const pName = toPureBanglaText((a&&a.bn) ? a.bn : w.name), uName = toPureBanglaText(w.school);
-        segs.push({ text: `${pWords[w.pos-1]}, চেস্ট নম্বর ${toPureBanglaText(w.chest)}, ${pName}, ${uName}।`, pause: 40 });
+        segs.push({ text: `${pWords[w.pos-1]}, চেস্ট নম্বর ${toPureBanglaText(w.chest)}, ${pName}, ${uName}।`, pause: 80 });
       });
     });
     startStadiumAnnouncement(segs, 'result');
   };
 })();
-</script><script id="sa-admin-entry-control">
+</script><script id="sa-quick-pa-board">
 /* ==========================================================================
-   ADMIN SUBMISSION CONTROL: DELETE + EDIT + AUTO AGE-INELIGIBILITY ALERT
-   (কোনো পুরনো কোড না বদলে অ্যাডমিনের তালিকায় ডিলিট, এডিট ও ভুল বয়স শনাক্তকরণ)
+   LIVE STADIUM SPECIAL PA ANNOUNCEMENT BOARD
+   (এক-ক্লিক জরুরি ঘোষণা + কাস্টম টেক্সট + মুখে বললে পুরুষ ঘোষক কণ্ঠে রূপান্তর)
    ========================================================================== */
 (function(){
   const ADM_ROLES = ['owner', 'gp', 'circle', 'sub'];
-  const AGE_MAX = { A: 7, B: 9, C: 11 };
+  const escH = s => String(s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 
-  /* ব্যাজ ও বাটনের স্টাইল */
+  /* রেডিমেড জরুরি ঘোষণার তালিকা */
+  const DEFAULT_PRESETS = [
+    {
+      id: 'chest',
+      title: '🎫 চেস্ট কার্ড সংগ্রহ',
+      text: 'মনোযোগ দিন! অংশগ্রহণকারী সকল বিদ্যালয়ের শিক্ষক ও এসকর্টদের অনুরোধ করা হচ্ছে, অবিলম্বে কন্ট্রোল রুম থেকে নিজ নিজ প্রতিযোগীদের চেস্ট কার্ড সংগ্রহ করে নিন। ধন্যবাদ।'
+    },
+    {
+      id: 'field',
+      title: '🚸 মাঠ ফাঁকা রাখা (অভিভাবক)',
+      text: 'সুধী দর্শক ও সম্মাননীয় অভিভাবকবৃন্দ, খেলা সুষ্ঠুভাবে পরিচালনার স্বার্থে বিনীত অনুরোধ করা হচ্ছে—দয়া করে কেউ খেলার মাঠের ভেতরে বা দৌড়ের ট্র্যাকের কাছে ঘোরাফেরা করবেন না। অনুগ্রহ করে নির্দিষ্ট দর্শকাসনে অবস্থান করুন।'
+    },
+    {
+      id: 'escort',
+      title: '🧑‍🏫 এসকর্ট শিক্ষকদের অনুরোধ',
+      text: 'সম্মাননীয় এসকর্ট ও গাইড শিক্ষকদের দৃষ্টি আকর্ষণ করছি—অনুগ্রহ করে আপনার দলের প্রতিযোগীদের নিয়ে কল-রুমের পাশে প্রস্তুত থাকুন এবং নাম ডাকার সাথে সাথে নির্ধারিত ট্র্যাকে পাঠিয়ে দিন।'
+    },
+    {
+      id: 'tiffin',
+      title: '🍱 টিফিন ও পানীয় জল সংগ্রহ',
+      text: 'জরুরি ঘোষণা! অংশগ্রহণকারী সকল ছাত্র-ছাত্রী ও এসকর্ট শিক্ষকদের জানানো হচ্ছে, টিফিন বিতরণ শুরু হয়েছে। অনুগ্রহ করে শৃঙ্খলা বজায় রেখে নির্দিষ্ট কাউন্টার থেকে নিজ নিজ টিফিন ও পানীয় জল সংগ্রহ করুন।'
+    },
+    {
+      id: 'prize',
+      title: '🏆 পুরস্কার বিতরণী শুরু',
+      text: 'সুধী দর্শকবৃন্দ ও প্রিয় প্রতিযোগীরা, আর কিছুক্ষণের মধ্যেই শুরু হতে চলেছে আজকের প্রতিযোগিতার পুরস্কার বিতরণী অনুষ্ঠান। সকল বিজয়ী প্রতিযোগীকে মঞ্চের সামনে সারিবদ্ধভাবে উপস্থিত হওয়ার জন্য অনুরোধ করা হচ্ছে।'
+    },
+    {
+      id: 'guest',
+      title: '🙏 অতিথি ও দর্শক বরণ',
+      text: 'আজকের বার্ষিক ক্রীড়া ও সাংস্কৃতিক প্রতিযোগিতায় উপস্থিত সকল সম্মাননীয় অতিথি, বিচারকমণ্ডলী, শিক্ষক-শিক্ষিকা এবং দর্শকবৃন্দকে জানাই সাদর সম্ভাষণ ও আন্তরিক অভিনন্দন।'
+    },
+    {
+      id: 'discipline',
+      title: '⚠️ প্রতিযোগীদের শৃঙ্খলা',
+      text: 'প্রিয় ছাত্র-ছাত্রীরা, যে ইভেন্টের নাম ঘোষণা করা হবে শুধুমাত্র সেই ইভেন্টের প্রতিযোগীরাই মাঠে প্রবেশ করবে। বাকিরা নিজেদের এসকর্ট শিক্ষকের কাছে শান্তভাবে অপেক্ষা করো।'
+    },
+    {
+      id: 'lost',
+      title: '🎒 হারানো-প্রাপ্তি ঘোষণা',
+      text: 'মনোযোগ দিন! মাঠের ভেতরে বা দর্শকাসনে কারও কোনো জিনিস হারিয়ে গেলে অথবা কেউ কিছু কুড়িয়ে পেলে, অনুগ্রহ করে অবিলম্বে মঞ্চের কন্ট্রোল রুমে যোগাযোগ করুন।'
+    }
+  ];
+
+  function getCustomPresets(){
+    try { return JSON.parse(localStorage.getItem('sa_pa_custom_presets') || '[]'); } catch(e){ return []; }
+  }
+  function saveCustomPresets(list){
+    try { localStorage.setItem('sa_pa_custom_presets', JSON.stringify(list)); } catch(e){}
+  }
+
+  /* স্টাইল যুক্ত করা */
   const st = document.createElement('style');
   st.textContent = `
-    .adm-bad-row { background: rgba(225, 29, 72, 0.10) !important; }
-    .adm-age-tag { display: inline-block; margin-left: 4px; padding: 1px 6px; border-radius: 4px; background: #e11d48; color: #fff; font-size: 11px; font-weight: 700; white-space: nowrap; }
-    .adm-act-cell { white-space: nowrap; text-align: center !important; }
-    .adm-act-cell .b { padding: 3px 7px !important; font-size: 12px !important; min-height: 28px !important; margin: 1px !important; }
-    #admBadAlert { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; padding: 8px 12px; margin: 6px 0 10px; border-radius: 8px; background: rgba(225, 29, 72, 0.12); border: 1.5px solid #e11d48; color: #be123c; font-weight: 700; font-size: 13.5px; }
+    #paFabBtn { position: fixed; right: 14px; bottom: 16px; z-index: 9988; background: linear-gradient(135deg, #0284c7, #1d4ed8); color: #fff; border: 2px solid #fef08a; border-radius: 50px; padding: 10px 16px; font-size: 14px; font-weight: 800; box-shadow: 0 6px 20px rgba(0,0,0,.38); cursor: pointer; display: none; align-items: center; gap: 6px; }
+    #paFabBtn:hover { transform: scale(1.04); }
+    #paBoardModal { position: fixed; inset: 0; background: rgba(15,23,42,.75); z-index: 9997; display: none; place-items: center; padding: 10px; }
+    #paBoardModal .pa-box { background: var(--cd, #fff); color: var(--tx, #0f172a); border: 2px solid #0284c7; border-radius: 14px; padding: 14px; width: 100%; max-width: 680px; max-height: 90vh; overflow-y: auto; box-shadow: 0 12px 36px rgba(0,0,0,.45); }
+    .pa-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 7px; margin: 8px 0 12px; }
+    .pa-pbtn { position: relative; text-align: left; padding: 9px 10px; border-radius: 9px; border: 1.5px solid var(--bd, #cbd5e1); background: var(--pale, #f0f9ff); color: var(--tx, #0f172a); font-weight: 700; font-size: 13px; cursor: pointer; line-height: 1.3; transition: .15s; }
+    .pa-pbtn:hover { border-color: #0284c7; background: #e0f2fe; }
+    .pa-pbtn .pa-del { position: absolute; top: 4px; right: 5px; background: #e11d48; color: #fff; border: none; border-radius: 4px; font-size: 10px; padding: 1px 5px; cursor: pointer; }
+    #paCustomTxt { width: 100%; min-height: 76px; padding: 9px; border-radius: 9px; border: 1.8px solid #0284c7; font-size: 14.5px; font-weight: 600; line-height: 1.45; box-sizing: border-box; font-family: inherit; }
+    .pa-bar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 8px; }
+    .pa-status { margin-top: 8px; padding: 7px 10px; border-radius: 8px; background: #0f172a; color: #fef08a; font-size: 13px; font-weight: 700; display: none; }
+    .pa-rec-on { background: #dc2626 !important; color: #fff !important; animation: paPulse 1s infinite; }
+    @keyframes paPulse { 0%,100%{opacity:1} 50%{opacity:.65} }
   `;
   document.head.appendChild(st);
 
-  /* আসন্ন ১লা জানুয়ারি অনুযায়ী সঠিক বয়স হিসাব করা */
-  function checkAgeEligibility(a){
-    if(!a || a.cat === 'teach' || !a.dob) return { bad: false };
-    const p = String(a.dob).split('-');
-    if(p.length !== 3) return { bad: false };
-    const dob = new Date(+p[0], +p[1] - 1, +p[2]);
-    if(isNaN(dob)) return { bad: false };
+  /* Web Audio ইঞ্জিন (Cloudflare /api/tts + আসল স্টেডিয়াম ইকো + ব্যাকগ্রাউন্ড মিউজিক) */
+  let paCtx = null, paBgMaster = null, paBgTimer = null, paVoiceMaster = null, paEchoIn = null, paActiveSrc = null;
+  let paPlaying = false, paRunId = 0, paQueue = [], paWatch = null, paPrefetch = new Map();
 
-    const refYear = new Date().getFullYear() + 1;
-    const ref = new Date(refYear, 0, 1);
-    let y = ref.getFullYear() - dob.getFullYear();
-    let m = ref.getMonth() - dob.getMonth();
-    let d = ref.getDate() - dob.getDate();
-    if(d < 0){ m--; d += new Date(ref.getFullYear(), ref.getMonth(), 0).getDate(); }
-    if(m < 0){ y--; m += 12; }
-
-    const maxYr = AGE_MAX[a.sec] || 11;
-    const underLimit = (y < maxYr) || (y === maxYr && m === 0 && d === 0);
-    const bad = !underLimit || y < 3;
-    return { bad, y, m, d, maxYr, label: `01/01/${refYear}` };
+  function getCtx(){
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if(!AC) return null;
+    if(!paCtx || paCtx.state === 'closed') paCtx = new AC();
+    if(paCtx.state === 'suspended') paCtx.resume().catch(()=>{});
+    return paCtx;
   }
 
-  function dobVariants(iso){
-    const s = String(iso || '').trim();
-    const p = s.split('-');
-    if(p.length !== 3) return [s];
-    return [s, `${p[2]}/${p[1]}/${p[0]}`, `${p[2]}-${p[1]}-${p[0]}`, `${p[2]}.${p[1]}.${p[0]}`];
-  }
+  function setupEchoBus(useEcho){
+    const ctx = getCtx();
+    if(!ctx) return null;
+    if(paVoiceMaster){ try { paVoiceMaster.disconnect(); } catch(e){} }
 
-  /* নিরাপদ এডিট ফাংশন (আসল Numeric ID দিয়ে মূল editA কল করা) */
-  window.admEditEntry = function(strId){
-    const a = (DB.a || []).find(x => String(x.id) === String(strId));
-    if(!a) return info('প্রতিযোগীর তথ্য পাওয়া যায়নি।');
-    if(typeof window.editA === 'function') window.editA(a.id);
-    else info('এই পাতায় এডিট অপশন পাওয়া যায়নি।');
-  };
+    paVoiceMaster = ctx.createGain();
+    paVoiceMaster.gain.value = 1.08;
+    paVoiceMaster.connect(ctx.destination);
 
-  /* নিরাপদ ডিলিট ফাংশন (ফলাফল যাচাই ও নিশ্চিতকরণসহ) */
-  window.admDeleteEntry = function(strId){
-    if(!ME || !ADM_ROLES.includes(ME.role)) return info('শুধুমাত্র অ্যাডমিন প্রতিযোগী ডিলিট করতে পারবেন।');
-    const a = (DB.a || []).find(x => String(x.id) === String(strId));
-    if(!a) return info('প্রতিযোগীকে তালিকা থেকে পাওয়া যায়নি।');
+    paEchoIn = ctx.createGain();
+    paEchoIn.gain.value = 1.0;
+    paEchoIn.connect(paVoiceMaster);
 
-    const schName = (typeof U === 'function' && U(a.school)) ? U(a.school).name : (a.sch || '');
-    const inResult = (DB.r || []).some(r =>
-      (r.win || []).some(w =>
-        String(w.pid) === String(a.id) ||
-        (a.chest && String(w.chest).toUpperCase() === String(a.chest).toUpperCase() && r.cat === a.cat)
-      )
-    );
-
-    const ageInfo = checkAgeEligibility(a);
-    let msg = `আপনি কি নিশ্চিতভাবে এই প্রতিযোগীকে তালিকা থেকে বাতিল (Delete) করতে চান?\n\n` +
-              `নাম: ${a.name}${a.bn ? ' (' + a.bn + ')' : ''}\n` +
-              `বিদ্যালয়/ইউনিট: ${schName}${a.sch && a.sch !== schName ? ' (' + a.sch + ')' : ''}\n` +
-              `বিভাগ: ${(CN||{})[a.cat] || a.cat}${a.sec ? ' ' + ((SN||{})[a.sec] || a.sec) : ''}\n` +
-              `জন্মতারিখ: ${a.dob || 'দেওয়া নেই'}${ageInfo.bad ? ` (বয়স: ${ageInfo.y} বছর ${ageInfo.m} মাস — অযোগ্য!)` : ''}\n` +
-              `চেস্ট নম্বর: ${a.chest || 'নেই'}`;
-
-    if(inResult){
-      msg += `\n\n⚠ সতর্কতা: এই প্রতিযোগীর নামে ইতিমধ্যে ফলাফল প্রকাশিত আছে! ডিলিট করলে ফলাফল তালিকাও সংশোধন করে নেবেন।`;
+    if(useEcho){
+      const d = ctx.createDelay(1.0); d.delayTime.value = 0.145;
+      const flt = ctx.createBiquadFilter(); flt.type = 'lowpass'; flt.frequency.value = 2400;
+      const fb = ctx.createGain(); fb.gain.value = 0.35;
+      const wet = ctx.createGain(); wet.gain.value = 0.42;
+      paEchoIn.connect(d); d.connect(flt); flt.connect(wet); wet.connect(paVoiceMaster);
+      flt.connect(fb); fb.connect(d);
     }
+    return paEchoIn;
+  }
 
-    if(!confirm(msg)) return;
+  function startPaMusic(){
+    stopPaMusic();
+    try {
+      const ctx = getCtx(); if(!ctx) return;
+      paBgMaster = ctx.createGain();
+      paBgMaster.gain.setValueAtTime(0.01, ctx.currentTime);
+      paBgMaster.gain.linearRampToValueAtTime(0.13, ctx.currentTime + 0.35);
+      paBgMaster.connect(ctx.destination);
 
-    DB.a = DB.a.filter(x => String(x.id) !== String(strId));
-    if(typeof sv === 'function') sv();
-    if(typeof draw === 'function') draw();
-    if(typeof info === 'function') info(`"${a.name}"-কে তালিকা থেকে বাতিল করা হয়েছে ✔`);
-  };
-
-  /* শুধু ভুল বয়সের প্রতিযোগীদের দেখানো / লুকানো টগল */
-  let onlyBadFilter = false;
-  window.toggleBadAgeFilter = function(){
-    onlyBadFilter = !onlyBadFilter;
-    const app = document.getElementById('app');
-    if(!app) return;
-    const btn = document.getElementById('admBadFiltBtn');
-    if(btn) btn.textContent = onlyBadFilter ? '📋 সব প্রতিযোগী দেখান' : '🔎 শুধু ভুল বয়স দেখান';
-
-    app.querySelectorAll('.res').forEach(box => {
-      const dt = box.querySelector('details');
-      if(!dt) return;
-      const badRows = box.querySelectorAll('tr[data-bad-age="1"]');
-      if(onlyBadFilter){
-        if(badRows.length){
-          box.style.display = '';
-          dt.open = true;
-          box.querySelectorAll('table tr').forEach((tr, i) => {
-            if(i === 0) return;
-            tr.style.display = tr.dataset.badAge === '1' ? '' : 'none';
-          });
-        } else {
-          box.style.display = 'none';
-        }
-      } else {
-        box.style.display = '';
-        box.querySelectorAll('table tr').forEach(tr => { tr.style.display = ''; });
-      }
-    });
-
-    if(TAB === 'list'){
-      app.querySelectorAll('.cd.tw table tr').forEach((tr, i) => {
-        if(i === 0) return;
-        tr.style.display = (!onlyBadFilter || tr.dataset.badAge === '1') ? '' : 'none';
+      /* মাইক অন চাইম */
+      const t0 = ctx.currentTime;
+      [[523.25,0],[659.25,0.13],[783.99,0.26]].forEach(([f,dt])=>{
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        o.type = 'triangle'; o.frequency.setValueAtTime(f, t0+dt);
+        g.gain.setValueAtTime(0.001, t0+dt); g.gain.linearRampToValueAtTime(0.55, t0+dt+0.03);
+        g.gain.exponentialRampToValueAtTime(0.001, t0+dt+0.5);
+        o.connect(g); g.connect(paBgMaster); o.start(t0+dt); o.stop(t0+dt+0.52);
       });
+
+      const chords = [
+        { pad:[261.63,329.63,392.00], bass:130.81 },
+        { pad:[293.66,369.99,440.00], bass:146.83 },
+        { pad:[220.00,261.63,329.63], bass:110.00 },
+        { pad:[196.00,246.94,392.00], bass:98.00 }
+      ];
+      let step = 0;
+      const bar = () => {
+        if(!paCtx || !paBgMaster) return;
+        const now = paCtx.currentTime, c = chords[step % chords.length];
+        c.pad.forEach((fr, idx)=>{
+          const o = paCtx.createOscillator(), g = paCtx.createGain(), f = paCtx.createBiquadFilter();
+          o.type = idx===0 ? 'sawtooth' : 'triangle'; f.type = 'lowpass'; f.frequency.value = 1100;
+          o.frequency.setValueAtTime(fr, now);
+          g.gain.setValueAtTime(0.001, now); g.gain.linearRampToValueAtTime(0.26, now+0.25);
+          g.gain.exponentialRampToValueAtTime(0.015, now+1.95);
+          o.connect(f); f.connect(g); g.connect(paBgMaster); o.start(now); o.stop(now+2.0);
+        });
+        [0, 0.5, 1.0, 1.5].forEach((bt, bi)=>{
+          const o = paCtx.createOscillator(), g = paCtx.createGain();
+          o.type = 'sine'; o.frequency.setValueAtTime(bi%2===0?c.bass:c.bass*1.5, now+bt);
+          o.frequency.exponentialRampToValueAtTime(55, now+bt+0.22);
+          g.gain.setValueAtTime(0.001, now+bt); g.gain.linearRampToValueAtTime(bi===0?0.58:0.36, now+bt+0.02);
+          g.gain.exponentialRampToValueAtTime(0.001, now+bt+0.32);
+          o.connect(g); g.connect(paBgMaster); o.start(now+bt); o.stop(now+bt+0.34);
+        });
+        step++;
+      };
+      bar();
+      paBgTimer = setInterval(bar, 2000);
+    } catch(e){}
+  }
+
+  function stopPaMusic(){
+    if(paBgTimer){ clearInterval(paBgTimer); paBgTimer = null; }
+    if(paCtx && paBgMaster){
+      try { paBgMaster.gain.linearRampToValueAtTime(0.0001, paCtx.currentTime + 0.2); paBgMaster = null; } catch(e){}
+    }
+  }
+
+  function setPaStatus(msg){
+    const el = document.getElementById('paStatusBox');
+    if(!el) return;
+    if(!msg){ el.style.display = 'none'; el.textContent = ''; }
+    else { el.style.display = 'block'; el.textContent = msg; }
+  }
+
+  window.stopPaAnnouncement = function(){
+    paRunId++;
+    paPlaying = false;
+    paQueue = [];
+    clearTimeout(paWatch);
+    if(paActiveSrc){ try { paActiveSrc.onended = null; paActiveSrc.stop(); } catch(e){} paActiveSrc = null; }
+    if(paVoiceMaster){ try { paVoiceMaster.disconnect(); } catch(e){} paVoiceMaster = null; paEchoIn = null; }
+    stopPaMusic();
+    if('speechSynthesis' in window){ try { window.speechSynthesis.cancel(); } catch(e){} }
+    setPaStatus('');
+  };
+
+  /* মূল stopVoice-এর সাথে সিঙ্ক করা যাতে অন্য কোনো ঘোষণা শুরু হলে এটি থেমে যায় */
+  const origGlobalStop = window.stopVoice;
+  if(typeof origGlobalStop === 'function'){
+    window.stopVoice = function(){
+      window.stopPaAnnouncement();
+      return origGlobalStop.apply(this, arguments);
+    };
+  }
+
+  function decodeBuf(ctx, ab){
+    return new Promise((res, rej)=>{
+      let d = false;
+      const ok = b => { if(!d){ d = true; res(b); } }, er = e => { if(!d){ d = true; rej(e); } };
+      try { const p = ctx.decodeAudioData(ab.slice(0), ok, er); if(p && p.then) p.then(ok, er); } catch(e){ er(e); }
+    });
+  }
+
+  function getApiParams(){
+    const prof = window.__saVoiceProfile || localStorage.getItem('sa_vprof_cf') || 'male_bashkar';
+    const spdRaw = window.__saVoiceSpeed || localStorage.getItem('sa_vspd') || 'auto';
+    const numSpd = spdRaw === 'auto' ? 1.05 : (parseFloat(spdRaw) || 1.05);
+    const diff = Math.round((numSpd - 1.0) * 100);
+    const rate = (diff >= 0 ? '+' : '') + diff + '%';
+    if(prof === 'male_pradeep') return { prof, voice: 'bn-BD-PradeepNeural', rate, pitch: '-2Hz', numSpd };
+    if(prof === 'female_tanishaa') return { prof, voice: 'bn-IN-TanishaaNeural', rate, pitch: '+0Hz', numSpd };
+    return { prof, voice: 'bn-IN-BashkarNeural', rate, pitch: '-1Hz', numSpd };
+  }
+
+  function fetchTtsChunk(text, params){
+    const key = `${params.voice}|${params.rate}|${text}`;
+    if(paPrefetch.has(key)) return paPrefetch.get(key);
+    const url = `/api/tts?voice=${encodeURIComponent(params.voice)}&rate=${encodeURIComponent(params.rate)}&pitch=${encodeURIComponent(params.pitch)}&text=${encodeURIComponent(text)}`;
+    const req = fetch(url).then(async r => {
+      if(!r.ok) throw new Error('HTTP ' + r.status);
+      if(!(r.headers.get('content-type')||'').includes('audio')) throw new Error('Not audio');
+      return await r.arrayBuffer();
+    });
+    paPrefetch.set(key, req);
+    return req;
+  }
+
+  function fallbackSpeak(text, params, runId, next){
+    if(!paPlaying || runId !== paRunId) return;
+    if(!('speechSynthesis' in window)) return next();
+    try {
+      window.speechSynthesis.cancel();
+      const list = window.speechSynthesis.getVoices() || [];
+      const bn = list.filter(v => /bn[-_](IN|BD)/i.test(v.lang) || /bengali|bangla|বাংলা/i.test(v.name));
+      const v = params.prof === 'female_tanishaa'
+        ? (bn.find(x=>/tanishaa|nabanita|female/i.test(x.name)) || bn[0])
+        : (bn.find(x=>/bashkar|pradeep|male/i.test(x.name)) || bn[bn.length>1?1:0]);
+      const u = new SpeechSynthesisUtterance(text);
+      if(v) u.voice = v;
+      u.lang = (v && v.lang) ? v.lang : 'bn-IN';
+      u.rate = params.numSpd;
+      u.pitch = params.prof === 'female_tanishaa' ? 1.02 : 0.94;
+      let done = false;
+      const fin = () => { if(!done){ done = true; clearTimeout(paWatch); next(); } };
+      paWatch = setTimeout(fin, Math.max(3000, text.length * 110));
+      u.onend = fin; u.onerror = fin;
+      window.speechSynthesis.speak(u);
+    } catch(e){ next(); }
+  }
+
+  function splitSentences(txt){
+    const raw = String(txt || '').trim().replace(/\s+/g, ' ');
+    if(!raw) return [];
+    const parts = raw.split(/(?<=[।!?])\s+/).filter(Boolean);
+    const out = [];
+    parts.forEach(p => {
+      if(p.length <= 240) out.push(p);
+      else {
+        const words = p.split(' '); let cur = '';
+        words.forEach(w => {
+          if((cur + ' ' + w).length > 220){ out.push(cur.trim()); cur = w; }
+          else cur += (cur ? ' ' : '') + w;
+        });
+        if(cur.trim()) out.push(cur.trim());
+      }
+    });
+    return out;
+  }
+
+  window.announcePaText = function(customText){
+    const txt = String(customText || (document.getElementById('paCustomTxt')||{}).value || '').trim();
+    if(!txt) return (typeof info === 'function' ? info('আগে ঘোষণার লেখা দিন বা মাইকে বলুন।') : alert('আগে ঘোষণার লেখা দিন।'));
+
+    const box = document.getElementById('paCustomTxt');
+    if(box && customText) box.value = customText;
+
+    if(typeof origGlobalStop === 'function'){ try { origGlobalStop(); } catch(e){} }
+    window.stopPaAnnouncement();
+
+    const useMusic = (document.getElementById('paUseMusic') || {checked:true}).checked;
+    const useEcho = (document.getElementById('paUseEcho') || {checked:true}).checked;
+    const params = getApiParams();
+    const canCloud = (location.protocol === 'https:' || location.protocol === 'http:') && navigator.onLine && params.prof !== 'male_native';
+
+    getCtx();
+    setupEchoBus(useEcho);
+    if(useMusic) startPaMusic();
+
+    paRunId++;
+    const myRun = paRunId;
+    paPlaying = true;
+    paQueue = splitSentences(txt);
+    paPrefetch.clear();
+    setPaStatus('📢 ঘোষণা চলছে: ' + txt);
+
+    if(canCloud && paQueue.length) fetchTtsChunk(paQueue[0], params).catch(()=>{});
+
+    const playNext = () => {
+      if(!paPlaying || myRun !== paRunId) return;
+      if(!paQueue.length){
+        paPlaying = false;
+        setTimeout(()=>{ if(!paPlaying && myRun === paRunId) window.stopPaAnnouncement(); }, 950);
+        return;
+      }
+      const chunk = paQueue.shift();
+      if(canCloud && paQueue.length) fetchTtsChunk(paQueue[0], params).catch(()=>{});
+
+      const proceed = () => { if(paPlaying && myRun === paRunId) setTimeout(playNext, 110); };
+
+      if(canCloud){
+        fetchTtsChunk(chunk, params).then(async ab => {
+          if(!paPlaying || myRun !== paRunId) return;
+          const ctx = getCtx();
+          const buf = await decodeBuf(ctx, ab);
+          if(!paPlaying || myRun !== paRunId) return;
+          const src = ctx.createBufferSource();
+          src.buffer = buf;
+          src.connect(paEchoIn || ctx.destination);
+          paActiveSrc = src;
+          let d = false;
+          const fin = () => { if(!d){ d = true; clearTimeout(paWatch); if(paActiveSrc===src) paActiveSrc=null; proceed(); } };
+          paWatch = setTimeout(fin, Math.ceil(buf.duration * 1000) + 1200);
+          src.onended = fin;
+          src.start(0);
+        }).catch(() => fallbackSpeak(chunk, params, myRun, proceed));
+      } else {
+        fallbackSpeak(chunk, params, myRun, proceed);
+      }
+    };
+
+    setTimeout(playNext, useMusic ? 360 : 40);
+  };
+
+  /* মুখে বললে বাংলা টেক্সটে রূপান্তর করে পুরুষ ঘোষক কণ্ঠে বলানো (Speech-to-Text -> Neural Male) */
+  let speechRec = null, isListening = false;
+  window.togglePaVoiceDictation = function(autoSpeakAfter){
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if(!SR) return (typeof info==='function' ? info('এই ব্রাউজারে বাংলা ভয়েস টাইপিং সাপোর্ট করছে না। Chrome বা Edge ব্যবহার করুন।') : alert('ভয়েস ইনপুট সাপোর্ট করছে না।'));
+
+    const btn = document.getElementById('paMicDictBtn');
+    if(isListening && speechRec){
+      try { speechRec.stop(); } catch(e){}
+      return;
+    }
+
+    try {
+      window.stopPaAnnouncement();
+      speechRec = new SR();
+      speechRec.lang = 'bn-IN';
+      speechRec.interimResults = true;
+      speechRec.continuous = false;
+
+      let finalTranscript = '';
+      speechRec.onstart = () => {
+        isListening = true;
+        if(btn){ btn.classList.add('pa-rec-on'); btn.textContent = '⏹ শুনছি... (বলুন)'; }
+        setPaStatus('🎙 মাইক্রোফোন চালু — এখন আপনার ঘোষণাটি স্পষ্ট বাংলায় বলুন...');
+      };
+      speechRec.onresult = (ev) => {
+        let interim = '';
+        for(let i = ev.resultIndex; i < ev.results.length; i++){
+          const tr = ev.results[i][0].transcript;
+          if(ev.results[i].isFinal) finalTranscript += tr + ' ';
+          else interim += tr;
+        }
+        const box = document.getElementById('paCustomTxt');
+        if(box) box.value = (finalTranscript + interim).trim();
+      };
+      speechRec.onerror = (e) => {
+        isListening = false;
+        if(btn){ btn.classList.remove('pa-rec-on'); btn.textContent = '🎙 মুখে বলুন ➔ পুরুষ কণ্ঠে ঘোষণা'; }
+        setPaStatus('⚠ মাইক্রোফোন সমস্যা (' + (e.error||'অনুমতি দিন') + ')');
+      };
+      speechRec.onend = () => {
+        isListening = false;
+        if(btn){ btn.classList.remove('pa-rec-on'); btn.textContent = '🎙 মুখে বলুন ➔ পুরুষ কণ্ঠে ঘোষণা'; }
+        const box = document.getElementById('paCustomTxt');
+        const spoken = (box && box.value || '').trim();
+        if(spoken && autoSpeakAfter){
+          window.announcePaText(spoken);
+        } else {
+          setPaStatus('');
+        }
+      };
+      speechRec.start();
+    } catch(e){
+      isListening = false;
     }
   };
 
-  /* টেবিলের সারি থেকে সংশ্লিষ্ট প্রতিযোগীকে (DB.a) নিখুঁতভাবে খুঁজে বের করা */
-  function matchAthleteForRow(tr, unitHintText, usedIds){
-    /* ১. সারিতে আগে থেকেই editA(id) বা delA(id) থাকলে সরাসরি সেই ID নেওয়া */
-    const btnWithId = tr.querySelector('[onclick*="editA("], [onclick*="delA("]');
-    if(btnWithId){
-      const m = /(?:editA|delA)\(\s*['"]?([0-9.]+)['"]?\s*\)/.exec(btnWithId.getAttribute('onclick') || '');
-      if(m){
-        const found = (DB.a || []).find(x => String(x.id) === m[1]);
-        if(found) return found;
-      }
-    }
+  window.saveNewPaPreset = function(){
+    const txt = ((document.getElementById('paCustomTxt')||{}).value || '').trim();
+    if(!txt) return (typeof info==='function' ? info('আগে নিচের বক্সে ঘোষণার লেখাটি লিখুন।') : null);
+    const title = prompt('এই ঘোষণার বাটনের জন্য একটি ছোট নাম দিন (যেমন: "জলপান বিরতি" বা "দুপুরের খাবার"):');
+    if(!title || !title.trim()) return;
+    const list = getCustomPresets();
+    list.push({ id: 'c_' + Date.now(), title: '📌 ' + title.trim(), text: txt });
+    saveCustomPresets(list);
+    renderPaPresetGrid();
+  };
 
-    const rowTxt = (tr.textContent || '').toUpperCase();
-    const candidates = (DB.a || []).filter(a => {
-      if(usedIds.has(String(a.id))) return false;
-      const nm = String(a.name || '').trim().toUpperCase();
-      return nm && rowTxt.includes(nm);
-    });
-    if(!candidates.length) return null;
-    if(candidates.length === 1) return candidates[0];
+  window.deleteCustomPaPreset = function(id, ev){
+    if(ev) ev.stopPropagation();
+    const list = getCustomPresets().filter(x => x.id !== id);
+    saveCustomPresets(list);
+    renderPaPresetGrid();
+  };
 
-    /* একাধিক একই নাম থাকলে জন্মতারিখ, বাবার নাম, চেস্ট ও স্কুল দিয়ে নিখুঁত মিল খোঁজা */
-    let best = candidates[0], bestScore = -1;
-    const uHint = String(unitHintText || '').toUpperCase();
-    candidates.forEach(a => {
-      let sc = 0;
-      if(a.dob && dobVariants(a.dob).some(v => v && rowTxt.includes(v.toUpperCase()))) sc += 5;
-      if(a.chest && rowTxt.includes(String(a.chest).toUpperCase())) sc += 4;
-      if(a.father && rowTxt.includes(String(a.father).toUpperCase())) sc += 3;
-      if(a.pen && rowTxt.includes(String(a.pen).toUpperCase())) sc += 3;
-      const uObj = (typeof U === 'function') ? U(a.school) : null;
-      if(uObj && uHint && uHint.includes(String(uObj.name || '').toUpperCase())) sc += 4;
-      if(a.sch && rowTxt.includes(String(a.sch).toUpperCase())) sc += 2;
-      if(sc > bestScore){ bestScore = sc; best = a; }
-    });
-    return best;
+  function renderPaPresetGrid(){
+    const grid = document.getElementById('paPresetGrid');
+    if(!grid) return;
+    const all = DEFAULT_PRESETS.concat(getCustomPresets());
+    grid.innerHTML = all.map(p => {
+      const isCust = String(p.id).startsWith('c_');
+      return `<div class="pa-pbtn" onclick="announcePaText(this.dataset.txt)" data-txt="${escH(p.text)}" title="${escH(p.text)}">
+        ${escH(p.title)}
+        ${isCust ? `<button class="pa-del" onclick="deleteCustomPaPreset('${escH(p.id)}', event)" title="মুছে ফেলুন">✕</button>` : ''}
+      </div>`;
+    }).join('');
   }
 
-  /* অ্যাডমিনের জমা পড়া তালিকা (sb / list) টেবিলে ডিলিট ও বয়স-সতর্কতা যুক্ত করা */
-  function injectAdminControls(){
-    if(!ME || !ADM_ROLES.includes(ME.role)) return;
-    if(typeof TAB === 'undefined' || (TAB !== 'sb' && TAB !== 'list')) return;
-
-    const app = document.getElementById('app');
-    if(!app) return;
-
-    onlyBadFilter = false;
-    let totalBadAge = 0;
-    const tables = app.querySelectorAll('table');
-
-    tables.forEach(tbl => {
-      if(tbl.dataset.admCtrlDone) return;
-      if(tbl.closest('#clashCard') || tbl.closest('#chmpSum')) return;
-
-      const rows = tbl.querySelectorAll('tr');
-      if(rows.length < 2) return;
-
-      const hdrRow = rows[0];
-      const hdrTxt = hdrRow.textContent || '';
-      /* শুধুমাত্র প্রতিযোগীর তালিকা টেবিল হলেই কাজ করবে */
-      if(!/নাম|Name|চেস্ট|জন্ম/i.test(hdrTxt)) return;
-
-      tbl.dataset.admCtrlDone = '1';
-      const hasActionCol = /অ্যাকশন|কাজ|সংশোধন|বাতিল|Action/i.test(hdrTxt) || !!tbl.querySelector('button[onclick*="editA("]');
-      if(!hasActionCol){
-        hdrRow.insertAdjacentHTML('beforeend', `<th style="text-align:center">অ্যাকশন</th>`);
-      }
-
-      const parentRes = tbl.closest('.res');
-      const unitHint = parentRes ? (parentRes.querySelector('summary, b, h3')?.textContent || '') : '';
-      const usedIds = new Set();
-
-      for(let i = 1; i < rows.length; i++){
-        const tr = rows[i];
-        const tds = tr.querySelectorAll('td');
-        if(tds.length < 3) continue;
-
-        const a = matchAthleteForRow(tr, unitHint, usedIds);
-        if(!a){
-          if(!hasActionCol) tr.insertAdjacentHTML('beforeend', `<td>-</td>`);
-          continue;
-        }
-        usedIds.add(String(a.id));
-
-        /* বয়স যাচাই করে অযোগ্য হলে লাল চিহ্ন ও ব্যাজ দেখানো */
-        const ageRes = checkAgeEligibility(a);
-        if(ageRes.bad){
-          totalBadAge++;
-          tr.classList.add('adm-bad-row');
-          tr.dataset.badAge = '1';
-          /* জন্মতারিখের ঘর বা নামের ঘরে লাল ব্যাজ যুক্ত করা */
-          let targetTd = [...tds].find(td => a.dob && dobVariants(a.dob).some(v => td.textContent.includes(v))) || tds[1] || tds[0];
-          if(targetTd && !targetTd.querySelector('.adm-age-tag')){
-            targetTd.insertAdjacentHTML('beforeend', `<br><span class="adm-age-tag" title="${ageRes.label} তারিখে বয়স: ${ageRes.y} বছর ${ageRes.m} মাস (সর্বোচ্চ ${ageRes.maxYr} বছর)">⚠ বয়স অযোগ্য (${ageRes.y}ব ${ageRes.m}মা)</span>`);
-          }
-        }
-
-        const safeId = String(a.id).replace(/'/g, '');
-        const delBtnHtml = `<button class="b s d" onclick="admDeleteEntry('${safeId}')" title="অযোগ্য প্রতিযোগী বাতিল/ডিলিট করুন">🗑 মুছুন</button>`;
-        const editBtnHtml = (typeof window.editA === 'function')
-          ? `<button class="b s" onclick="admEditEntry('${safeId}')" title="তথ্য সংশোধন করুন">✏</button> `
-          : '';
-
-        if(!hasActionCol){
-          tr.insertAdjacentHTML('beforeend', `<td class="adm-act-cell">${editBtnHtml}${delBtnHtml}</td>`);
-        } else {
-          const lastTd = tds[tds.length - 1];
-          if(lastTd && !lastTd.querySelector('[onclick*="admDeleteEntry"]')){
-            lastTd.classList.add('adm-act-cell');
-            if(!lastTd.querySelector('[onclick*="editA("]') && !lastTd.querySelector('[onclick*="admEditEntry"]')){
-              lastTd.insertAdjacentHTML('beforeend', ` ${editBtnHtml}`);
-            }
-            if(!lastTd.querySelector('[onclick*="delA("]')){
-              lastTd.insertAdjacentHTML('beforeend', ` ${delBtnHtml}`);
-            }
-          }
-        }
-      }
-    });
-
-    /* ভুল বয়সের কোনো প্রতিযোগী থাকলে পাতার ওপরে দ্রুত ফিল্টার বার দেখানো */
-    const oldAlert = document.getElementById('admBadAlert');
-    if(oldAlert) oldAlert.remove();
-    if(totalBadAge > 0){
-      const anchor = app.querySelector('#qSearch') || app.querySelector('.cd h2');
-      if(anchor){
-        anchor.insertAdjacentHTML('afterend', `<div id="admBadAlert"><span>⚠ সতর্কতা: জমা পড়া তালিকায় মোট ${totalBadAge} জন প্রতিযোগীর বয়স নিয়ম অনুযায়ী অযোগ্য (লাল রঙে চিহ্নিত)।</span><button id="admBadFiltBtn" class="b s d" onclick="toggleBadAgeFilter()">🔎 শুধু ভুল বয়স দেখান</button></div>`);
-      }
+  window.openPaBoard = function(){
+    let m = document.getElementById('paBoardModal');
+    if(!m){
+      m = document.createElement('div');
+      m.id = 'paBoardModal';
+      m.innerHTML = `<div class="pa-box">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px">
+          <h3 style="margin:0;color:#0284c7">📢 স্পেশাল লাইভ মাইকিং বোর্ড (Quick PA)</h3>
+          <button class="b s d" onclick="$('paBoardModal').style.display='none'">✕ বন্ধ করুন</button>
+        </div>
+        <p class="mu" style="font-size:12.5px;margin:0 0 6px">যেকোনো বাটনে চাপলেই সাথে সাথে <b>পুরুষ/মহিলা ঘোষক কণ্ঠে ইকো ও মিউজিকসহ</b> ঘোষণা শুরু হবে।</p>
+        <div id="paPresetGrid" class="pa-grid"></div>
+        <div style="border-top:1.5px dashed var(--bd,#cbd5e1);padding-top:10px;margin-top:4px">
+          <label style="font-weight:700;font-size:13.5px;display:block;margin-bottom:4px">✍️ নিজের ইচ্ছেমতো ঘোষণা লিখুন অথবা মুখে বলুন:</label>
+          <textarea id="paCustomTxt" placeholder="এখানে বাংলায় যেকোনো জরুরি ঘোষণা লিখুন... অথবা নিচের 'মুখে বলুন' বাটনে চেপে বললেই সেটি পুরুষ ঘোষক কণ্ঠে রূপান্তর হয়ে বাজবে।"></textarea>
+          <div class="pa-bar">
+            <button class="b p" onclick="announcePaText()">📢 ঘোষণা করুন</button>
+            <button id="paMicDictBtn" class="b" style="background:#0f766e;color:#fff" onclick="togglePaVoiceDictation(true)">🎙 মুখে বলুন ➔ পুরুষ কণ্ঠে ঘোষণা</button>
+            <button class="b s" onclick="saveNewPaPreset()">💾 বাটন হিসেবে সেভ করুন</button>
+            <button class="b d" onclick="stopPaAnnouncement()">⏹ থামান</button>
+          </div>
+          <div class="pa-bar" style="font-size:13px;font-weight:600">
+            <label style="cursor:pointer;display:inline-flex;align-items:center;gap:4px"><input type="checkbox" id="paUseEcho" checked style="width:auto;margin:0"> 🔊 স্টেডিয়াম ইকো</label>
+            <label style="cursor:pointer;display:inline-flex;align-items:center;gap:4px;margin-left:10px"><input type="checkbox" id="paUseMusic" checked style="width:auto;margin:0"> 🎵 ব্যাকগ্রাউন্ড মিউজিক</label>
+            <span class="mu" style="font-size:12px;margin-left:auto">(কণ্ঠস্বর ও স্পিড আপনার বর্তমান সেটিংস অনুযায়ী চলবে)</span>
+          </div>
+          <div id="paStatusBox" class="pa-status"></div>
+        </div>
+      </div>`;
+      document.body.appendChild(m);
     }
+    m.style.display = 'grid';
+    renderPaPresetGrid();
+  };
+
+  /* শুধুমাত্র অ্যাডমিন লগইন থাকলেই নিচে ডানদিকে ভাসমান '📢 স্পেশাল মাইক' বাটনটি দেখাবে */
+  function syncPaFabVisibility(){
+    let fab = document.getElementById('paFabBtn');
+    if(!fab){
+      fab = document.createElement('button');
+      fab.id = 'paFabBtn';
+      fab.innerHTML = '📢 স্পেশাল মাইক';
+      fab.onclick = window.openPaBoard;
+      document.body.appendChild(fab);
+    }
+    const isAdmin = (typeof ME !== 'undefined' && ME && ADM_ROLES.includes(ME.role));
+    fab.style.display = isAdmin ? 'inline-flex' : 'none';
   }
 
-  /* মূল afterDraw-এর সাথে নিরাপদভাবে যুক্ত করা */
   const prevAD = window.afterDraw;
   window.afterDraw = function(){
     if(typeof prevAD === 'function') prevAD.apply(this, arguments);
-    try { injectAdminControls(); } catch(e){ console.error(e); }
+    syncPaFabVisibility();
   };
-  setTimeout(() => { try { injectAdminControls(); } catch(e){} }, 250);
+  setTimeout(syncPaFabVisibility, 350);
 })();
 </script></body></html>
