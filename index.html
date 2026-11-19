@@ -6401,22 +6401,24 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
 })();
 </script>
 <!-- =========================================================================
-     SPORTS PRO ADDONS v4 (Role-Based: Owner & Admin Only | Uses Live Vercel PA Engine)
+     SPORTS PRO ADDONS v5 (Fixed .navb/.tabs anchor | Role-Based | Live Vercel TTS)
      ========================================================================= -->
-<style id="sa-pro-v4-css">
+<style id="sa-pro-v5-css">
   .sa-pro-bar {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
     margin: 10px 0;
-    padding: 8px 12px;
-    background: rgba(16, 31, 56, 0.92);
-    border: 1px dashed var(--a, #00F0FF);
+    padding: 9px 12px;
+    background: var(--cd, #101f38);
+    color: var(--tx, #fff);
+    border: 2px solid var(--a, #00F0FF);
     border-radius: 12px;
     align-items: center;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.16);
   }
   .sa-pro-bar-lbl {
-    font-size: 13px;
+    font-size: 13.5px;
     color: var(--mu, #8fa5c2);
     font-weight: 700;
     margin-right: 4px;
@@ -6424,7 +6426,7 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
   .sa-pro-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.76);
+    background: rgba(0, 0, 0, 0.72);
     z-index: 10050;
     display: none;
     align-items: center;
@@ -6433,32 +6435,32 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
   }
   .sa-pro-overlay.open { display: flex; }
   .sa-pro-modal {
-    background: #101f38;
-    color: #fff;
+    background: var(--cd, #101f38);
+    color: var(--tx, #fff);
     width: 100%;
     max-width: 560px;
     max-height: 88vh;
     overflow-y: auto;
     border-radius: 14px;
     padding: 18px;
-    border: 1px solid var(--a, #00F0FF);
-    box-shadow: 0 0 26px rgba(0, 240, 255, 0.35);
+    border: 2px solid var(--a, #00F0FF);
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.4);
   }
   .sa-pro-head {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid #27406a;
+    border-bottom: 1px solid var(--bd, #27406a);
     padding-bottom: 8px;
     margin-bottom: 12px;
   }
-  .sa-pro-head h3 { margin: 0; font-size: 17px; }
+  .sa-pro-head h3 { margin: 0; font-size: 17px; color: var(--tx, #fff); }
   .sa-pro-row { display: flex; gap: 8px; flex-wrap: wrap; }
   .sa-pro-row > * { flex: 1; min-width: 140px; }
   .sa-pro-note {
     font-size: 13px;
-    color: #e2e8f0;
-    background: rgba(255, 255, 255, 0.07);
+    color: var(--tx, #e2e8f0);
+    background: var(--pale, rgba(255, 255, 255, 0.08));
     padding: 9px 11px;
     border-radius: 8px;
     margin-top: 8px;
@@ -6482,10 +6484,10 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     justify-content: space-between;
     align-items: center;
     gap: 8px;
-    padding: 6px 8px;
+    padding: 7px 9px;
     margin: 5px 0;
     background: rgba(229, 72, 77, 0.14);
-    border: 1px solid rgba(229, 72, 77, 0.45);
+    border: 1px solid rgba(229, 72, 77, 0.5);
     border-radius: 8px;
     font-size: 13px;
   }
@@ -6501,7 +6503,7 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
   </div>
 </div>
 
-<script id="sa-pro-addons-v4">
+<script id="sa-pro-addons-v5">
 (function(){
   /* ১. পর্ষদের ১৯/১১/২০২৬ সংশোধনী অনুযায়ী ডিফল্ট জন্ম-তারিখের সীমা */
   const DEF_AGE = { A: '2019-01-01', B: '2017-01-01', C: '2015-01-01' };
@@ -6520,7 +6522,7 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
   }
   window.saGetAgeLimits = getAgeLimits;
 
-  /* ২. মূল অ্যাপের বয়স যাচাই (updateDynamicAgeBadge) কে Owner-এর সেট করা তারিখের সাথে যুক্ত করা */
+  /* ২. মূল অ্যাপের বয়স যাচাই (updateDynamicAgeBadge) Owner-এর সেট করা তারিখ অনুযায়ী চলবে */
   const _origAgeBadge = window.updateDynamicAgeBadge;
   window.updateDynamicAgeBadge = function(inp, sec){
     try {
@@ -6553,7 +6555,7 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     }
   };
 
-  /* ৩. অ্যাডমিন-ভিত্তিক কাস্টম শিডিউল (প্রিন্ট ও প্রিভিউতেও যুক্ত) */
+  /* ৩. অ্যাডমিন-ভিত্তিক কাস্টম শিডিউল (প্রিভিউ ও প্রিন্টেও যুক্ত) */
   const DEF_SCHED = [
     { time: '০৯:৩০ - ১০:০০', track: 'উদ্বোধনী অনুষ্ঠান', field: 'অতিথিবরণ', cult: 'মশাল দৌড়' },
     { time: '১০:০০ - ১১:০০', track: '৭৫ মি. / ১০০ মি. দৌড়', field: 'দীর্ঘ লম্ফন / উচ্চ লম্ফন', cult: 'আবৃত্তি (ক ও খ)' },
@@ -6592,7 +6594,7 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     return typeof _origSchedH === 'function' ? _origSchedH.apply(this, arguments) : '';
   };
 
-  /* ৪. চালু থাকা Vercel স্পেশাল মাইক ইঞ্জিন দিয়েই ভয়েস ঘোষণা (ভাস্কর/প্রদীপ/তনিষা + ইকো + মিউজিক) */
+  /* ৪. চালু থাকা Vercel স্পেশাল মাইক ইঞ্জিন দিয়েই ভয়েস ঘোষণা */
   function speakViaExistingEngine(text, prof, statusId){
     const clean = String(text || '').trim();
     if(!clean) return;
@@ -6604,7 +6606,7 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     }
     const st = document.getElementById(statusId);
     if(typeof window.announcePaText === 'function'){
-      if(st) st.textContent = '🔊 আপনার চালু ভয়েস সার্ভারে ঘোষণা শুরু হয়েছে...';
+      if(st) st.textContent = '🔊 আপনার চালু ভয়েস সার্ভারে ঘোষণা চলছে...';
       window.announcePaText(clean);
     } else {
       if(st) st.textContent = '⚠️ ভয়েস ইঞ্জিন পাওয়া যায়নি।';
@@ -6630,17 +6632,16 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
       </select>`;
   }
 
-  /* ৫. রোল ও ট্যাব অনুযায়ী ইনলাইন বাটন (হোম ট্যাব ও স্কুল লগইনে সম্পূর্ণ বন্ধ; স্পেশাল মাইক অক্ষত) */
+  /* ৫. রোল ও ট্যাব অনুযায়ী ইনলাইন বার বসানো (.navb / .tabs / .top সব ক্ষেত্রেই কাজ করবে) */
   function injectProBar(){
     try {
+      const old = document.getElementById('sa-pro-inline-bar');
       if(typeof ME === 'undefined' || !ME) {
-        const old0 = document.getElementById('sa-pro-inline-bar');
-        if(old0) old0.remove();
+        if(old) old.remove();
         return;
       }
       const r = ME.role;
       const t = (typeof TAB !== 'undefined') ? TAB : 'home';
-      const old = document.getElementById('sa-pro-inline-bar');
 
       /* হোম ট্যাবে বা স্কুল লগইনে কখনোই দেখাবে না */
       if(t === 'home' || r === 'school'){
@@ -6649,18 +6650,22 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
       }
 
       const app = document.getElementById('app');
-      const tabsEl = app ? app.querySelector('.tabs') : null;
-      if(!tabsEl) return;
+      if(!app) return;
+
+      /* .tabs যেহেতু .navb দিয়ে রিপ্লেস হয়ে যায়, তাই .navb / .tabs / .top যেটা আছে তার ঠিক নিচে বসাবে */
+      const navb = app.querySelector('.navb');
+      const anchor = (navb && navb.parentNode && navb.parentNode.parentNode === app)
+        ? navb.parentNode
+        : (app.querySelector('.tabs') || app.querySelector('.top'));
+      if(!anchor || !anchor.parentNode) return;
 
       const btns = [];
       if(r === 'owner'){
-        /* Owner-এর জন্য বয়স সীমা বাটন */
         btns.push(`<button class="b s p" onclick="window.saProOpen('age')">📅 বয়স সীমা</button>`);
         if(t === 'rp' || t === 'rs'){
           btns.push(`<button class="b s" onclick="window.saProOpen('prize')">🏆 পুরস্কার বিতরণী</button>`);
         }
       } else if(r === 'gp' || r === 'circle' || r === 'sub'){
-        /* Admin-দের জন্য শিডিউল, পুরস্কার বিতরণী ও অতিথিবরণ */
         btns.push(`<button class="b s p" onclick="window.saProOpen('schedule')">🕒 শিডিউল সেট</button>`);
         btns.push(`<button class="b s p" onclick="window.saProOpen('prize')">🏆 পুরস্কার বিতরণী</button>`);
         btns.push(`<button class="b s" onclick="window.saProOpen('guest')">💐 অতিথিবরণ</button>`);
@@ -6672,7 +6677,7 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
       }
 
       const sig = r + '|' + t;
-      if(old && old.dataset.sig === sig) return;
+      if(old && old.dataset.sig === sig && old.parentNode === app) return;
       if(old) old.remove();
 
       const bar = document.createElement('div');
@@ -6680,7 +6685,7 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
       bar.className = 'sa-pro-bar';
       bar.dataset.sig = sig;
       bar.innerHTML = `<span class="sa-pro-bar-lbl">${r === 'owner' ? 'অনার সেটিংস:' : 'অ্যাডমিন টুলস:'}</span>` + btns.join('');
-      tabsEl.parentNode.insertBefore(bar, tabsEl.nextSibling);
+      anchor.parentNode.insertBefore(bar, anchor.nextSibling);
     } catch(e){}
   }
 
@@ -6689,7 +6694,7 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     if(typeof _origAfterDraw === 'function') _origAfterDraw.apply(this, arguments);
     injectProBar();
   };
-  setInterval(injectProBar, 500);
+  setInterval(injectProBar, 400);
 
   /* ৬. পপ-আপ মোডাল */
   window.saProClose = function(){
@@ -6751,7 +6756,6 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
       const rs = (typeof rsScope === 'function') ? rsScope() : ((typeof DB !== 'undefined' && DB && Array.isArray(DB.r)) ? DB.r : []);
       window._saPrizeAll = rs;
 
-      /* বিভাগ ফিল্টার তালিকা */
       const cats = [];
       rs.forEach(x => {
         const k = x.cat + '|' + (x.sec || '');
@@ -6844,7 +6848,7 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
       box.innerHTML = `<div class="sa-pro-note">✅ বর্তমান বয়স-সীমা অনুযায়ী কোনো অযোগ্য (বয়স বেশি) প্রতিযোগী পাওয়া যায়নি।</div>`;
       return;
     }
-    box.innerHTML = `<div style="font-size:13px;font-weight:700;color:#ff8b8f;margin-bottom:6px">⚠ বয়সসীমা অতিক্রম করেছে (${bad.length} জন):</div>` +
+    box.innerHTML = `<div style="font-size:13px;font-weight:700;color:#e11d48;margin-bottom:6px">⚠ বয়সসীমা অতিক্রম করেছে (${bad.length} জন):</div>` +
       bad.map(x => {
         const sch = (typeof U === 'function' && U(x.school)) ? U(x.school).name : '';
         const cN = (typeof CN !== 'undefined' && CN[x.cat]) ? CN[x.cat] : x.cat;
