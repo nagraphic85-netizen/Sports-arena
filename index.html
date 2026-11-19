@@ -6401,9 +6401,9 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
 })();
 </script>
 <!-- =========================================================================
-     SPORTS PRO ADDONS v6 (Complete: Gender Honorifics | TTS Filter | Guest List | Victory Stand Prize | Schedule Announce)
+     SPORTS PRO ADDONS v7 (Complete: Flexible Guest Host Types | Gender Honorifics | TTS Filter | Victory Stand Prize | Schedule Announce)
      ========================================================================= -->
-<style id="sa-pro-v6-css">
+<style id="sa-pro-v7-css">
   .sa-pro-bar {
     display: flex;
     flex-wrap: wrap;
@@ -6509,32 +6509,26 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
   </div>
 </div>
 
-<script id="sa-pro-addons-v6">
+<script id="sa-pro-addons-v7">
 (function(){
   /* =========================================================================
      ১. অটো-উচ্চারণ ফিল্টার (সংক্ষিপ্ত শব্দগুলোকে স্পষ্ট বাংলায় রূপান্তর)
      ========================================================================= */
   function normalizeTtsText(raw){
     let s = String(raw || '');
-    /* মি. -> মিটার */
     s = s.replace(/মি\./g, 'মিটার');
-    /* প্রাঃ বিঃ / প্রা. বি. / P.S. -> প্রাথমিক বিদ্যালয় */
     s = s.replace(/প্রা[ঃ:.]\s*বি[ঃ:.]?/g, 'প্রাথমিক বিদ্যালয়');
     s = s.replace(/\bP\.?\s*S\.?\b/gi, 'প্রাথমিক বিদ্যালয়');
-    /* নং -> নম্বর */
     s = s.replace(/নং\.?/g, 'নম্বর');
-    /* ১ম, ২য়, ৩য়, ৪র্থ -> প্রথম, দ্বিতীয়, তৃতীয়, চতুর্থ */
     s = s.replace(/১ম/g, 'প্রথম')
          .replace(/২[য়য]/g, 'দ্বিতীয়')
          .replace(/৩[য়য]/g, 'তৃতীয়')
          .replace(/৪র্থ/g, 'চতুর্থ');
-    /* স্ল্যাশ (/) -> এবং (যাতে যোগাসন / জিমন্যাস্টিক্স সুন্দরভাবে পড়ে) */
     s = s.replace(/\s*\/\s*/g, ' এবং ');
     return s.replace(/\s{2,}/g, ' ').trim();
   }
   window.saNormalizeTtsText = normalizeTtsText;
 
-  /* মূল স্পেশাল মাইক (announcePaText)-এও অটো-ফিল্টার যুক্ত করা */
   if(typeof window.announcePaText === 'function' && !window.announcePaText.__saFiltered){
     const _origPaAnnounce = window.announcePaText;
     window.announcePaText = function(customText){
@@ -6643,8 +6637,24 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
   };
 
   /* =========================================================================
-     ৪. সেভ করা অতিথির তালিকা (Admin-ভিত্তিক)
+     ৪. সেভ করা অতিথির তালিকা ও বরণকারীর ধরন (Admin-ভিত্তিক)
      ========================================================================= */
+  const HOST_TYPES = [
+    ['monchokonna', 'মঞ্চকন্যারা (নাম ছাড়া)'],
+    ['students', 'বিদ্যালয়ের ছাত্রীরা (নাম ছাড়া)'],
+    ['female_teachers', 'আমাদের শিক্ষিকাবৃন্দ (নাম ছাড়া)'],
+    ['all_teachers', 'আমাদের শিক্ষক-শিক্ষিকাবৃন্দ'],
+    ['committee', 'আয়োজক কমিটি'],
+    ['person_m', 'নির্দিষ্ট ব্যক্তি (পুরুষ - মহাশয়কে)'],
+    ['person_f', 'নির্দিষ্ট ব্যক্তি (মহিলা - মহাশয়াকে)'],
+    ['student_one', 'নির্দিষ্ট ছাত্র/ছাত্রী (নামসহ, মহাশয় ছাড়া)'],
+    ['custom', 'অন্যান্য (নিজে লিখুন)'],
+    ['none', 'বরণকারীর উল্লেখ ছাড়া (সাধারণ)']
+  ];
+  const HOST_TYPE_LABELS = {};
+  HOST_TYPES.forEach(x => { HOST_TYPE_LABELS[x[0]] = x[1]; });
+  const NEEDS_HOST_INPUT = new Set(['person_m', 'person_f', 'student_one', 'custom']);
+
   function getGuestList(){
     try {
       const uid = (typeof ME !== 'undefined' && ME && ME.id) ? ME.id : 'default';
@@ -6913,27 +6923,26 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
         </div>
         <label class="mu">অতিথির পদমর্যাদা</label>
         <input type="text" id="sa-gt-desig" placeholder="যেমন: অবর বিদ্যালয় পরিদর্শক / প্রধান শিক্ষিকা">
-        <div class="sa-pro-row">
-          <div style="flex:1.5">
-            <label class="mu">বরণকারীর নাম (ঐচ্ছিক)</label>
-            <input type="text" id="sa-gt-host" placeholder="খালি রাখলে সাধারণভাবে বরণ ঘোষণা হবে">
-          </div>
-          <div style="flex:0.8;min-width:95px">
-            <label class="mu">বরণকারীর লিঙ্গ</label>
-            <select id="sa-gt-hgen">
-              <option value="M">পুরুষ</option>
-              <option value="F">মহিলা</option>
-            </select>
-          </div>
+
+        <label class="mu">কারা বরণ করবেন? (বরণকারীর ধরন)</label>
+        <select id="sa-gt-htype" onchange="window.saProToggleHostInput()">
+          ${HOST_TYPES.map(o => `<option value="${o[0]}">${o[1]}</option>`).join('')}
+        </select>
+
+        <div id="sa-gt-host-wrap" style="display:none">
+          <label class="mu" id="sa-gt-host-lbl">বরণকারীর নাম</label>
+          <input type="text" id="sa-gt-host" placeholder="নাম লিখুন">
         </div>
+
         <div class="sa-pro-row" style="margin-top:8px">
           <button class="b p" onclick="window.saProAnnounceGuest()">🔊 এখনই বরণ করুন</button>
           <button class="b" onclick="window.saProSaveGuest()">💾 তালিকায় সেভ করুন</button>
           <button class="b d" onclick="window.saProStop()">⏹ থামান</button>
         </div>
-        <div id="sa-gt-status" class="sa-pro-note">প্রস্তুত।</div>
+        <div id="sa-gt-status" class="sa-pro-note">ডিফল্ট হিসেবে 'মঞ্চকন্যারা' সেট করা আছে; চাইলে শিক্ষিকাবৃন্দ বা নির্দিষ্ট ব্যক্তি বেছে নিতে পারেন।</div>
         <div id="sa-gt-saved-list" style="margin-top:10px"></div>
       `;
+      window.saProToggleHostInput();
       window.saProRenderGuests();
     }
     ov.classList.add('open');
@@ -6942,6 +6951,30 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
   /* =========================================================================
      ৮. অ্যাকশন ফাংশনসমূহ
      ========================================================================= */
+  window.saProToggleHostInput = function(){
+    const sel = document.getElementById('sa-gt-htype');
+    const wrap = document.getElementById('sa-gt-host-wrap');
+    const lbl = document.getElementById('sa-gt-host-lbl');
+    const inp = document.getElementById('sa-gt-host');
+    if(!sel || !wrap) return;
+    const v = sel.value;
+    if(NEEDS_HOST_INPUT.has(v)){
+      wrap.style.display = 'block';
+      if(v === 'custom'){
+        if(lbl) lbl.textContent = 'বরণকারীর বিবরণ লিখুন';
+        if(inp) inp.placeholder = 'যেমন: আমাদের অভিভাবিকাবৃন্দকে / স্বেচ্ছাসেবিকাদের';
+      } else if(v === 'student_one'){
+        if(lbl) lbl.textContent = 'ছাত্র বা ছাত্রীর নাম (মহাশয়/মহাশয়া বসবে না)';
+        if(inp) inp.placeholder = 'যেমন: অঙ্কিতা দাস';
+      } else {
+        if(lbl) lbl.textContent = 'বরণকারীর নাম';
+        if(inp) inp.placeholder = 'যেমন: অশোক বাবু / মধুমিতা দিদি';
+      }
+    } else {
+      wrap.style.display = 'none';
+    }
+  };
+
   window.saProSaveAge = function(){
     const data = {
       A: document.getElementById('sa-age-a').value || DEF_AGE.A,
@@ -7099,7 +7132,6 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     const sN = (typeof SN !== 'undefined' && item.sec && SN[item.sec]) ? ' ' + SN[item.sec] + ' বিভাগ' : '';
     const posTxt = { 1: 'প্রথম', 2: 'দ্বিতীয়', 3: 'তৃতীয়' };
 
-    /* ৩য় ➔ ২য় ➔ ১ম ক্রমে ভিক্টরি স্ট্যান্ডে ডাকা */
     const ordered = [3, 2, 1].map(p => (item.win || []).find(w => Number(w.pos) === p)).filter(Boolean);
     const callLines = ordered.map(w =>
       `${posTxt[w.pos]} স্থানাধিকারী ${winnerDisplayName(w)}, বিদ্যালয় ${w.school || ''}`
@@ -7140,27 +7172,60 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     speakViaExistingEngine(txt, prof, 'sa-pr-status');
   };
 
-  /* অতিথিবরণ (পুরুষ/মহিলা ও সেভ করা তালিকা) */
+  /* অতিথিবরণ (বরণকারীর ধরন + পুরুষ/মহিলা সম্বোধন + সেভ করা তালিকা) */
   function buildGuestText(g){
     const gHon = g.gen === 'F' ? 'মাননীয়া' : 'মাননীয়';
     const gSuf = g.gen === 'F' ? 'মহাশয়াকে' : 'মহাশয়কে';
-    const hSuf = g.hgen === 'F' ? 'মহাশয়াকে' : 'মহাশয়কে';
-    let txt = `মনোযোগ দিন। এখন আমরা পুষ্পস্তবক ও উত্তরীয় পরিয়ে সম্মানের সঙ্গে সাদর অভ্যর্থনা ও বরণ করে নিচ্ছি আমাদের আজকের অনুষ্ঠানের সম্মানীয় অতিথি, `;
+
+    /* পুরনো সেভ করা ডেটার সাথে সামঞ্জস্য */
+    let htype = g.htype;
+    if(!htype){
+      if(g.host) htype = (g.hgen === 'F') ? 'person_f' : 'person_m';
+      else htype = 'monchokonna';
+    }
+    const hostVal = String(g.host || '').trim();
+
+    let hostSentence = '';
+    if(htype === 'monchokonna'){
+      hostSentence = 'তাঁকে পুষ্পস্তবক ও উত্তরীয় পরিয়ে বরণ করে নেওয়ার জন্য অনুরোধ জানাচ্ছি আমাদের মঞ্চকন্যাদের। ';
+    } else if(htype === 'students'){
+      hostSentence = 'তাঁকে পুষ্পস্তবক ও উত্তরীয় পরিয়ে বরণ করে নেওয়ার জন্য অনুরোধ জানাচ্ছি আমাদের বিদ্যালয়ের ছাত্রীদের। ';
+    } else if(htype === 'female_teachers'){
+      hostSentence = 'তাঁকে পুষ্পস্তবক ও উত্তরীয় পরিয়ে বরণ করে নেওয়ার জন্য অনুরোধ জানাচ্ছি আমাদের সম্মাননীয়া শিক্ষিকাবৃন্দকে। ';
+    } else if(htype === 'all_teachers'){
+      hostSentence = 'তাঁকে পুষ্পস্তবক ও উত্তরীয় পরিয়ে বরণ করে নেওয়ার জন্য অনুরোধ জানাচ্ছি আমাদের শিক্ষক-শিক্ষিকাবৃন্দকে। ';
+    } else if(htype === 'committee'){
+      hostSentence = 'আয়োজক কমিটির পক্ষ থেকে তাঁকে পুষ্পস্তবক ও উত্তরীয় পরিয়ে সাদর বরণ করে নেওয়া হচ্ছে। ';
+    } else if(htype === 'person_m' && hostVal){
+      hostSentence = `তাঁকে পুষ্পস্তবক ও উত্তরীয় পরিয়ে বরণ করে নেওয়ার জন্য অনুরোধ জানাচ্ছি ${hostVal} মহাশয়কে। `;
+    } else if(htype === 'person_f' && hostVal){
+      hostSentence = `তাঁকে পুষ্পস্তবক ও উত্তরীয় পরিয়ে বরণ করে নেওয়ার জন্য অনুরোধ জানাচ্ছি ${hostVal} মহাশয়াকে। `;
+    } else if(htype === 'student_one' && hostVal){
+      hostSentence = `তাঁকে পুষ্পস্তবক ও উত্তরীয় পরিয়ে বরণ করে নেওয়ার জন্য অনুরোধ জানাচ্ছি আমাদের শিক্ষার্থী ${hostVal}-কে। `;
+    } else if(htype === 'custom' && hostVal){
+      hostSentence = `তাঁকে পুষ্পস্তবক ও উত্তরীয় পরিয়ে বরণ করে নেওয়ার জন্য অনুরোধ জানাচ্ছি ${hostVal}। `;
+    }
+
+    let txt = hostSentence
+      ? `মনোযোগ দিন। এখন আমরা সম্মানের সঙ্গে সাদর অভ্যর্থনা ও বরণ করে নিচ্ছি আমাদের আজকের অনুষ্ঠানের সম্মানীয় অতিথি, `
+      : `মনোযোগ দিন। এখন আমরা পুষ্পস্তবক ও উত্তরীয় পরিয়ে সম্মানের সঙ্গে সাদর অভ্যর্থনা ও বরণ করে নিচ্ছি আমাদের আজকের অনুষ্ঠানের সম্মানীয় অতিথি, `;
+
     if(g.desig) txt += `${g.desig}, `;
     txt += `${gHon} ${g.name || 'বিশিষ্ট অতিথি'} ${gSuf}। `;
-    if(g.host) txt += `তাঁকে বরণ করে নেওয়ার জন্য অনুরোধ জানাচ্ছি ${g.host} ${hSuf}। `;
+    txt += hostSentence;
     txt += `করতালির মাধ্যমে তাঁকে স্বাগত জানানোর জন্য সকলকে অনুরোধ করছি।`;
     return txt;
   }
 
   window.saProAnnounceGuest = function(){
     const prof = document.getElementById('sa-gt-voice').value;
+    const htype = (document.getElementById('sa-gt-htype') || {}).value || 'monchokonna';
     const g = {
       name: document.getElementById('sa-gt-name').value.trim(),
       desig: document.getElementById('sa-gt-desig').value.trim(),
       gen: document.getElementById('sa-gt-gen').value || 'M',
-      host: document.getElementById('sa-gt-host').value.trim(),
-      hgen: document.getElementById('sa-gt-hgen').value || 'M'
+      htype,
+      host: NEEDS_HOST_INPUT.has(htype) ? (document.getElementById('sa-gt-host').value.trim()) : ''
     };
     speakViaExistingEngine(buildGuestText(g), prof, 'sa-gt-status');
   };
@@ -7168,14 +7233,15 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
   window.saProSaveGuest = function(){
     const name = document.getElementById('sa-gt-name').value.trim();
     if(!name){ document.getElementById('sa-gt-status').textContent = '⚠️ আগে অতিথির নাম লিখুন।'; return; }
+    const htype = (document.getElementById('sa-gt-htype') || {}).value || 'monchokonna';
     const list = getGuestList();
     list.push({
       id: Date.now(),
       name,
       desig: document.getElementById('sa-gt-desig').value.trim(),
       gen: document.getElementById('sa-gt-gen').value || 'M',
-      host: document.getElementById('sa-gt-host').value.trim(),
-      hgen: document.getElementById('sa-gt-hgen').value || 'M'
+      htype,
+      host: NEEDS_HOST_INPUT.has(htype) ? (document.getElementById('sa-gt-host').value.trim()) : ''
     });
     saveGuestList(list);
     document.getElementById('sa-gt-name').value = '';
@@ -7193,15 +7259,17 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
       return;
     }
     box.innerHTML = `<div style="font-size:13px;font-weight:700;margin-bottom:4px">📋 সেভ করা অতিথি তালিকা (${list.length} জন):</div>` +
-      list.map((g, i) => `
-        <div class="sa-pro-guest-item">
-          <div><b>${esc(g.name)}</b> (${g.gen === 'F' ? 'মহিলা' : 'পুরুষ'})<br><span class="mu">${esc(g.desig || '')}${g.host ? ' • বরণ: ' + esc(g.host) : ''}</span></div>
+      list.map((g, i) => {
+        const ht = g.htype || (g.host ? (g.hgen === 'F' ? 'person_f' : 'person_m') : 'monchokonna');
+        const hDesc = g.host ? g.host : (HOST_TYPE_LABELS[ht] || '').replace(/\s*\(.*?\)/g, '');
+        return `<div class="sa-pro-guest-item">
+          <div><b>${esc(g.name)}</b> (${g.gen === 'F' ? 'মহিলা' : 'পুরুষ'})<br><span class="mu">${esc(g.desig || '')}${hDesc ? ' • বরণ: ' + esc(hDesc) : ''}</span></div>
           <div style="display:flex;gap:4px">
             <button class="b s p" onclick="window.saProSpeakSavedGuest(${i})">🔊 বরণ</button>
             <button class="b d s" onclick="window.saProDelGuest(${i})">✕</button>
           </div>
-        </div>
-      `).join('');
+        </div>`;
+      }).join('');
   };
 
   window.saProSpeakSavedGuest = function(idx){
