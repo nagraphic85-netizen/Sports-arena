@@ -4212,7 +4212,8 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
       const single = !isBlank && CI >= 0 && L[CI]; if(single) L = [L[CI]];
       const cx = (DB.ctx||{})[ME.id]||{}, d = cx.d||DB.cfg.d, vn = cx.v||((DB.vd||{})[ME.id]||{}).v||'';
       const full = CM==='a4l', two = !single && !full && CM==='a4';
-      const qrSz = '25.5mm';
+      const _is12 = (window.CT === 0 || window.CT === 1);
+      const qrSz = _is12 ? '22.5mm' : '23.5mm';
 
       const s = getSg();
       const S = [0,1,2].filter(i => s.i[i] || s.t[i] || (s.p||{})[i]);
@@ -4228,10 +4229,10 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
           return h.replace(/<div class="qq"[^>]*>[\s\S]*?<\/div>/g, '');
         }
         const is10to12 = (window.CT === 9 || window.CT === 10 || window.CT === 11);
-        const qSzImg = is10to12 ? '23mm' : '24.5mm';
+        const qSzImg = is10to12 ? '19.5mm' : '23.5mm';
         const fixCss = is10to12
-          ? `.ct .in{padding:11mm 24mm 10mm!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:space-between!important}.ct .cz{transform:scale(.82)!important;transform-origin:top center!important;margin-bottom:-6mm!important;flex:0 0 auto!important}.ct .qq{position:relative!important;left:auto!important;bottom:auto!important;transform:none!important;margin:auto 0 1.5mm!important;flex:0 0 auto!important;z-index:4}.ct .cr{position:relative!important;left:auto!important;right:auto!important;bottom:auto!important;width:100%!important;padding:0 6mm!important;flex:0 0 auto!important}`
-          : `.ct .in{padding-top:11mm!important;padding-bottom:54mm!important}.ct .cz{transform:scale(.90);transform-origin:top center}.ct .qq{bottom:26mm!important;z-index:4}.ct .cr{bottom:9.5mm!important}`;
+          ? `.ct .in{padding:10mm 24mm 48mm!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:flex-start!important}.ct .cz{transform:scale(.78)!important;transform-origin:top center!important;margin:0!important;flex:0 0 auto!important}.ct .qq{position:absolute!important;left:50%!important;bottom:24.5mm!important;transform:translateX(-50%)!important;margin:0!important;font-size:2.6mm!important;line-height:1.05!important;z-index:4}.ct .cr{position:absolute!important;left:0!important;right:0!important;bottom:9.5mm!important;width:100%!important;padding:0 22mm!important;margin:0!important}.ct .sgn img{height:7.5mm!important}`
+          : `.ct .in{padding-top:11mm!important;padding-bottom:54mm!important}.ct .cz{transform:scale(.90);transform-origin:top center}.ct .qq{bottom:25.5mm!important;z-index:4}.ct .cr{bottom:10.5mm!important}`;
 
         h = h.replace('</style>', fixCss + '</style>');
         let idx = 0;
@@ -4260,7 +4261,7 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
         return `<div class="ct mct" style="background:${th.bg};--pri:${th.pri};--sec:${th.sec};--nm:${th.nm};--z:${zf}">${frameSVG(t,th)}${medalSVG(x.p,ach,idx)}<div class="in"><div class="cz"><div class="hh">${esc(DB.cfg.h)}</div>${DB.cfg.s?`<div class="ss">${esc(DB.cfg.s)}</div>`:''}<div class="rbn" style="background:${th.rb}"><span>CERTIFICATE OF ${ach?'ACHIEVEMENT':'PARTICIPATION'}</span></div><div class="tx ld">This is proudly presented to</div><div class="nm">${esc(x.n)}</div><div class="tx">of <b>${esc(x.s)}</b>${x.u?' ('+x.ue+': '+esc(x.u)+')':''}</div>${ach?`<div class="tx" style="margin-top:.3mm">for securing <span class="ps">${x.p} POSITION</span> in <b>${esc(x.ev)}</b> (${esc(x.c)})</div>`:`<div class="tx" style="margin-top:.3mm">for active participation in <b>${esc(x.ev)}</b> (${esc(x.c)})</div>`}${mg?`<div class="tx m"><i>${esc(xa)}</i> &nbsp;•&nbsp; <i>${esc(xb)}</i></div>`:xa?`<div class="tx m"><i>${esc(xa)}</i></div>`:''}${(vn||d)?`<div class="tx vd">${vn?'Venue: '+esc(vn):''}${vn&&d?' &nbsp;|&nbsp; ':''}${d?'Date: '+esc(d):''}</div>`:''}${xb&&!mg?`<div class="tx m">${esc(xb)}</div>`:''}</div>${midQrBlock}${sigRow}</div></div>`;
       };
 
-      let h = `<style>@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@700;800&family=Outfit:wght@600;700;800&family=Playfair+Display:ital,wght@0,700;1,600&family=Poppins:wght@500;600;700&display=swap');@page{size:${full?'A4 landscape':two?'A4 portrait':'A5 landscape'};margin:0}.pg{padding:0!important;width:${full?'297mm':'210mm'}!important;min-height:0!important}${full?'.pg{position:relative;height:209.5mm!important;overflow:hidden;page-break-after:always;break-after:page}.pg>.ct{position:absolute;left:0;top:0;transform:scale(1.4143);transform-origin:0 0}':''}.ct.mct{position:relative;width:210mm;height:148mm;overflow:hidden;color:#111;text-align:center;page-break-inside:avoid;font-family:Poppins,'Noto Sans Bengali',sans-serif;box-sizing:border-box}${two?'.ct.mct{transform:scale(.94);transform-origin:center center}':''}.ct.mct>svg{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none}.ct.mct .in{position:absolute;inset:9.5mm 18mm 8.5mm 18mm;display:flex;flex-direction:column;align-items:center;justify-content:space-between;box-sizing:border-box;z-index:2}.ct.mct .cz{display:flex;flex-direction:column;align-items:center;width:100%;max-width:152mm;margin:0 auto;flex:0 0 auto}.ct.mct .hh{font-family:Outfit,'Noto Sans Bengali',sans-serif;font-size:calc(5.6mm*var(--z,1));font-weight:800;color:var(--pri);text-transform:uppercase;line-height:1.12;max-width:150mm;word-break:break-word}.ct.mct .ss{font-size:calc(3mm*var(--z,1));font-weight:600;color:var(--sec);text-transform:uppercase;letter-spacing:.2mm;margin-top:.2mm}.ct.mct .rbn{margin:.9mm 0 .8mm;padding:.8mm 6.5mm;border-radius:1mm;color:#fff;font-family:Cinzel,serif;font-size:calc(3.7mm*var(--z,1));font-weight:800;letter-spacing:.45mm;box-shadow:0 .4mm 1mm rgba(0,0,0,.15);border:.3mm solid var(--sec)}.ct.mct .ld{font-family:'Playfair Display',serif;font-style:italic;color:#444;font-size:3.1mm}.ct.mct .nm{font-family:Outfit,sans-serif;font-size:calc(6.2mm*var(--z,1));font-weight:800;color:var(--nm);text-transform:uppercase;letter-spacing:.2mm;line-height:1.12;margin:.15mm 0 .35mm;padding:0 4mm .15mm;border-bottom:.4mm solid var(--sec);max-width:146mm;word-break:break-word}.ct.mct .tx{font-size:calc(3.35mm*var(--z,1));line-height:1.2;color:#222;max-width:146mm}.ct.mct .ps{display:inline-block;padding:.1mm 2mm;border-radius:1mm;background:var(--sec);color:#fff;font-family:Outfit,sans-serif;font-weight:800;font-size:calc(3.8mm*var(--z,1));letter-spacing:.2mm}.ct.mct .vd{font-size:3.05mm;font-weight:600;color:var(--pri);margin-top:.25mm}.ct.mct .tx.m{font-size:3mm;color:#333;margin-top:.15mm}.ct.mct .mid-qr{flex:1 1 auto;display:flex;flex-direction:column;align-items:center;justify-content:center;margin:1mm 0;font-size:2.7mm;font-weight:700;line-height:1.05}.ct.mct .mid-qr img{height:${qrSz}!important;width:${qrSz}!important;image-rendering:pixelated;background:#fff;padding:1mm;border:.45mm solid #000;border-radius:1mm;box-shadow:0 .3mm .8mm rgba(0,0,0,.1);margin-bottom:.3mm}.ct.mct .bt-row{width:100%;flex:0 0 auto;display:flex;align-items:flex-end;justify-content:space-around;gap:4mm;padding-top:.5mm;box-sizing:border-box}.ct.mct .sgn{flex:1 1 0;text-align:center;line-height:1.12}.ct.mct .sgn img{height:7.5mm;width:auto;display:block;margin:0 auto .2mm}.ct.mct .sgn .sig-pad{height:7.5mm;width:100%}.ct.mct .sgn span{display:inline-block;border-top:.35mm solid #222;padding:.25mm 2mm;min-width:28mm;font-size:3mm;font-weight:700;color:#111}.ct.mct .sgn small{display:block;font-size:2.75mm;color:#333;font-weight:600}.two{position:relative;width:210mm;height:296mm}.cut{position:absolute;left:0;right:0;border-top:.4mm dashed #666;z-index:5}</style>`;
+      let h = `<style>@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@700;800&family=Outfit:wght@600;700;800&family=Playfair+Display:ital,wght@0,700;1,600&family=Poppins:wght@500;600;700&display=swap');@page{size:${full?'A4 landscape':two?'A4 portrait':'A5 landscape'};margin:0}.pg{padding:0!important;width:${full?'297mm':'210mm'}!important;min-height:0!important}${full?'.pg{position:relative;height:209.5mm!important;overflow:hidden;page-break-after:always;break-after:page}.pg>.ct{position:absolute;left:0;top:0;transform:scale(1.4143);transform-origin:0 0}':''}.ct.mct{position:relative;width:210mm;height:148mm;overflow:hidden;color:#111;text-align:center;page-break-inside:avoid;font-family:Poppins,'Noto Sans Bengali',sans-serif;box-sizing:border-box}${two?'.ct.mct{transform:scale(.94);transform-origin:center center}':''}.ct.mct>svg{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none}.ct.mct .in{position:absolute;inset:9.5mm 18mm ${_is12?'14.5mm':'12.5mm'} 18mm;display:flex;flex-direction:column;align-items:center;justify-content:space-between;box-sizing:border-box;z-index:2}.ct.mct .cz{display:flex;flex-direction:column;align-items:center;width:100%;max-width:152mm;margin:0 auto;flex:0 0 auto}.ct.mct .hh{font-family:Outfit,'Noto Sans Bengali',sans-serif;font-size:calc(5.6mm*var(--z,1));font-weight:800;color:var(--pri);text-transform:uppercase;line-height:1.12;max-width:150mm;word-break:break-word}.ct.mct .ss{font-size:calc(3mm*var(--z,1));font-weight:600;color:var(--sec);text-transform:uppercase;letter-spacing:.2mm;margin-top:.2mm}.ct.mct .rbn{margin:.9mm 0 .8mm;padding:.8mm 6.5mm;border-radius:1mm;color:#fff;font-family:Cinzel,serif;font-size:calc(3.7mm*var(--z,1));font-weight:800;letter-spacing:.45mm;box-shadow:0 .4mm 1mm rgba(0,0,0,.15);border:.3mm solid var(--sec)}.ct.mct .ld{font-family:'Playfair Display',serif;font-style:italic;color:#444;font-size:3.1mm}.ct.mct .nm{font-family:Outfit,sans-serif;font-size:calc(6.2mm*var(--z,1));font-weight:800;color:var(--nm);text-transform:uppercase;letter-spacing:.2mm;line-height:1.12;margin:.15mm 0 .35mm;padding:0 4mm .15mm;border-bottom:.4mm solid var(--sec);max-width:146mm;word-break:break-word}.ct.mct .tx{font-size:calc(3.35mm*var(--z,1));line-height:1.2;color:#222;max-width:146mm}.ct.mct .ps{display:inline-block;padding:.1mm 2mm;border-radius:1mm;background:var(--sec);color:#fff;font-family:Outfit,sans-serif;font-weight:800;font-size:calc(3.8mm*var(--z,1));letter-spacing:.2mm}.ct.mct .vd{font-size:3.05mm;font-weight:600;color:var(--pri);margin-top:.25mm}.ct.mct .tx.m{font-size:3mm;color:#333;margin-top:.15mm}.ct.mct .mid-qr{flex:1 1 auto;display:flex;flex-direction:column;align-items:center;justify-content:center;margin:1mm 0;font-size:2.7mm;font-weight:700;line-height:1.05}.ct.mct .mid-qr img{height:${qrSz}!important;width:${qrSz}!important;image-rendering:pixelated;background:#fff;padding:1mm;border:.45mm solid #000;border-radius:1mm;box-shadow:0 .3mm .8mm rgba(0,0,0,.1);margin-bottom:.3mm}.ct.mct .bt-row{width:100%;flex:0 0 auto;display:flex;align-items:flex-end;justify-content:space-around;gap:4mm;padding-top:.5mm;box-sizing:border-box}.ct.mct .sgn{flex:1 1 0;text-align:center;line-height:1.12}.ct.mct .sgn img{height:7.5mm;width:auto;display:block;margin:0 auto .2mm}.ct.mct .sgn .sig-pad{height:7.5mm;width:100%}.ct.mct .sgn span{display:inline-block;border-top:.35mm solid #222;padding:.25mm 2mm;min-width:28mm;font-size:3mm;font-weight:700;color:#111}.ct.mct .sgn small{display:block;font-size:2.75mm;color:#333;font-weight:600}.two{position:relative;width:210mm;height:296mm}.cut{position:absolute;left:0;right:0;border-top:.4mm dashed #666;z-index:5}</style>`;
       if(two) for(let i=0;i<L.length;i+=2) h+=`<div class="pg"><div class="two">${one(L[i],i)}${L[i+1]?one(L[i+1],i+1):''}<div class="cut" style="top:148mm"></div></div></div>`;
       else L.forEach((x,i)=>h+=`<div class="pg">${one(x,i)}</div>`);
       return h;
@@ -5487,10 +5488,10 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
          .replace(/\bPRIMARY\s+SCHOOL\b|\bPRY\.?\s*SCHOOL\b/gi, ' প্রাথমিক বিদ্যালয় ')
          .replace(/\bPRIMARY\b/gi, ' প্রাথমিক ').replace(/\bSCHOOL\b|\bSCH\.?\b/gi, ' বিদ্যালয় ')
          .replace(/\bVIDYALAYA\b/gi, ' বিদ্যালয় ')
-         .replace(/\bGRAM\s+PANCHAYAT\b|\bG\.?\s*P\.?\b|জি\.?\s*পি\.?|জিপি/gi, ' অঞ্চল ')
-         .replace(/\bCIRCLE\b|\bCHAKRA\b|সার্কেল/gi, ' চক্র ')
+         .replace(/\bGRAM\s+PANCHAYAT\b|\bG\.?\s*P\.?\b|জি\.?\s*পি\.?/gi, ' জিপি ')
+         .replace(/\bCIRCLE\b/gi, ' সার্কেল ').replace(/\bCHAKRA\b/gi, ' চক্র ')
          .replace(/\bSUB[-\s]*DIVISION\b|সাব[-\s]*ডিভিশন/gi, ' মহকুমা ')
-         .replace(/\bNARAJOL\b|\bNARAJOLE\b/gi, ' নাড়াজোল ').replace(/\bDASPUR\b/gi, ' দাসপুর ')
+         .replace(/\bNARAJOL\b|\bNARAJOLE\b/gi, ' নাড়াজোল ').replace(/\bDASPUR\b/gi, ' দাসপুর ').replace(/\bNANDANPUR\b/gi, ' নন্দনপুর ')
          .replace(/\bGHATAL\b/gi, ' ঘাটাল ').replace(/\bKHARAR\b/gi, ' খড়ার ')
          .replace(/\bCHANDRAKONA\b/gi, ' চন্দ্রকোণা ').replace(/\bKESHPUR\b/gi, ' কেশপুর ')
          .replace(/\bPASCHIM\b/gi, ' পশ্চিম ').replace(/\bMEDINIPUR\b|\bMIDNAPORE\b/gi, ' মেদিনীপুর ')
@@ -5708,7 +5709,7 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
       const a = (Array.isArray(DB.a) && w.pid != null ? DB.a.find(p => p.id === w.pid) : null)
         || (Array.isArray(DB.a) && _scIds && _scIds.length ? DB.a.find(p => _scIds.includes(p.school) && String(p.chest||'').trim().toUpperCase() === _ch && p.cat === x.cat && (!x.sec || (p.sec||'') === x.sec)) : null)
         || (Array.isArray(DB.a) ? DB.a.find(p => String(p.chest||'').trim().toUpperCase() === _ch && p.cat === x.cat && (!x.sec || (p.sec||'') === x.sec) && ((typeof U==='function' && U(p.school)?.name === w.school) || p.sch === w.school)) : null);
-      const pName = toPureBanglaText((a&&a.bn) ? a.bn : w.name), uName = toPureBanglaText(w.school), chStr = toPureBanglaText(w.chest);
+      const pName = toPureBanglaText((a&&a.bn) ? a.bn : w.name), uName = toPureBanglaText(typeof window.saFormatWinnerUnit==='function' ? window.saFormatWinnerUnit(x, w) : w.school), chStr = toPureBanglaText(w.chest);
       const clip = getCustomAudio(w.school);
       if(clip){
         segs.push({ text: `${pWords[w.pos-1]||w.pos+'ম স্থান'}, চেস্ট নম্বর ${chStr}, ${pName},`, pause: 25 });
@@ -5736,7 +5737,7 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
         const a = (Array.isArray(DB.a) && w.pid != null ? DB.a.find(p => p.id === w.pid) : null)
           || (Array.isArray(DB.a) && _scIdsA && _scIdsA.length ? DB.a.find(p => _scIdsA.includes(p.school) && String(p.chest||'').trim().toUpperCase() === _ch && p.cat === x.cat && (!x.sec || (p.sec||'') === x.sec)) : null)
           || (Array.isArray(DB.a) ? DB.a.find(p => String(p.chest||'').trim().toUpperCase() === _ch && p.cat === x.cat && (!x.sec || (p.sec||'') === x.sec) && ((typeof U==='function' && U(p.school)?.name === w.school) || p.sch === w.school)) : null);
-        const pName = toPureBanglaText((a&&a.bn) ? a.bn : w.name), uName = toPureBanglaText(w.school);
+        const pName = toPureBanglaText((a&&a.bn) ? a.bn : w.name), uName = toPureBanglaText(typeof window.saFormatWinnerUnit==='function' ? window.saFormatWinnerUnit(x, w) : w.school);
         segs.push({ text: `${pWords[w.pos-1]}, চেস্ট নম্বর ${toPureBanglaText(w.chest)}, ${pName}, ${uName}।`, pause: 90 });
       });
     });
@@ -6851,22 +6852,76 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
      ========================================================================= */
   function normalizeTtsText(raw){
     let s = String(raw || '');
+    const _bnW = ['শূন্য','এক','দুই','তিন','চার','পাঁচ','ছয়','সাত','আট','নয়'];
+    /* রোমান সংখ্যা (-I, -II, -III ইত্যাদি) ও হাইফেনযুক্ত সংখ্যা স্পষ্ট বাংলায় রূপান্তর */
+    s = s.replace(/[-–—\s]+VIII(?=$|[\s,।?!;:\-–—()])/gi, ' আট')
+         .replace(/[-–—\s]+VII(?=$|[\s,।?!;:\-–—()])/gi, ' সাত')
+         .replace(/[-–—\s]+VI(?=$|[\s,।?!;:\-–—()])/gi, ' ছয়')
+         .replace(/[-–—\s]+IV(?=$|[\s,।?!;:\-–—()])/gi, ' চার')
+         .replace(/[-–—\s]+V(?=$|[\s,।?!;:\-–—()])/gi, ' পাঁচ')
+         .replace(/[-–—\s]+III(?=$|[\s,।?!;:\-–—()])/gi, ' তিন')
+         .replace(/[-–—\s]+II(?=$|[\s,।?!;:\-–—()])/gi, ' দুই')
+         .replace(/[-–—\s]+I(?=$|[\s,।?!;:\-–—()])/gi, ' এক')
+         .replace(/[-–—]+\s*([1-9])(?=$|[\s,।?!;:\-–—()])/g, (_, d) => ' ' + (_bnW[+d] || d))
+         .replace(/[-–—]+\s*([১-৯])(?=$|[\s,।?!;:\-–—()])/g, (_, d) => ' ' + (_bnW['০১২৩৪৫৬৭৮৯'.indexOf(d)] || d));
+
     s = s.replace(/মি\./g, 'মিটার');
     s = s.replace(/প্রা[ঃ:.]\s*বি[ঃ:.]?|প্রা[ঃ:.]\s*বিদ্যাল[য়য]|প্রাইমারি\s*স্কুল|প্রাইমারী\s*স্কুল/g, 'প্রাথমিক বিদ্যালয়');
     s = s.replace(/\bP\.?\s*S\.?\b|\bPRIMARY\s+SCHOOL\b|\bPRY\.?\s*SCHOOL\b/gi, 'প্রাথমিক বিদ্যালয়');
     s = s.replace(/\bPRY\.?\b|\bPRIMARY\b/gi, 'প্রাথমিক');
     s = s.replace(/\bSCHOOL\b|\bSCH\.?\b|\bVIDYALAYA\b/gi, 'বিদ্যালয়');
-    s = s.replace(/\bGRAM\s+PANCHAYAT\b|\bG\.?\s*P\.?\b|জি\.?\s*পি\.?|জিপি/gi, 'অঞ্চল');
-    s = s.replace(/\bCIRCLE\b|\bCHAKRA\b|সার্কেল/gi, 'চক্র');
+    s = s.replace(/\bGRAM\s+PANCHAYAT\b|\bG\.?\s*P\.?\b|জি\.?\s*পি\.?/gi, 'জিপি');
+    s = s.replace(/\bCIRCLE\b/gi, 'সার্কেল');
+    s = s.replace(/\bCHAKRA\b/gi, 'চক্র');
     s = s.replace(/\bSUB[-\s]*DIVISION\b|সাব[-\s]*ডিভিশন/gi, 'মহকুমা');
+    s = s.replace(/\bNARAJOLE?\b/gi, 'নাড়াজোল')
+         .replace(/\bDASPUR\b/gi, 'দাসপুর')
+         .replace(/\bNANDANPUR\b/gi, 'নন্দনপুর')
+         .replace(/\bGHATAL\b/gi, 'ঘাটাল')
+         .replace(/\bKHARAR\b/gi, 'খড়ার')
+         .replace(/\bCHANDRAKONA\b/gi, 'চন্দ্রকোণা')
+         .replace(/\bKESHPUR\b/gi, 'কেশপুর')
+         .replace(/\bPASCHIM\b/gi, 'পশ্চিম')
+         .replace(/\bMEDINIPUR\b|\bMIDNAPORE\b/gi, 'মেদিনীপুর');
     s = s.replace(/নং\.?/g, 'নম্বর');
     s = s.replace(/১ম/g, 'প্রথম')
          .replace(/২[য়য]/g, 'দ্বিতীয়')
          .replace(/৩[য়য]/g, 'তৃতীয়')
          .replace(/৪র্থ/g, 'চতুর্থ');
     s = s.replace(/\s*\/\s*/g, ' এবং ');
+    if(typeof window.autoBn === 'function'){
+      s = s.replace(/[A-Za-z]+/g, w => {
+        const up = w.toUpperCase();
+        if(up === 'I') return 'এক';
+        if(up === 'II') return 'দুই';
+        if(up === 'III') return 'তিন';
+        if(up === 'IV') return 'চার';
+        if(up === 'V') return 'পাঁচ';
+        if(up === 'GP') return 'জিপি';
+        return window.autoBn(w.toLowerCase()) || w;
+      });
+    }
     return s.replace(/\s{2,}/g, ' ').trim();
   }
+
+  /* প্রতিযোগিতার স্তর অনুযায়ী বিজয়ীর ইউনিট/বিদ্যালয়/জিপি/সার্কেল নাম সঠিকভাবে তৈরি */
+  window.saFormatWinnerUnit = function(item, w){
+    let raw = String((w && w.school) || '').trim();
+    if(!raw && w && typeof DB !== 'undefined' && DB && Array.isArray(DB.a)){
+      const p = (w.pid != null ? DB.a.find(a => a.id === w.pid) : null);
+      if(p && typeof U === 'function' && U(p.school)) raw = String(U(p.school).name || '').trim();
+    }
+    if(!raw) return '';
+    const pubU = (typeof U === 'function' && item && item.gp) ? U(item.gp) : null;
+    const level = (pubU && pubU.role) || (typeof ME !== 'undefined' && ME ? ME.role : 'gp');
+    let nm = normalizeTtsText(raw);
+    if(level === 'circle'){
+      if(!/(জিপি|অঞ্চল|পঞ্চায়েত|পঞ্চায়েত)/.test(nm)) nm = nm + ' জিপি';
+    } else if(level === 'sub'){
+      if(!/(সার্কেল|চক্র)/.test(nm)) nm = nm + ' সার্কেল';
+    }
+    return nm;
+  };
   window.saNormalizeTtsText = normalizeTtsText;
 
   if(typeof window.announcePaText === 'function' && !window.announcePaText.__saFiltered){
@@ -7554,9 +7609,11 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     const posTxt = { 1: 'প্রথম', 2: 'দ্বিতীয়', 3: 'তৃতীয়' };
 
     const ordered = [3, 2, 1].map(p => (item.win || []).find(w => Number(w.pos) === p)).filter(Boolean);
-    const callLines = ordered.map(w =>
-      `${posTxt[w.pos]} স্থানাধিকারী ${winnerDisplayName(w)}, বিদ্যালয় ${w.school || ''}`
-    ).join('। ');
+    const callLines = ordered.map(w => {
+      const chPart = w.chest ? `চেস্ট নম্বর ${String(w.chest).replace(/\d/g, d => '০১২৩৪৫৬৭৮৯'[+d])}, ` : '';
+      const unitPart = window.saFormatWinnerUnit(item, w);
+      return `${posTxt[w.pos]} স্থানাধিকারী, ${chPart}${winnerDisplayName(w)}${unitPart ? ', ' + unitPart : ''}`;
+    }).join('। ');
 
     let txt = `মনোযোগ দিন। এখন পুরস্কার বিতরণী পর্ব চলছে। ${evLabel} প্রতিযোগিতার বিজয়ীদের ভিক্টরি স্ট্যান্ডে আসার জন্য অনুরোধ জানাচ্ছি— ${callLines}। `;
     const gp = giverPhrase();
@@ -7579,7 +7636,9 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
       ? window.saFormatEventLabel(item.cat, item.sec, item.ev, item.win)
       : `${(typeof CN !== 'undefined' && CN[item.cat]) ? CN[item.cat] : item.cat}${(typeof SN !== 'undefined' && item.sec && SN[item.sec]) ? ', ' + SN[item.sec] + '-বিভাগ' : ''}, ${item.ev}`;
     const posTxt = { 1: 'প্রথম', 2: 'দ্বিতীয়', 3: 'তৃতীয়' }[posNum] || posNum;
-    const txt = `${evLabel} প্রতিযোগিতায় ${posTxt} স্থানাধিকারী ${winnerDisplayName(w)}, বিদ্যালয় ${w.school || ''}— তোমাকে ভিক্টরি স্ট্যান্ডে আসার জন্য অনুরোধ করা হচ্ছে।`;
+    const chPart = w.chest ? `চেস্ট নম্বর ${String(w.chest).replace(/\d/g, d => '০১২৩৪৫৬৭৮৯'[+d])}, ` : '';
+    const unitPart = window.saFormatWinnerUnit(item, w);
+    const txt = `${evLabel} প্রতিযোগিতায় ${posTxt} স্থানাধিকারী, ${chPart}${winnerDisplayName(w)}${unitPart ? ', ' + unitPart : ''}— তোমাকে ভিক্টরি স্ট্যান্ডে আসার জন্য অনুরোধ করা হচ্ছে।`;
     speakViaExistingEngine(txt, prof, 'sa-pr-status');
   };
 
