@@ -277,8 +277,31 @@ const cell=e=>e?`${esc(e.t)}<br>[${e.ch.map(c=>cc[c]>1?`<span class="red">${esc(
 for(let i=0;i<n;i++)r+=`<tr><td>${i+1}</td><td>${cell(TE[i])}</td><td>${cell(FE[i])}</td></tr>`;
 return`<style>@page{size:A4 portrait;margin:6mm}table{font-size:9px!important}td,th{padding:1px 3px!important}</style><div class="pg"><div class="ttl"><b style="font-size:15px">${esc(DB.cfg.h)}</b><br>${esc(DB.cfg.s)} ${esc(DB.cfg.d)}<br><b>মাস্টার শিডিউল</b></div><table><tr><th>#</th><th>ট্র্যাক ইভেন্ট (ক্রমানুসারে; শিক্ষক/শিক্ষিকা সবার শেষে)</th><th>ফিল্ড / ইনডোর (জিমন্যাস্টিক্স ও বল ছোঁড়া ট্র্যাক শেষে)</th></tr>${r}</table><p style="font-size:9px">বিশেষ কারণে সময় পরিবর্তন হতে পারে। <span class="red">লাল</span> = কমন চেস্ট।</p></div>`};
 window.entH=function(u){const a=DB.a.filter(x=>x.school===u.id).sort(window.pCmp),e=escOf(u.id);if(!a.length&&!e.length)return null;
-const P=(t,b)=>b?`<div class="pg">${hdr(u,t)}${b}${sigBox(u)}</div>`:'';
-return'<style>@page{size:A4 portrait;margin:8mm}</style>'+P('বালক বিভাগ',secs('boys').map(s=>entTbl(a,'boys',s)).join(''))+P('বালিকা বিভাগ',secs('girls').map(s=>entTbl(a,'girls',s)).join(''))+P('সাংস্কৃতিক, শিক্ষক/শিক্ষিকা ও এসকর্ট',secs('cult').map(s=>entTbl(a,'cult',s)).join('')+entTbl(a,'teach','')+escTbl(u,e))};
+const bnD=n=>String(n).replace(/[0-9]/g,d=>'০১২৩৪৫৬৭৮৯'[d]);
+const mkRows=(items,startIdx)=>items.map((x,i)=>`<tr><td>${startIdx+i+1}</td><td>${esc(x.chest)}</td><td>${esc(x.name)}<br>${esc(x.bn)}</td><td>${esc(x.father)}</td><td>${dobf(x.dob)}</td><td>${esc(clsL(x.cls))}</td><td>${esc(x.pen)}</td><td>${esc(x.ev.join(', '))}</td><td>${esc(x.mob)}</td></tr>`).join('');
+const mkTbl=(c,s,items,startIdx,tot)=>`<h3>${CN[c]}${s?' — '+SN[s]+' বিভাগ':''} (${tot} জন)</h3><table><tr><th>ক্রম</th><th>চেস্ট</th><th>নাম</th><th>বাবার নাম</th><th>জন্মতারিখ</th><th>ক্লাস</th><th>PEN</th><th>ইভেন্ট</th><th>মোবাইল</th></tr>${mkRows(items,startIdx)}</table>`;
+const pag=(title,catList,extraHtml)=>{
+  const MAX=18,pages=[];let cur=[],cnt=0;
+  catList.forEach(([c,s])=>{
+    const l=a.filter(x=>x.cat===c&&x.sec===s);if(!l.length)return;
+    let idx=0;
+    while(idx<l.length){
+      if(cnt>=MAX){pages.push(cur);cur=[];cnt=0}
+      const take=Math.min(MAX-cnt,l.length-idx);
+      cur.push(mkTbl(c,s,l.slice(idx,idx+take),idx,l.length));
+      idx+=take;cnt+=take;
+    }
+  });
+  if(extraHtml){if(cnt>=MAX){pages.push(cur);cur=[];cnt=0}cur.push(extraHtml)}
+  if(cur.length)pages.push(cur);
+  if(!pages.length)return'';
+  return pages.map((pg,i)=>`<div class="pg">${hdr(u,pages.length>1?`${title} — পাতা ${bnD(i+1)}`:title)}${pg.join('')}${i===pages.length-1?sigBox(u):''}</div>`).join('');
+};
+return'<style>@page{size:A4 portrait;margin:8mm}</style>'
+  +pag('বালক বিভাগ',secs('boys').map(s=>['boys',s]),'')
+  +pag('বালিকা বিভাগ',secs('girls').map(s=>['girls',s]),'')
+  +pag('সাংস্কৃতিক, শিক্ষক/শিক্ষিকা ও এসকর্ট',secs('cult').map(s=>['cult',s]).concat([['teach','']]),escTbl(u,e));
+};
 window.home=(o=>function(){let h=o().replace('<div class="shd"></div>','<img class="kid g" src="'+RN2+'" style="margin-left:-30px"><div class="shd"></div>').replace('<div class="cd"><h2>🔎','<div class="cd" id="resbox"><h2>🔎');
 const t=[['ফলাফল','#0a3a8a','resbox'],['লগইন','#a3102e','lgn'],['গ্যালারি','#0f5a2a','gal'],['যোগাযোগ','#e8650a','wa']];
 const top=`<div class="cd slg"><b>খেলো, জেতো, এগিয়ে চলো!</b><span class="mu">Play with passion, win with pride!</span></div><div class="tiles">${t.map(x=>`<button class="tile" style="background:${x[1]}" onclick="(document.getElementById('${x[2]}')||document.body).scrollIntoView({behavior:'smooth'})">${x[0]}</button>`).join('')}</div>`;
@@ -3090,10 +3113,12 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
          .replace(/\bPRIMARY\b/gi, ' প্রাথমিক ')
          .replace(/\bSCHOOL\b|\bSCH\.?\b/gi, ' বিদ্যালয় ')
          .replace(/\bVIDYALAYA\b/gi, ' বিদ্যালয় ')
-         .replace(/\bG\.?\s*P\.?\b/gi, ' গ্রাম পঞ্চায়েত ')
-         .replace(/\bCIRCLE\b/gi, ' চক্র ')
+         .replace(/প্রাইমারি\s*স্কুল|প্রাইমারী\s*স্কুল/g, ' প্রাথমিক বিদ্যালয় ')
+         .replace(/\bPRIMARY\s+SCHOOL\b|\bPRY\.?\s*SCHOOL\b/gi, ' প্রাথমিক বিদ্যালয় ')
+         .replace(/\bGRAM\s+PANCHAYAT\b|\bG\.?\s*P\.?\b|জি\.?\s*পি\.?|জিপি/gi, ' অঞ্চল ')
+         .replace(/\bCIRCLE\b|সার্কেল/gi, ' চক্র ')
          .replace(/\bCHAKRA\b/gi, ' চক্র ')
-         .replace(/\bSUB[-\s]*DIVISION\b/gi, ' মহকুমা ')
+         .replace(/\bSUB[-\s]*DIVISION\b|সাব[-\s]*ডিভিশন/gi, ' মহকুমা ')
          .replace(/\bNARAJOL\b|\bNARAJOLE\b/gi, ' নাড়াজোল ')
          .replace(/\bDASPUR\b/gi, ' দাসপুর ')
          .replace(/\bGHATAL\b/gi, ' ঘাটাল ')
@@ -3488,7 +3513,9 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
       { text: `সুধী দর্শকবৃন্দ, এখন ঘোষণা করা হচ্ছে ${catStr}-এর ${evStr} প্রতিযোগিতার চূড়ান্ত ফলাফল।` }
     ];
     (x.win||[]).sort((a,b)=>a.pos-b.pos).forEach(w=>{
-      const a = byChest(w.chest, x.cat);
+      const a = (Array.isArray(DB.a) && w.pid != null ? DB.a.find(p => p.id === w.pid) : null)
+        || (Array.isArray(DB.a) ? DB.a.find(p => String(p.chest||'').trim().toUpperCase() === String(w.chest||'').trim().toUpperCase() && p.cat === x.cat && (p.sec||'') === (x.sec||'') && (U(p.school)?.name === w.school || p.sch === w.school)) : null)
+        || byChest(w.chest, x.cat);
       const pName = toPureBanglaScript((a&&a.bn) ? a.bn : w.name);
       const uName = toPureBanglaScript(w.school);
       const chStr = toPureBanglaScript(w.chest);
@@ -4583,18 +4610,16 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
           }
           if(x){
             b.insertAdjacentHTML('afterend', ` <button class="b s p" onclick="speakResultSlow('${esc(x.id)}')">🔊 ফলাফল ঘোষণা</button> <button class="b s d" onclick="stopVoice()">⏹</button> <button class="b s wa-sh" onclick="waShareRes('${esc(x.id)}')">📤 WhatsApp</button>`);
-          }
-        });
-        (DB.r||[]).forEach(x=>{
-          (x.win||[]).forEach(w=>{
-            if(!w.rec) return;
-            app.querySelectorAll('.res div').forEach(d=>{
-              if(d.textContent.includes(w.chest) && d.textContent.includes(w.name) && !d.dataset.rc){
-                d.dataset.rc = 1;
-                d.insertAdjacentHTML('beforeend', ` <span class="mu">[${esc(w.rec)}]</span>`);
-              }
+            (x.win||[]).forEach(w=>{
+              if(!w.rec) return;
+              box.querySelectorAll('div').forEach(d=>{
+                if(d.textContent.includes(w.chest) && d.textContent.includes(w.name) && !d.dataset.rc){
+                  d.dataset.rc = 1;
+                  d.insertAdjacentHTML('beforeend', ` <span class="mu">[${esc(w.rec)}]</span>`);
+                }
+              });
             });
-          });
+          }
         });
       }
 
