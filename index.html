@@ -4350,10 +4350,43 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
   window.waShareRes = function(rid){
     const x = DB.r.find(r=>r.id===rid); if(!x) return;
     const h = getEff().h || DB.cfg.h || 'বার্ষিক ক্রীড়া প্রতিযোগিতা';
-    const lines = [`🏆 *${h}*`, `📌 *${CN[x.cat]}${x.sec?' '+SN[x.sec]+' বিভাগ':''} — ${x.ev}*`, `━━━━━━━━━━━━━━`];
-    const med = ['১ম স্থান','২য় স্থান','৩য় স্থান','৪র্থ স্থান'];
+    const pubU = (typeof U === 'function' && x.gp) ? U(x.gp) : null;
+    const pubRole = (pubU && pubU.role) || (typeof ME !== 'undefined' && ME ? ME.role : '');
+    const pubName = x.gpn || (pubU && pubU.name) || '';
+    const rLbl = { sub: 'সাব-ডিভিশন', circle: 'সার্কেল', gp: 'জিপি' }[pubRole] || '';
+
+    const findAnc = (u, targetRole) => {
+      let cur = u, g = 0;
+      while(cur && g++ < 8){
+        if(cur.role === targetRole || (cur.role === 'school' && cur.lvl === targetRole)) return cur.name || '';
+        cur = (typeof U === 'function' && cur.parent) ? U(cur.parent) : null;
+      }
+      return '';
+    };
+
+    const lines = [`🏆 *${h}*`];
+    if(pubName) lines.push(`📍 *${pubName}${rLbl ? ' (' + rLbl + ')' : ''}*`);
+    lines.push(`📌 *${CN[x.cat]}${x.sec?' '+SN[x.sec]+' বিভাগ':''} — ${x.ev}*`, `━━━━━━━━━━━━━━`);
+
+    const med = ['🥇 ১ম','🥈 ২য়','🥉 ৩য়','🏅 ৪র্থ'];
     (x.win||[]).forEach(w=>{
-      lines.push(`▪ ${med[w.pos-1]||w.pos}: *${w.name}* (চেস্ট ${w.chest})${w.rec?' ['+w.rec+']':''} — _${w.school}_`);
+      const a = (Array.isArray(DB.a) && w.pid != null)
+        ? DB.a.find(p => p.id === w.pid)
+        : (Array.isArray(DB.a) ? DB.a.find(p => String(p.chest||'').trim().toUpperCase() === String(w.chest||'').trim().toUpperCase() && p.cat === x.cat && (p.sec||'') === (x.sec||'')) : null);
+      const schU = (a && typeof U === 'function') ? U(a.school) : null;
+      const schName = (a && schU && schU.lvl && a.sch) ? a.sch : (w.school || (schU ? schU.name : ''));
+
+      let locParts = [];
+      if(schName) locParts.push(schName);
+      if(pubRole === 'sub'){
+        const cirName = findAnc(schU, 'circle');
+        if(cirName && cirName !== schName) locParts.push(cirName);
+      } else if(pubRole === 'circle'){
+        const gpName = findAnc(schU, 'gp');
+        if(gpName && gpName !== schName) locParts.push(gpName);
+      }
+      const locStr = locParts.join(', ');
+      lines.push(`${med[w.pos-1]||w.pos}: *${w.name}* (চেস্ট ${w.chest})${w.rec?' ['+w.rec+']':''}${locStr ? ' — _' + locStr + '_' : ''}`);
     });
     window.open('https://wa.me/?text='+encodeURIComponent(lines.join('\n')), '_blank');
   };
