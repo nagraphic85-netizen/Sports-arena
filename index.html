@@ -6777,6 +6777,7 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
         btns.push(`<button class="b s p" onclick="window.saProOpen('schedule')">🕒 শিডিউল সেট</button>`);
         btns.push(`<button class="b s p" onclick="window.saProOpen('prize')">🏆 পুরস্কার বিতরণী</button>`);
         btns.push(`<button class="b s" onclick="window.saProOpen('guest')">💐 অতিথিবরণ</button>`);
+        btns.push(`<button class="b s d" onclick="window.saProOpen('agecheck')">⚠ বয়স যাচাই</button>`);
       }
 
       if(!btns.length){
@@ -6846,6 +6847,21 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
         <div id="sa-age-msg" class="sa-pro-note">পর্ষদের ১৯/১১/২০২৬ সংশোধনী অনুযায়ী ডিফল্ট সীমা: ক (০১/০১/২০১৯), খ (০১/০১/২০১৭), গ (০১/০১/২০১৫)।</div>
         <div id="sa-overage-list" style="margin-top:8px"></div>
       `;
+    }
+    else if(tab === 'agecheck'){
+      const lim = getAgeLimits();
+      title.textContent = '⚠ বয়স যাচাই ও সংশোধন (Admin)';
+      body.innerHTML = `
+        <div class="sa-pro-note" style="margin-top:0">
+          <b>নির্ধারিত বয়স-সীমা (Owner কর্তৃক):</b><br>
+          ক বিভাগ: ${fmtDateBn(lim.A)} বা তার পরে • খ বিভাগ: ${fmtDateBn(lim.B)} বা তার পরে • গ বিভাগ: ${fmtDateBn(lim.C)} বা তার পরে
+        </div>
+        <div class="sa-pro-row" style="margin-top:8px">
+          <button class="b p" onclick="window.saProScanOverage()">🔄 তালিকা রিফ্রেশ করুন</button>
+        </div>
+        <div id="sa-overage-list" style="margin-top:8px"></div>
+      `;
+      setTimeout(() => window.saProScanOverage(), 0);
     }
     else if(tab === 'schedule'){
       const scObj = getAdminSchedObj();
@@ -7026,7 +7042,12 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     const box = document.getElementById('sa-overage-list');
     if(!box || typeof DB === 'undefined' || !DB || !Array.isArray(DB.a)) return;
     const lims = getAgeLimits();
-    const bad = DB.a.filter(x => {
+    let pool = DB.a;
+    if(typeof ME !== 'undefined' && ME && ME.role !== 'owner' && typeof schools === 'function'){
+      const allowedIds = new Set(schools(ME.id).map(s => s.id));
+      pool = DB.a.filter(x => allowedIds.has(x.school));
+    }
+    const bad = pool.filter(x => {
       if(x.cat === 'teach' || !x.dob || !x.sec) return false;
       const minD = lims[x.sec];
       return minD && String(x.dob).trim() < minD;
@@ -7040,11 +7061,59 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
         const sch = (typeof U === 'function' && U(x.school)) ? U(x.school).name : '';
         const cN = (typeof CN !== 'undefined' && CN[x.cat]) ? CN[x.cat] : x.cat;
         const sN = (typeof SN !== 'undefined' && SN[x.sec]) ? SN[x.sec] : x.sec;
-        return `<div class="sa-pro-over-item">
-          <div><b>${esc(x.name)}</b> (${cN} ${sN})<br><span class="mu">জন্ম: ${fmtDateBn(x.dob)} • ${esc(sch)}</span></div>
-          <button class="b d s" onclick="window.saProDelOverage(${x.id})">মুছুন</button>
+        const sid = String(x.id).replace(/[^a-zA-Z0-9_]/g, '_');
+        return `<div class="sa-pro-over-item" style="flex-direction:column;align-items:stretch">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+            <div><b>${esc(x.name)}</b> (${cN} ${sN})<br><span class="mu">জন্ম: ${fmtDateBn(x.dob)} • ${esc(sch)}</span></div>
+            <div style="display:flex;gap:4px;flex-shrink:0">
+              <button class="b s" onclick="window.saProEditOverage(${x.id}, '${sid}')">✏ সংশোধন</button>
+              <button class="b d s" onclick="window.saProDelOverage(${x.id})">🗑 মুছুন</button>
+            </div>
+          </div>
+          <div id="sa-ov-ed-${sid}" style="display:none;margin-top:8px;padding-top:8px;border-top:1px dashed rgba(255,255,255,.2)"></div>
         </div>`;
       }).join('');
+  };
+
+  window.saProEditOverage = function(id, sid){
+    const a = (typeof DB !== 'undefined' && DB && Array.isArray(DB.a)) ? DB.a.find(y => y.id === id) : null;
+    const edBox = document.getElementById('sa-ov-ed-' + sid);
+    if(!a || !edBox) return;
+    if(edBox.style.display === 'block'){ edBox.style.display = 'none'; return; }
+    const availSecs = (typeof secs === 'function') ? secs(a.cat) : ['A', 'B', 'C'];
+    const secOpts = availSecs.filter(Boolean).map(k => {
+      const lbl = (typeof SN !== 'undefined' && SN[k]) ? SN[k] + ' বিভাগ' : k;
+      return `<option value="${k}"${k === a.sec ? ' selected' : ''}>${lbl}</option>`;
+    }).join('');
+    edBox.innerHTML = `
+      <div class="sa-pro-row">
+        <div>
+          <label class="mu">সঠিক জন্ম তারিখ</label>
+          <input type="date" id="sa-ov-dob-${sid}" value="${esc(a.dob || '')}">
+        </div>
+        <div>
+          <label class="mu">বিভাগ পরিবর্তন</label>
+          <select id="sa-ov-sec-${sid}">${secOpts}</select>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;margin-top:4px">
+        <button class="b s p" onclick="window.saProSaveOverageEdit(${a.id}, '${sid}')">💾 সেভ করুন</button>
+        <button class="b s" onclick="document.getElementById('sa-ov-ed-${sid}').style.display='none'">বাতিল</button>
+      </div>
+    `;
+    edBox.style.display = 'block';
+  };
+
+  window.saProSaveOverageEdit = function(id, sid){
+    const a = (typeof DB !== 'undefined' && DB && Array.isArray(DB.a)) ? DB.a.find(y => y.id === id) : null;
+    if(!a) return;
+    const newDob = (document.getElementById('sa-ov-dob-' + sid) || {}).value;
+    const newSec = (document.getElementById('sa-ov-sec-' + sid) || {}).value;
+    if(newDob) a.dob = newDob;
+    if(newSec) a.sec = newSec;
+    if(typeof sv === 'function') sv();
+    window.saProScanOverage();
+    if(typeof draw === 'function') draw();
   };
 
   window.saProDelOverage = function(id){
@@ -7052,6 +7121,7 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
       DB.a = DB.a.filter(y => y.id !== id);
       if(typeof sv === 'function') sv();
       window.saProScanOverage();
+      if(typeof draw === 'function') draw();
     };
     if(typeof conf === 'function') conf('এই অযোগ্য প্রতিযোগীকে তালিকা থেকে মুছবেন?', doDel);
     else if(confirm('এই প্রতিযোগীকে মুছবেন?')) doDel();
