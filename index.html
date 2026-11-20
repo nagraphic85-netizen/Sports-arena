@@ -281,7 +281,7 @@ const bnD=n=>String(n).replace(/[0-9]/g,d=>'০১২৩৪৫৬৭৮৯'[d]);
 const mkRows=(items,startIdx)=>items.map((x,i)=>`<tr><td>${startIdx+i+1}</td><td>${esc(x.chest)}</td><td>${esc(x.name)}<br>${esc(x.bn)}</td><td>${esc(x.father)}</td><td>${dobf(x.dob)}</td><td>${esc(clsL(x.cls))}</td><td>${esc(x.pen)}</td><td>${esc(x.ev.join(', '))}</td><td>${esc(x.mob)}</td></tr>`).join('');
 const mkTbl=(c,s,items,startIdx,tot)=>`<h3>${CN[c]}${s?' — '+SN[s]+' বিভাগ':''} (${tot} জন)</h3><table><tr><th>ক্রম</th><th>চেস্ট</th><th>নাম</th><th>বাবার নাম</th><th>জন্মতারিখ</th><th>ক্লাস</th><th>PEN</th><th>ইভেন্ট</th><th>মোবাইল</th></tr>${mkRows(items,startIdx)}</table>`;
 const pag=(title,catList,extraHtml)=>{
-  const MAX=18,pages=[];let cur=[],cnt=0;
+  const MAX=20,pages=[];let cur=[],cnt=0;
   catList.forEach(([c,s])=>{
     const l=a.filter(x=>x.cat===c&&x.sec===s);if(!l.length)return;
     let idx=0;
@@ -295,9 +295,9 @@ const pag=(title,catList,extraHtml)=>{
   if(extraHtml){if(cnt>=MAX){pages.push(cur);cur=[];cnt=0}cur.push(extraHtml)}
   if(cur.length)pages.push(cur);
   if(!pages.length)return'';
-  return pages.map((pg,i)=>`<div class="pg">${hdr(u,pages.length>1?`${title} — পাতা ${bnD(i+1)}`:title)}${pg.join('')}${i===pages.length-1?sigBox(u):''}</div>`).join('');
+  return pages.map((pg,i)=>`<div class="pg entpg">${hdr(u,pages.length>1?`${title} — পাতা ${bnD(i+1)}`:title)}${pg.join('')}${i===pages.length-1?`<div class="entsig">${sigBox(u)}</div>`:''}</div>`).join('');
 };
-return'<style>@page{size:A4 portrait;margin:8mm}</style>'
+return'<style>@page{size:A4 portrait;margin:6mm}.entpg{font-size:11px;line-height:1.2}.entpg .ttl{margin-bottom:3px;line-height:1.25}.entpg h3{margin:4px 0 2px;font-size:12.5px}.entpg table{font-size:10.5px;line-height:1.15;break-inside:auto}.entpg tr{break-inside:avoid}.entpg th,.entpg td{padding:2px 3px}.entpg .entsig{break-inside:avoid;page-break-inside:avoid}.entpg .entsig>div{margin-top:10mm!important}</style>'
   +pag('বালক বিভাগ',secs('boys').map(s=>['boys',s]),'')
   +pag('বালিকা বিভাগ',secs('girls').map(s=>['girls',s]),'')
   +pag('সাংস্কৃতিক, শিক্ষক/শিক্ষিকা ও এসকর্ট',secs('cult').map(s=>['cult',s]).concat([['teach','']]),escTbl(u,e));
@@ -738,7 +738,7 @@ const SG={school:['প্রধান শিক্ষক/শিক্ষিক�
 const box=(t,tall)=>`<div style="border-top:1px solid #000;padding:3px 16px;text-align:center;min-width:60mm">${t}</div>`;
 /* শুধু এন্ট্রি শিট (প্রতিযোগীর তালিকা) এর স্বাক্ষর অংশ; অন্য কোনো শিট অপরিবর্তিত */
 window.entH=(o=>function(u){let h=o(u);if(!h)return h;const L=SG[(u&&(u.lvl||u.role))];if(!L)return h;
- const old=sigBox(u),nw=`<div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:${u.lvl==='gp'?'30':'22'}mm">${box(L[0])}${box(L[1])}</div>`;
+ const old=sigBox(u),nw=`<div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:10mm;break-inside:avoid;page-break-inside:avoid">${box(L[0])}${box(L[1])}</div>`;
  return h.split(old).join(nw)})(window.entH);
 /* ওয়াটারমার্ক দৃশ্যমান: টেবিলের ধূসর-সাদা রঙ স্বচ্ছ, লেখা সামনে */
 const ZT='table tr:nth-child(even)>td{background:rgba(226,226,226,.5)!important}table tr:nth-child(odd)>td{background:rgba(255,255,255,.3)!important}table th{background:rgba(198,198,198,.6)!important}';
@@ -3512,10 +3512,12 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     const segs = [
       { text: `সুধী দর্শকবৃন্দ, এখন ঘোষণা করা হচ্ছে ${catStr}-এর ${evStr} প্রতিযোগিতার চূড়ান্ত ফলাফল।` }
     ];
+    const _scIds1 = (typeof schools === 'function' && x.gp) ? schools(x.gp).map(s => s.id) : null;
     (x.win||[]).sort((a,b)=>a.pos-b.pos).forEach(w=>{
+      const _ch = String(w.chest||'').trim().toUpperCase();
       const a = (Array.isArray(DB.a) && w.pid != null ? DB.a.find(p => p.id === w.pid) : null)
-        || (Array.isArray(DB.a) ? DB.a.find(p => String(p.chest||'').trim().toUpperCase() === String(w.chest||'').trim().toUpperCase() && p.cat === x.cat && (p.sec||'') === (x.sec||'') && (U(p.school)?.name === w.school || p.sch === w.school)) : null)
-        || byChest(w.chest, x.cat);
+        || (Array.isArray(DB.a) && _scIds1 && _scIds1.length ? DB.a.find(p => _scIds1.includes(p.school) && String(p.chest||'').trim().toUpperCase() === _ch && p.cat === x.cat && (!x.sec || (p.sec||'') === x.sec)) : null)
+        || (Array.isArray(DB.a) ? DB.a.find(p => String(p.chest||'').trim().toUpperCase() === _ch && p.cat === x.cat && (!x.sec || (p.sec||'') === x.sec) && (U(p.school)?.name === w.school || p.sch === w.school)) : null);
       const pName = toPureBanglaScript((a&&a.bn) ? a.bn : w.name);
       const uName = toPureBanglaScript(w.school);
       const chStr = toPureBanglaScript(w.chest);
@@ -3591,10 +3593,46 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
           }).join('')}
         </table>
       </div>
+      <div style="margin-top:12px;padding-top:10px;border-top:1px solid #334155">
+        <h4 style="margin:0 0 6px;color:#38bdf8">🗣️ বাংলা শব্দের উচ্চারণ সংশোধন (কাস্টম ডিকশনারি)</h4>
+        <p class="mu" style="font-size:12px;margin:0 0 8px">কবিতা→কোবিতা, করতালি→করোতালি, অভিনন্দন→ওভিনন্দন ইত্যাদি বিল্ট-ইন যুক্ত আছে। এছাড়াও অন্য যেকোনো শব্দের উচ্চারণ ভুল লাগলে নিচে যোগ করুন:</p>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+          <input id="vdKeyInp" placeholder="মূল শব্দ (যেমন: দাসপুর)" style="flex:1;min-width:130px;margin:0;min-height:36px;padding:6px">
+          <input id="vdValInp" placeholder="সঠিক উচ্চারণ (যেমন: দাশপুর)" style="flex:1;min-width:140px;margin:0;min-height:36px;padding:6px">
+          <button class="b s p" onclick="addCustomVdict()">➕ যোগ করুন</button>
+        </div>
+        <div class="tw" style="max-height:22vh;overflow-y:auto">
+          <table>
+            <tr><th>মূল শব্দ</th><th>সঠিক উচ্চারণ</th><th>অ্যাকশন</th></tr>
+            ${Object.keys(vdict).filter(k => !units.has(k) && vdict[k]).map(k => `<tr>
+              <td><b>${esc(k)}</b></td>
+              <td>${esc(vdict[k])}</td>
+              <td style="white-space:nowrap">
+                <button class="b s" onclick="if(typeof window.announcePaText==='function')window.announcePaText('${esc(k)}');else speakViaTTS(window.saPhoneticBangla('${esc(k)}'),1,()=>{})">🔊 টেস্ট</button>
+                <button class="b s d" onclick="delCustomVdict('${esc(k)}')">🗑</button>
+              </td>
+            </tr>`).join('') || '<tr><td colspan="3" class="mu" style="text-align:center">এখনো কোনো অতিরিক্ত শব্দ যোগ করা হয়নি</td></tr>'}
+          </table>
+        </div>
+      </div>
     </div>`;
   };
 
   window.saveVdict = function(k, val){ DB.vdict = DB.vdict || {}; DB.vdict[k] = val.trim(); sv(); };
+  window.addCustomVdict = function(){
+    const k = (($('vdKeyInp')||{}).value||'').trim();
+    const v = (($('vdValInp')||{}).value||'').trim();
+    if(!k || !v) return info('মূল শব্দ এবং সঠিক উচ্চারণ দুটিই লিখুন।');
+    DB.vdict = DB.vdict || {};
+    DB.vdict[k] = v;
+    sv();
+    openVoiceStudio();
+  };
+  window.delCustomVdict = function(k){
+    if(DB.vdict) delete DB.vdict[k];
+    sv();
+    openVoiceStudio();
+  };
   window.delUnitAudio = function(k){ if(DB.vaudio) delete DB.vaudio[k]; sv(); openVoiceStudio(); };
   window.upUnitAudio = function(k, inp){
     const f = inp.files && inp.files[0]; if(!f) return;
@@ -5094,8 +5132,132 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     return (location.protocol === 'https:' || location.protocol === 'http:') && navigator.onLine;
   }
 
+  
+  /* বিল্ট-ইন ও কাস্টম বাংলা উচ্চারণ সংশোধনী (শুধুমাত্র ভয়েস ইঞ্জিনের জন্য, স্ক্রিনের বানান অক্ষত থাকবে) */
+  const SA_BN_PHONETIC_MAP = [
+    ['বিচারকমণ্ডলী', 'বিচারোক মণ্ডোলী'],
+    ['দর্শকবৃন্দ', 'দর্শোকবৃন্দ'],
+    ['অংশগ্রহণকারী', 'অংশোগ্রোহণকারী'],
+    ['অংশগ্রহণ', 'অংশোগ্রোহণ'],
+    ['সারিবদ্ধভাবে', 'শারিবদ্ধভাবে'],
+    ['প্রতিযোগিতায়', 'প্রোতিযোগিতায়'],
+    ['প্রতিযোগিতায়', 'প্রোতিযোগিতায়'],
+    ['প্রতিযোগিতার', 'প্রোতিযোগিতার'],
+    ['প্রতিযোগিতা', 'প্রোতিযোগিতা'],
+    ['প্রতিযোগীদের', 'প্রোতিযোগীদের'],
+    ['প্রতিযোগীরা', 'প্রোতিযোগীরা'],
+    ['প্রতিযোগী', 'প্রোতিযোগী'],
+    ['প্রশংসাপত্র', 'প্রোশংশাপত্র'],
+    ['প্রতিষ্ঠান', 'প্রোতিষ্ঠান'],
+    ['অতিথিবৃন্দ', 'ওতিথিবৃন্দ'],
+    ['অতিথিদের', 'ওতিথিদের'],
+    ['অতিথিবরণ', 'ওতিথি বরোন'],
+    ['অতিথি', 'ওতিথি'],
+    ['অভিনন্দন', 'ওভিনন্দন'],
+    ['অভিভাবক', 'ওভিভাবক'],
+    ['অধিকারী', 'ওধিকারী'],
+    ['অধিকার', 'ওধিকার'],
+    ['অনুষ্ঠানের', 'ওনুষ্ঠানের'],
+    ['অনুষ্ঠানে', 'ওনুষ্ঠানে'],
+    ['অনুষ্ঠান', 'ওনুষ্ঠান'],
+    ['অনুরোধ', 'ওনুরোধ'],
+    ['করতালির', 'করোতালির'],
+    ['করতালি', 'করোতালি'],
+    ['কবিতা', 'কোবিতা'],
+    ['বিতরণী', 'বিতোরণী'],
+    ['বিতরণ', 'বিতোরণ'],
+    ['উপস্থিতি', 'উপোস্থিতি'],
+    ['উপস্থিত', 'উপোস্থিত'],
+    ['উদ্বোধনী', 'উদ্‌বোধনী'],
+    ['উদ্বোধন', 'উদ্‌বোধন'],
+    ['পরিচালনা', 'পোরিচালনা'],
+    ['পরিচিতি', 'পোরিচিতি'],
+    ['পরবর্তী', 'পরোবর্তী'],
+    ['আন্তরিক', 'আন্তোরিক'],
+    ['মনোযোগ', 'মোনোযোগ'],
+    ['চতুর্থ', 'চোতুর্থ'],
+    ['ভিক্টরি', 'ভিক্টোরি'],
+    ['লম্ফন', 'লম্ফোন'],
+    ['অঙ্কন', 'অঙ্কোন'],
+    ['যোগাসন', 'জোগাসন'],
+    ['মহকুমা', 'মহোকুমা'],
+    ['ধন্যবাদ', 'ধোন্নোবাদ'],
+    ['সভাপতি', 'শভাপোতি'],
+    ['সম্পাদক', 'শম্পাদক'],
+    ['বিচারক', 'বিচারোক'],
+    ['সম্মানিত', 'শম্মানিত'],
+    ['সম্মাননা', 'শম্মাননা'],
+    ['সকলকে', 'শকলকে'],
+    ['স্বাগতম', 'শাগতোম'],
+    ['স্বাগত', 'শাগতো'],
+    ['সাদর', 'শাদর'],
+    ['সুধী', 'শুধী'],
+    ['সৌজন্যে', 'শৌজন্যে'],
+    ['একসঙ্গে', 'এক্‌সঙ্গে'],
+    ['প্রাথমিক', 'প্রাথোমিক']
+  ];
+  window.saPhoneticBangla = function(raw){
+    let s = String(raw || '').trim();
+    if(!s) return '';
+    try {
+      const cd = (typeof DB !== 'undefined' && DB && DB.vdict) ? DB.vdict : {};
+      const keys = Object.keys(cd).filter(k => k && cd[k] && cd[k].trim()).sort((a,b) => b.length - a.length);
+      for(let i = 0; i < keys.length; i++){
+        const k = keys[i];
+        if(s.includes(k)) s = s.split(k).join(cd[k].trim());
+      }
+    } catch(e){}
+    for(let i = 0; i < SA_BN_PHONETIC_MAP.length; i++){
+      const pair = SA_BN_PHONETIC_MAP[i];
+      if(s.includes(pair[0])) s = s.split(pair[0]).join(pair[1]);
+    }
+    /* শিডিউল বা ঘোষণায় সময়ের পরিসর (যেমন ১০:০০ - ১১:০০ বা 09:00 - 09:15) স্বাভাবিক বাংলায় রূপান্তর */
+    const _bnD = '০১২৩৪৫৬৭৮৯';
+    const _toBnNum = n => String(parseInt(String(n).replace(/[০-৯]/g, d => _bnD.indexOf(d)), 10)).replace(/[0-9]/g, d => _bnD[+d]);
+    const _fmtClock = (h, m) => {
+      const hBn = _toBnNum(h);
+      const mInt = parseInt(String(m).replace(/[০-৯]/g, d => _bnD.indexOf(d)), 10);
+      return mInt === 0 ? `${hBn}টা` : `${hBn}টা ${_toBnNum(mInt)} মিনিট`;
+    };
+    s = s.replace(/([০-৯0-9]{1,2})\s*:\s*([০-৯0-9]{2})\s*(?:AM|PM|am|pm)?\s*[-–—]\s*([০-৯0-9]{1,2})\s*:\s*([০-৯0-9]{2})\s*(?:AM|PM|am|pm)?/g,
+      (_, h1, m1, h2, m2) => `${_fmtClock(h1, m1)} থেকে ${_fmtClock(h2, m2)}`);
+    s = s.replace(/([০-৯0-9]{1,2})\s*:\s*([০-৯0-9]{2})\s*(?:AM|PM|am|pm)?/g,
+      (_, h1, m1) => _fmtClock(h1, m1));
+
+    /* ক, খ, গ বিভাগ যেন TTS গিলে না ফেলে (বিশেষ করে 'বালক ক বিভাগ'-এ দুটি ক পাশাপাশি থাকায়) */
+    s = s.replace(/(বালক|বালিকা|সাংস্কৃতিক|আবৃত্তি|অঙ্কন)\s*,?\s*(ক|খ|গ)\s*বিভাগ/g, '$1, $2-বিভাগ');
+    return s.replace(/\s{2,}/g, ' ').trim();
+  };
+
+  /* প্রতিটি ঘোষণায় বিভাগ (ক/খ/গ) ও ইভেন্টের নাম স্পষ্টভাবে সাজানোর হেল্পার */
+  window.saFormatEventLabel = function(cat, sec, ev, wins){
+    let sKey = String(sec || '').trim().toUpperCase();
+    if(!sKey && cat !== 'teach' && Array.isArray(wins) && typeof DB !== 'undefined' && DB && Array.isArray(DB.a)){
+      for(let i = 0; i < wins.length; i++){
+        const w = wins[i];
+        const p = (w && w.pid != null ? DB.a.find(a => a.id === w.pid) : null)
+          || (w && w.chest ? DB.a.find(a => String(a.chest||'').trim().toUpperCase() === String(w.chest||'').trim().toUpperCase() && a.cat === cat && (!ev || (a.ev||[]).includes(ev))) : null);
+        if(p && p.sec){ sKey = String(p.sec).trim().toUpperCase(); break; }
+      }
+    }
+    const secMap = { A:'ক', B:'খ', C:'গ', 'ক':'ক', 'খ':'খ', 'গ':'গ' };
+    const secBn = secMap[sKey] || ((typeof SN !== 'undefined' && SN[sKey]) ? SN[sKey] : '');
+    const catBn = (typeof CN !== 'undefined' && CN[cat]) ? CN[cat] : (cat || '');
+    const evClean = String(ev || '').trim();
+    if(cat === 'teach'){
+      return evClean ? `শিক্ষক-শিক্ষিকা বিভাগের ${evClean}` : 'শিক্ষক-শিক্ষিকা বিভাগ';
+    }
+    if(cat === 'cult'){
+      if(evClean && secBn) return `${evClean}, ${secBn}-বিভাগ`;
+      if(evClean) return evClean;
+      return secBn ? `সাংস্কৃতিক, ${secBn}-বিভাগ` : 'সাংস্কৃতিক বিভাগ';
+    }
+    const grp = secBn ? `${catBn}, ${secBn}-বিভাগ` : `${catBn} বিভাগ`;
+    return evClean ? `${grp}-এর ${evClean}` : grp;
+  };
+
   function fetchCloudflareAudio(text, prof, speedPct){
-    const clean = String(text || '').trim();
+    const clean = (typeof window.saPhoneticBangla === 'function' ? window.saPhoneticBangla(text) : String(text || '').trim());
     if(!clean || !canUseCloudflareTTS()) return Promise.reject(new Error('Offline'));
     const { voice, rate, pitch } = getCloudflareApiParams(prof, speedPct);
     const key = `${voice}|${rate}|${pitch}|${clean}`;
@@ -5257,9 +5419,13 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     s = s.replace(/মি\./g, ' মিটার ').replace(/সে\./g, ' সেকেন্ড ')
          .replace(/প্রাঃ\s*বিঃ|প্রাঃ\s*বিদ্যালয়|প্রাঃ/g, ' প্রাথমিক বিদ্যালয় ')
          .replace(/\bP\.?\s*S\.?\b/gi, ' প্রাথমিক বিদ্যালয় ').replace(/\bPRY\.?\b/gi, ' প্রাথমিক ')
+         .replace(/প্রাইমারি\s*স্কুল|প্রাইমারী\s*স্কুল/g, ' প্রাথমিক বিদ্যালয় ')
+         .replace(/\bPRIMARY\s+SCHOOL\b|\bPRY\.?\s*SCHOOL\b/gi, ' প্রাথমিক বিদ্যালয় ')
          .replace(/\bPRIMARY\b/gi, ' প্রাথমিক ').replace(/\bSCHOOL\b|\bSCH\.?\b/gi, ' বিদ্যালয় ')
-         .replace(/\bVIDYALAYA\b/gi, ' বিদ্যালয় ').replace(/\bG\.?\s*P\.?\b/gi, ' গ্রাম পঞ্চায়েত ')
-         .replace(/\bCIRCLE\b|\bCHAKRA\b/gi, ' চক্র ').replace(/\bSUB[-\s]*DIVISION\b/gi, ' মহকুমা ')
+         .replace(/\bVIDYALAYA\b/gi, ' বিদ্যালয় ')
+         .replace(/\bGRAM\s+PANCHAYAT\b|\bG\.?\s*P\.?\b|জি\.?\s*পি\.?|জিপি/gi, ' অঞ্চল ')
+         .replace(/\bCIRCLE\b|\bCHAKRA\b|সার্কেল/gi, ' চক্র ')
+         .replace(/\bSUB[-\s]*DIVISION\b|সাব[-\s]*ডিভিশন/gi, ' মহকুমা ')
          .replace(/\bNARAJOL\b|\bNARAJOLE\b/gi, ' নাড়াজোল ').replace(/\bDASPUR\b/gi, ' দাসপুর ')
          .replace(/\bGHATAL\b/gi, ' ঘাটাল ').replace(/\bKHARAR\b/gi, ' খড়ার ')
          .replace(/\bCHANDRAKONA\b/gi, ' চন্দ্রকোণা ').replace(/\bKESHPUR\b/gi, ' কেশপুর ')
@@ -5315,7 +5481,7 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
   }
 
   function speakSegmentCore(text, prof, spd, runId, proceed){
-    const clean = String(text || '').trim();
+    const clean = (typeof window.saPhoneticBangla === 'function' ? window.saPhoneticBangla(text) : String(text || '').trim());
     if(!clean) return proceed();
 
     /* ১. আগের সেই সেরা ক্লাসিক মহিলা কণ্ঠ (মোবাইল ও পিসি উভয় জায়গাতেই সরাসরি ৩-লেয়ার ইকোসহ বাজবে) */
@@ -5445,10 +5611,9 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     const ids = schools(ME.id).map(u=>u.id);
     const a = DB.a.filter(x=>ids.includes(x.school)&&x.cat===c&&x.sec===s&&x.ev.includes(e)&&x.chest).sort(cmpC);
     if(!a.length) return info('এই ইভেন্টে কোনো চেস্ট নম্বর পাওয়া যায়নি।');
-    const catStr = toPureBanglaText(`${CN[c]}${s?' '+SN[s]+' বিভাগ':''}`);
-    const evStr = toPureBanglaText(e);
+    const evLabel = toPureBanglaText(window.saFormatEventLabel(c, s, e, a));
     const segs = [
-      { text: `মনোযোগ দিন! এখনই শুরু হচ্ছে ${catStr}-এর ${evStr} প্রতিযোগিতা। প্রস্তুত থাকো প্রতিযোগীরা! চেস্ট নম্বর ও নাম ডাকা হচ্ছে—`, pause: 45 }
+      { text: `মনোযোগ দিন! এখনই শুরু হচ্ছে ${evLabel} প্রতিযোগিতা। প্রস্তুত থাকো প্রতিযোগীরা! চেস্ট নম্বর ও নাম ডাকা হচ্ছে—`, pause: 45 }
     ];
     a.forEach(x => {
       const l = loc(x), rawUnit = ME.role==='gp' ? l.s : (l.u || l.s);
@@ -5468,14 +5633,17 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
   /* ২. একক ফলাফল ঘোষণা */
   window.speakResultSlow = function(rid){
     const x = DB.r.find(r=>r.id===rid); if(!x) return;
-    const catStr = toPureBanglaText(`${CN[x.cat]}${x.sec?' '+SN[x.sec]+' বিভাগ':''}`);
-    const evStr = toPureBanglaText(x.ev);
+    const evLabel = toPureBanglaText(window.saFormatEventLabel(x.cat, x.sec, x.ev, x.win));
     const pWords = ['প্রথম স্থান অধিকার করেছে','দ্বিতীয় স্থান অধিকার করেছে','তৃতীয় স্থান অধিকার করেছে','চতুর্থ স্থান অধিকার করেছে'];
     const segs = [
-      { text: `সুধী দর্শকবৃন্দ, এখন ঘোষণা করা হচ্ছে ${catStr}-এর ${evStr} প্রতিযোগিতার চূড়ান্ত ফলাফল।`, pause: 80 }
+      { text: `সুধী দর্শকবৃন্দ, এখন ঘোষণা করা হচ্ছে ${evLabel} প্রতিযোগিতার চূড়ান্ত ফলাফল।`, pause: 80 }
     ];
+    const _scIds = (typeof schools === 'function' && x.gp) ? schools(x.gp).map(s => s.id) : null;
     (x.win||[]).sort((a,b)=>a.pos-b.pos).forEach(w=>{
-      const a = byChest(w.chest, x.cat);
+      const _ch = String(w.chest||'').trim().toUpperCase();
+      const a = (Array.isArray(DB.a) && w.pid != null ? DB.a.find(p => p.id === w.pid) : null)
+        || (Array.isArray(DB.a) && _scIds && _scIds.length ? DB.a.find(p => _scIds.includes(p.school) && String(p.chest||'').trim().toUpperCase() === _ch && p.cat === x.cat && (!x.sec || (p.sec||'') === x.sec)) : null)
+        || (Array.isArray(DB.a) ? DB.a.find(p => String(p.chest||'').trim().toUpperCase() === _ch && p.cat === x.cat && (!x.sec || (p.sec||'') === x.sec) && ((typeof U==='function' && U(p.school)?.name === w.school) || p.sch === w.school)) : null);
       const pName = toPureBanglaText((a&&a.bn) ? a.bn : w.name), uName = toPureBanglaText(w.school), chStr = toPureBanglaText(w.chest);
       const clip = getCustomAudio(w.school);
       if(clip){
@@ -5496,11 +5664,14 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     const pWords = ['প্রথম স্থান','দ্বিতীয় স্থান','তৃতীয় স্থান','চতুর্থ স্থান'];
     const segs = [{ text: `সুধী দর্শকবৃন্দ, এখন ঘোষণা করা হচ্ছে আজকের প্রতিযোগিতার প্রকাশিত ফলাফলসমূহ।`, pause: 80 }];
     rs.forEach(x=>{
-      const catStr = toPureBanglaText(`${CN[x.cat]}${x.sec?' '+SN[x.sec]+' বিভাগ':''}`);
-      const evStr = toPureBanglaText(x.ev);
-      segs.push({ text: `${catStr}-এর ${evStr} প্রতিযোগিতা—`, pause: 55 });
+      const evLabel = toPureBanglaText(window.saFormatEventLabel(x.cat, x.sec, x.ev, x.win));
+      segs.push({ text: `${evLabel} প্রতিযোগিতা—`, pause: 55 });
+      const _scIdsA = (typeof schools === 'function' && x.gp) ? schools(x.gp).map(s => s.id) : null;
       (x.win||[]).sort((a,b)=>a.pos-b.pos).forEach(w=>{
-        const a = byChest(w.chest, x.cat);
+        const _ch = String(w.chest||'').trim().toUpperCase();
+        const a = (Array.isArray(DB.a) && w.pid != null ? DB.a.find(p => p.id === w.pid) : null)
+          || (Array.isArray(DB.a) && _scIdsA && _scIdsA.length ? DB.a.find(p => _scIdsA.includes(p.school) && String(p.chest||'').trim().toUpperCase() === _ch && p.cat === x.cat && (!x.sec || (p.sec||'') === x.sec)) : null)
+          || (Array.isArray(DB.a) ? DB.a.find(p => String(p.chest||'').trim().toUpperCase() === _ch && p.cat === x.cat && (!x.sec || (p.sec||'') === x.sec) && ((typeof U==='function' && U(p.school)?.name === w.school) || p.sch === w.school)) : null);
         const pName = toPureBanglaText((a&&a.bn) ? a.bn : w.name), uName = toPureBanglaText(w.school);
         segs.push({ text: `${pWords[w.pos-1]}, চেস্ট নম্বর ${toPureBanglaText(w.chest)}, ${pName}, ${uName}।`, pause: 90 });
       });
@@ -5989,7 +6160,8 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     paRunId++;
     const myRun = paRunId;
     paPlaying = true;
-    paQueue = splitSafelyForPA(txt, 110);
+    const spokenTxt = (typeof window.saPhoneticBangla === 'function') ? window.saPhoneticBangla(txt) : txt;
+    paQueue = splitSafelyForPA(spokenTxt, 110);
     paPrefetch.clear();
     setPaStatus('📢 ঘোষণা চলছে: ' + txt);
 
@@ -6616,8 +6788,13 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
   function normalizeTtsText(raw){
     let s = String(raw || '');
     s = s.replace(/মি\./g, 'মিটার');
-    s = s.replace(/প্রা[ঃ:.]\s*বি[ঃ:.]?/g, 'প্রাথমিক বিদ্যালয়');
-    s = s.replace(/\bP\.?\s*S\.?\b/gi, 'প্রাথমিক বিদ্যালয়');
+    s = s.replace(/প্রা[ঃ:.]\s*বি[ঃ:.]?|প্রা[ঃ:.]\s*বিদ্যাল[য়য]|প্রাইমারি\s*স্কুল|প্রাইমারী\s*স্কুল/g, 'প্রাথমিক বিদ্যালয়');
+    s = s.replace(/\bP\.?\s*S\.?\b|\bPRIMARY\s+SCHOOL\b|\bPRY\.?\s*SCHOOL\b/gi, 'প্রাথমিক বিদ্যালয়');
+    s = s.replace(/\bPRY\.?\b|\bPRIMARY\b/gi, 'প্রাথমিক');
+    s = s.replace(/\bSCHOOL\b|\bSCH\.?\b|\bVIDYALAYA\b/gi, 'বিদ্যালয়');
+    s = s.replace(/\bGRAM\s+PANCHAYAT\b|\bG\.?\s*P\.?\b|জি\.?\s*পি\.?|জিপি/gi, 'অঞ্চল');
+    s = s.replace(/\bCIRCLE\b|\bCHAKRA\b|সার্কেল/gi, 'চক্র');
+    s = s.replace(/\bSUB[-\s]*DIVISION\b|সাব[-\s]*ডিভিশন/gi, 'মহকুমা');
     s = s.replace(/নং\.?/g, 'নম্বর');
     s = s.replace(/১ম/g, 'প্রথম')
          .replace(/২[য়য]/g, 'দ্বিতীয়')
@@ -7285,8 +7462,9 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     window._saPrizeFiltered = filtered;
     resSel.innerHTML = filtered.length ? filtered.map((x, i) => {
       const cN = (typeof CN !== 'undefined' && CN[x.cat]) ? CN[x.cat] : x.cat;
-      const sN = (typeof SN !== 'undefined' && x.sec && SN[x.sec]) ? ' ' + SN[x.sec] : '';
-      return `<option value="${i}">${cN}${sN} — ${esc(x.ev)}</option>`;
+      const sN = (typeof SN !== 'undefined' && x.sec && SN[x.sec]) ? ' ' + SN[x.sec] + ' বিভাগ' : '';
+      const lbl = x.cat === 'cult' ? `${esc(x.ev)}${sN}` : `${cN}${sN} — ${esc(x.ev)}`;
+      return `<option value="${i}">${lbl}</option>`;
     }).join('') : '<option value="">কোনো প্রকাশিত ফলাফল নেই</option>';
     window.saProPreviewPrize();
   };
@@ -7306,8 +7484,9 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     const item = getSelectedPrizeItem();
     if(!item){ document.getElementById('sa-pr-status').textContent = '⚠️ আগে ফলাফল প্রকাশ করুন।'; return; }
     const prof = document.getElementById('sa-pr-voice').value;
-    const cN = (typeof CN !== 'undefined' && CN[item.cat]) ? CN[item.cat] : item.cat;
-    const sN = (typeof SN !== 'undefined' && item.sec && SN[item.sec]) ? ' ' + SN[item.sec] + ' বিভাগ' : '';
+    const evLabel = (typeof window.saFormatEventLabel === 'function')
+      ? window.saFormatEventLabel(item.cat, item.sec, item.ev, item.win)
+      : `${(typeof CN !== 'undefined' && CN[item.cat]) ? CN[item.cat] : item.cat}${(typeof SN !== 'undefined' && item.sec && SN[item.sec]) ? ', ' + SN[item.sec] + '-বিভাগ' : ''}, ${item.ev}`;
     const posTxt = { 1: 'প্রথম', 2: 'দ্বিতীয়', 3: 'তৃতীয়' };
 
     const ordered = [3, 2, 1].map(p => (item.win || []).find(w => Number(w.pos) === p)).filter(Boolean);
@@ -7315,7 +7494,7 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
       `${posTxt[w.pos]} স্থানাধিকারী ${winnerDisplayName(w)}, বিদ্যালয় ${w.school || ''}`
     ).join('। ');
 
-    let txt = `মনোযোগ দিন। এখন পুরস্কার বিতরণী পর্ব চলছে। ${cN}${sN}, ${item.ev} প্রতিযোগিতার বিজয়ীদের ভিক্টরি স্ট্যান্ডে আসার জন্য অনুরোধ জানাচ্ছি— ${callLines}। `;
+    let txt = `মনোযোগ দিন। এখন পুরস্কার বিতরণী পর্ব চলছে। ${evLabel} প্রতিযোগিতার বিজয়ীদের ভিক্টরি স্ট্যান্ডে আসার জন্য অনুরোধ জানাচ্ছি— ${callLines}। `;
     const gp = giverPhrase();
     if(gp){
       txt += `ভিক্টরি স্ট্যান্ডে উপস্থিত এই সকল বিজয়ীর হাতে একসঙ্গে পুরস্কারগুলি তুলে দেওয়ার জন্য সাদর অনুরোধ জানাচ্ছি ${gp}। `;
@@ -7332,10 +7511,11 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     const w = (item.win || []).find(x => Number(x.pos) === Number(posNum));
     if(!w){ document.getElementById('sa-pr-status').textContent = `⚠️ এই ইভেন্টে ${posNum} নম্বর স্থানের তথ্য নেই।`; return; }
     const prof = document.getElementById('sa-pr-voice').value;
-    const cN = (typeof CN !== 'undefined' && CN[item.cat]) ? CN[item.cat] : item.cat;
-    const sN = (typeof SN !== 'undefined' && item.sec && SN[item.sec]) ? ' ' + SN[item.sec] + ' বিভাগ' : '';
+    const evLabel = (typeof window.saFormatEventLabel === 'function')
+      ? window.saFormatEventLabel(item.cat, item.sec, item.ev, item.win)
+      : `${(typeof CN !== 'undefined' && CN[item.cat]) ? CN[item.cat] : item.cat}${(typeof SN !== 'undefined' && item.sec && SN[item.sec]) ? ', ' + SN[item.sec] + '-বিভাগ' : ''}, ${item.ev}`;
     const posTxt = { 1: 'প্রথম', 2: 'দ্বিতীয়', 3: 'তৃতীয়' }[posNum] || posNum;
-    const txt = `${cN}${sN}, ${item.ev} প্রতিযোগিতায় ${posTxt} স্থানাধিকারী ${winnerDisplayName(w)}, বিদ্যালয় ${w.school || ''}— তোমাকে ভিক্টরি স্ট্যান্ডে আসার জন্য অনুরোধ করা হচ্ছে।`;
+    const txt = `${evLabel} প্রতিযোগিতায় ${posTxt} স্থানাধিকারী ${winnerDisplayName(w)}, বিদ্যালয় ${w.school || ''}— তোমাকে ভিক্টরি স্ট্যান্ডে আসার জন্য অনুরোধ করা হচ্ছে।`;
     speakViaExistingEngine(txt, prof, 'sa-pr-status');
   };
 
@@ -7343,7 +7523,7 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     const item = getSelectedPrizeItem();
     const prof = document.getElementById('sa-pr-voice').value;
     const gp = giverPhrase();
-    const evPart = item ? `${(CN[item.cat]||item.cat)}${item.sec&&SN[item.sec]?' '+SN[item.sec]+' বিভাগ':''}, ${item.ev} প্রতিযোগিতার ` : '';
+    const evPart = item ? `${(typeof window.saFormatEventLabel === 'function') ? window.saFormatEventLabel(item.cat, item.sec, item.ev, item.win) : ((CN[item.cat]||item.cat)+(item.sec&&SN[item.sec]?', '+SN[item.sec]+'-বিভাগ':'')+', '+item.ev)} প্রতিযোগিতার ` : '';
     const txt = gp
       ? `এখন ভিক্টরি স্ট্যান্ডে উপস্থিত ${evPart}সকল বিজয়ীর হাতে একসঙ্গে পুরস্কারগুলি তুলে দেওয়ার জন্য সাদর অনুরোধ জানাচ্ছি ${gp}। করতালির মাধ্যমে সকলকে অভিনন্দন জানাই।`
       : `এখন ভিক্টরি স্ট্যান্ডে উপস্থিত ${evPart}সকল বিজয়ীর হাতে একসঙ্গে পুরস্কারগুলি তুলে দেওয়া হচ্ছে। করতালির মাধ্যমে সকলকে অভিনন্দন জানাই।`;
