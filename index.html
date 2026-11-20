@@ -4558,16 +4558,34 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
           }
         }
 
+        app.querySelectorAll('.res').forEach(box=>{
+          if(box.querySelector('.wa-sh')) return;
+          const b = box.querySelector('b');
+          if(!b) return;
+          const html = box.innerHTML || '';
+          const txt = b.textContent || '';
+          const fullTxt = box.textContent || '';
+          let x = null;
+          const mPop = html.match(/chestPop\((\d+),/);
+          if(mPop && DB.r && DB.r[+mPop[1]]){
+            x = DB.r[+mPop[1]];
+          }
+          if(!x){
+            const mDel = html.match(/y\.id!=='([^']+)'/);
+            if(mDel) x = (DB.r||[]).find(r => r.id === mDel[1]) || null;
+          }
+          if(!x){
+            x = (DB.r||[]).find(r => {
+              if(typeof TAB !== 'undefined' && TAB === 'rs' && typeof ME !== 'undefined' && ME && r.gp !== ME.id) return false;
+              if(!(txt.includes(CN[r.cat]) && (!r.sec || txt.includes(SN[r.sec])) && txt.includes(r.ev))) return false;
+              return (r.win||[]).some(w => fullTxt.includes(String(w.chest)) && fullTxt.includes(String(w.name)));
+            }) || null;
+          }
+          if(x){
+            b.insertAdjacentHTML('afterend', ` <button class="b s p" onclick="speakResultSlow('${esc(x.id)}')">🔊 ফলাফল ঘোষণা</button> <button class="b s d" onclick="stopVoice()">⏹</button> <button class="b s wa-sh" onclick="waShareRes('${esc(x.id)}')">📤 WhatsApp</button>`);
+          }
+        });
         (DB.r||[]).forEach(x=>{
-          app.querySelectorAll('.res').forEach(box=>{
-            if(box.querySelector('.wa-sh')) return;
-            const b = box.querySelector('b');
-            if(!b) return;
-            const txt = b.textContent || '';
-            if(txt.includes(CN[x.cat]) && (!x.sec || txt.includes(SN[x.sec])) && txt.includes(x.ev)){
-              b.insertAdjacentHTML('afterend', ` <button class="b s p" onclick="speakResultSlow('${esc(x.id)}')">🔊 ফলাফল ঘোষণা</button> <button class="b s d" onclick="stopVoice()">⏹</button> <button class="b s wa-sh" onclick="waShareRes('${esc(x.id)}')">📤 WhatsApp</button>`);
-            }
-          });
           (x.win||[]).forEach(w=>{
             if(!w.rec) return;
             app.querySelectorAll('.res div').forEach(d=>{
