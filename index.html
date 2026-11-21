@@ -786,7 +786,10 @@ purple:{n:'Royal Purple',pri:'#493078',p2:'#2F1D52',acc:'#B99AFF',bg:'#F5F2FA',c
 orange:{n:'Sunset Orange',pri:'#91431F',p2:'#5E2A12',acc:'#FFAD55',bg:'#FBF5EF',cd:'#FFFFFF',tx:'#3B1D0E',pale:'#F6E9DC',bd:'#E6D2BF',mu:'#6E5242',a1:'#FFC27A',a2:'#FFAD55',ad:'#C77A22',atx:'#4A2204',h:'#91431F',hv:'#FFE2C2'},
 ruby:{n:'Ruby Red',pri:'#842C3C',p2:'#561C27',acc:'#FF8090',bg:'#FAF1F2',cd:'#FFFFFF',tx:'#3A141C',pale:'#F5E3E5',bd:'#E6CBCF',mu:'#6E464D',a1:'#FF9BA8',a2:'#FF8090',ad:'#C24A5C',atx:'#4A0F1A',h:'#842C3C',hv:'#FFD3D9'},
 emerald:{n:'Dark Emerald',pri:'#153E2B',p2:'#0C2A1D',acc:'#B6F500',bg:'#0F2A1E',cd:'#163A2A',tx:'#E8F5E0',pale:'#1E4A36',bd:'#2C5A44',mu:'#A9C4B3',a1:'#C8FF2A',a2:'#B6F500',ad:'#6E9A00',atx:'#14320A',h:'#C8F500',hv:'#2A5E45'},
-premium:{n:'Premium Purple',pri:'#4B1D96',p2:'#1C0B47',acc:'#A77BFF',bg:'#F1ECFF',cd:'#FFFFFF',tx:'#1B1033',pale:'#E9E1FB',bd:'#CFC0F0',mu:'#5A4B73',a1:'#C3A4FF',a2:'#A77BFF',ad:'#6B45C9',atx:'#1F0B52',h:'#4B1D96',hv:'#DDD0FB'}};
+premium:{n:'Premium Purple',pri:'#4B1D96',p2:'#1C0B47',acc:'#A77BFF',bg:'#F1ECFF',cd:'#FFFFFF',tx:'#1B1033',pale:'#E9E1FB',bd:'#CFC0F0',mu:'#5A4B73',a1:'#C3A4FF',a2:'#A77BFF',ad:'#6B45C9',atx:'#1F0B52',h:'#4B1D96',hv:'#DDD0FB'},
+midnight:{n:'Modern Midnight',pri:'#0F172A',p2:'#1E293B',acc:'#38BDF8',bg:'#0B1120',cd:'#131C31',tx:'#F1F5F9',pale:'#1E293B',bd:'#334155',mu:'#94A3B8',a1:'#7DD3FC',a2:'#38BDF8',ad:'#0284C7',atx:'#082F49',h:'#7DD3FC',hv:'#1E3A5F'},
+daylight:{n:'Daylight Sun',pri:'#0B3D2E',p2:'#14532D',acc:'#FACC15',bg:'#FFFFFF',cd:'#FFFFFF',tx:'#09090B',pale:'#F4F4F5',bd:'#A1A1AA',mu:'#3F3F46',a1:'#FDE047',a2:'#EAB308',ad:'#A16207',atx:'#18181B',h:'#0B3D2E',hv:'#FEF9C3'},
+minimal:{n:'Modern Minimal',pri:'#1F2937',p2:'#374151',acc:'#10B981',bg:'#F9FAFB',cd:'#FFFFFF',tx:'#111827',pale:'#F3F4F6',bd:'#D1D5DB',mu:'#4B5563',a1:'#34D399',a2:'#10B981',ad:'#047857',atx:'#064E3B',h:'#111827',hv:'#D1FAE5'}};
 const css=Object.entries(TH).map(([k,t])=>`body[data-th="${k}"]{--bg:${t.bg};--cd:${t.cd};--a:${t.acc};--g:${t.acc}88;--mu:${t.mu};--pri:${t.pri};--p2:${t.p2};--tx:${t.tx};--pale:${t.pale};--bd:${t.bd};--a1:${t.a1};--a2:${t.a2};--ad:${t.ad};--atx:${t.atx};--h:${t.h};--hv:${t.hv}}`).join('\n')+`
 body[data-th]{background:radial-gradient(1200px 500px at 0% 0%,var(--hv),transparent 60%),var(--bg);color:var(--tx);font-family:Inter,"Noto Sans Bengali","Hind Siliguri",system-ui,sans-serif}
 body[data-th]:before{opacity:.04}
@@ -4648,7 +4651,9 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
             }) || null;
           }
           if(x){
-            b.insertAdjacentHTML('afterend', ` <button class="b s p" onclick="speakResultSlow('${esc(x.id)}')">🔊 ফলাফল ঘোষণা</button> <button class="b s d" onclick="stopVoice()">⏹</button> <button class="b s wa-sh" onclick="waShareRes('${esc(x.id)}')">📤 WhatsApp</button>`);
+            const _isHomeView = (typeof ME === 'undefined' || !ME || (typeof TAB !== 'undefined' && TAB === 'home'));
+            const _vBtns = _isHomeView ? '' : ` <button class="b s p" onclick="speakResultSlow('${esc(x.id)}')">🔊 ফলাফল ঘোষণা</button> <button class="b s d" onclick="stopVoice()">⏹</button>`;
+            b.insertAdjacentHTML('afterend', `${_vBtns} <button class="b s wa-sh" onclick="waShareRes('${esc(x.id)}')">📤 WhatsApp</button> <button class="b s" onclick="window.saOpenResultCard('${esc(x.id)}')">🖼️ কার্ড ছবি</button>`);
             (x.win||[]).forEach(w=>{
               if(!w.rec) return;
               box.querySelectorAll('div').forEach(d=>{
@@ -6201,7 +6206,8 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     } catch(e){ next(); }
   }
 
-  window.announcePaText = function(customText){
+  window.announcePaText = function(customText, opts){
+    opts = opts || {};
     const txt = String(customText || (document.getElementById('paCustomTxt')||{}).value || '').trim();
     if(!txt) return (typeof info === 'function' ? info('আগে ঘোষণার লেখা দিন বা মাইকে বলুন।') : alert('আগে ঘোষণার লেখা দিন।'));
 
@@ -6211,7 +6217,7 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     if(typeof origGlobalStop === 'function'){ try { origGlobalStop(); } catch(e){} }
     window.stopPaAnnouncement();
 
-    const useMusic = (document.getElementById('paUseMusic') || {checked:true}).checked;
+    const useMusic = opts.noMusic ? false : (document.getElementById('paUseMusic') || {checked:true}).checked;
     const useEcho = (document.getElementById('paUseEcho') || {checked:true}).checked;
     const params = getApiParams();
     const isClassicFem = (params.prof === 'female_classic');
@@ -6236,7 +6242,11 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
       if(!paPlaying || myRun !== paRunId) return;
       if(!paQueue.length){
         paPlaying = false;
-        setTimeout(()=>{ if(!paPlaying && myRun === paRunId) window.stopPaAnnouncement(); }, 1050);
+        if(typeof opts.onDone === 'function'){
+          setTimeout(()=>{ if(myRun === paRunId) opts.onDone(); }, 180);
+        } else {
+          setTimeout(()=>{ if(!paPlaying && myRun === paRunId) window.stopPaAnnouncement(); }, 1050);
+        }
         return;
       }
       const chunk = paQueue.shift();
@@ -6926,9 +6936,9 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
 
   if(typeof window.announcePaText === 'function' && !window.announcePaText.__saFiltered){
     const _origPaAnnounce = window.announcePaText;
-    window.announcePaText = function(customText){
+    window.announcePaText = function(customText, opts){
       if(typeof customText === 'string' && customText.trim()){
-        return _origPaAnnounce.call(this, normalizeTtsText(customText));
+        return _origPaAnnounce.call(this, normalizeTtsText(customText), opts);
       }
       const box = document.getElementById('paCustomTxt');
       if(box && box.value.trim()){
@@ -6942,6 +6952,11 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
   /* =========================================================================
      ২. পর্ষদের ১৯/১১/২০২৬ সংশোধনী অনুযায়ী ডিফল্ট জন্ম-তারিখের সীমা (Owner)
      ========================================================================= */
+  const DEF_AGE_RANGE = {
+    A: { min: '2019-01-01', max: '2022-01-01' },
+    B: { min: '2017-01-01', max: '2018-12-31' },
+    C: { min: '2015-01-01', max: '2016-12-31' }
+  };
   const DEF_AGE = { A: '2019-01-01', B: '2017-01-01', C: '2015-01-01' };
 
   function fmtDateBn(iso){
@@ -6949,14 +6964,46 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     return p.length === 3 ? (p[2] + '/' + p[1] + '/' + p[0]) : (iso || '');
   }
 
+  function normAgeRange(src){
+    const out = {
+      A: Object.assign({}, DEF_AGE_RANGE.A),
+      B: Object.assign({}, DEF_AGE_RANGE.B),
+      C: Object.assign({}, DEF_AGE_RANGE.C)
+    };
+    if(!src || typeof src !== 'object') return out;
+    ['A','B','C'].forEach(k => {
+      if(typeof src[k] === 'string' && src[k]) out[k].min = src[k];
+      else if(src[k] && typeof src[k] === 'object'){
+        if(src[k].min) out[k].min = src[k].min;
+        if(src[k].max) out[k].max = src[k].max;
+      }
+      if(src[k + '_max']) out[k].max = src[k + '_max'];
+    });
+    return out;
+  }
+
   function getAgeLimits(){
     try {
-      const fromDb = (typeof DB !== 'undefined' && DB && DB.cfg && DB.cfg.ageLimits) ? DB.cfg.ageLimits : null;
       const fromLs = JSON.parse(localStorage.getItem('sa_age_limits') || '{}');
-      return Object.assign({}, DEF_AGE, fromLs, fromDb || {});
-    } catch(e){ return Object.assign({}, DEF_AGE); }
+      const fromDb = (typeof DB !== 'undefined' && DB && DB.cfg && DB.cfg.ageLimits) ? DB.cfg.ageLimits : null;
+      const merged = normAgeRange(fromLs);
+      if(fromDb){
+        const dbR = normAgeRange(fromDb);
+        ['A','B','C'].forEach(k => { merged[k] = dbR[k]; });
+      }
+      return merged;
+    } catch(e){ return normAgeRange(null); }
   }
   window.saGetAgeLimits = getAgeLimits;
+
+  function checkDobRange(dob, sec, lims){
+    const r = (lims || getAgeLimits())[sec] || DEF_AGE_RANGE[sec] || { min: '2015-01-01', max: '2022-01-01' };
+    const d = String(dob || '').trim();
+    if(!d) return { ok: true, reason: '', min: r.min, max: r.max };
+    if(r.min && d < r.min) return { ok: false, reason: 'বয়সসীমা অতিক্রম করেছে (বেশি বয়স)', min: r.min, max: r.max };
+    if(r.max && d > r.max) return { ok: false, reason: 'বয়সসীমার কম (কম বয়স)', min: r.min, max: r.max };
+    return { ok: true, reason: '', min: r.min, max: r.max };
+  }
 
   const _origAgeBadge = window.updateDynamicAgeBadge;
   window.updateDynamicAgeBadge = function(inp, sec){
@@ -6968,11 +7015,8 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
         if(badge) badge.remove();
         return;
       }
-      const lims = getAgeLimits();
       const activeSec = sec || (typeof ES !== 'undefined' ? ES : 'A') || 'A';
-      const minDob = lims[activeSec] || DEF_AGE[activeSec] || '2015-01-01';
-      const dob = String(inp.value).trim();
-      const isValid = dob >= minDob;
+      const chk = checkDobRange(inp.value, activeSec);
       if(!badge){
         badge = document.createElement('div');
         badge.className = 'age-bdg';
@@ -6980,15 +7024,43 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
         host.insertAdjacentElement('afterend', badge);
       }
       const snLbl = (typeof SN !== 'undefined' && SN[activeSec]) ? SN[activeSec] : activeSec;
-      badge.style.background = isValid ? 'rgba(22,163,74,.14)' : 'rgba(225,29,72,.14)';
-      badge.style.color = isValid ? '#15803d' : '#be123c';
-      badge.style.border = '1px solid ' + (isValid ? '#22c55e' : '#f43f5e');
-      badge.innerHTML = `${snLbl} বিভাগ (জন্ম তারিখ ${fmtDateBn(minDob)} বা তার পরে): ` +
-        (isValid ? '✔ উপযুক্ত' : '⚠ বয়সসীমা অতিক্রম করেছে');
+      badge.style.background = chk.ok ? 'rgba(22,163,74,.14)' : 'rgba(225,29,72,.14)';
+      badge.style.color = chk.ok ? '#15803d' : '#be123c';
+      badge.style.border = '1px solid ' + (chk.ok ? '#22c55e' : '#f43f5e');
+      badge.innerHTML = `${snLbl} বিভাগ (${fmtDateBn(chk.min)} থেকে ${fmtDateBn(chk.max)}): ` +
+        (chk.ok ? '✔ উপযুক্ত' : '⚠ ' + chk.reason);
     } catch(e){
       if(typeof _origAgeBadge === 'function') _origAgeBadge.apply(this, arguments);
     }
   };
+
+  /* ডুপ্লিকেট এন্ট্রি যাচাই (একই বিদ্যালয়ে একই নাম ও বিভাগে দুবার এন্ট্রি এড়াতে) */
+  if(typeof window.addA === 'function' && !window.addA.__saDupCheck){
+    const _origAddADup = window.addA;
+    window.addA = function(){
+      try {
+        const nEl = document.getElementById('en');
+        const n = nEl ? nEl.value.trim().toUpperCase() : '';
+        const cNow = (typeof EC !== 'undefined') ? EC : 'boys';
+        const sNow = (cNow === 'teach') ? '' : ((typeof ES !== 'undefined') ? ES : 'A');
+        if(n && typeof DB !== 'undefined' && DB && Array.isArray(DB.a) && typeof ME !== 'undefined' && ME){
+          const dup = DB.a.find(a => a.school === ME.id && String(a.name||'').trim().toUpperCase() === n && a.cat === cNow && (a.sec||'') === sNow);
+          if(dup && !window.__saAllowDupOnce){
+            const args = arguments;
+            if(typeof conf === 'function'){
+              conf(`⚠️ <b>${esc(n)}</b> নামটি এই বিভাগে আগেই এন্ট্রি করা আছে। তবুও কি আবার যোগ করবেন?`, () => {
+                window.__saAllowDupOnce = true;
+                try { _origAddADup.apply(this, args); } finally { window.__saAllowDupOnce = false; }
+              });
+              return;
+            }
+          }
+        }
+      } catch(e){}
+      return _origAddADup.apply(this, arguments);
+    };
+    window.addA.__saDupCheck = true;
+  }
 
   /* =========================================================================
      ৩. অ্যাডমিন-ভিত্তিক কাস্টম শিডিউল (প্রিভিউ, প্রিন্ট ও এক-ক্লিক ঘোষণা)
@@ -7118,8 +7190,10 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
   function injectProBar(){
     try {
       const old = document.getElementById('sa-pro-inline-bar');
+      const _rmDash = () => { const d = document.getElementById('sa-mini-dash'); if(d) d.remove(); };
       if(typeof ME === 'undefined' || !ME) {
         if(old) old.remove();
+        _rmDash();
         return;
       }
       const r = ME.role;
@@ -7127,6 +7201,7 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
 
       if(t === 'home' || r === 'school'){
         if(old) old.remove();
+        _rmDash();
         return;
       }
 
@@ -7145,11 +7220,21 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
         if(t === 'rp' || t === 'rs'){
           btns.push(`<button class="b s" onclick="window.saProOpen('prize')">🏆 পুরস্কার বিতরণী</button>`);
         }
+        btns.push(`<button class="b s" onclick="window.saProOpen('champion')">🏆 চ্যাম্পিয়ন</button>`);
+        btns.push(`<button class="b s p" onclick="window.saOpenLiveBoard()">📺 লাইভ স্কোরবোর্ড</button>`);
+        btns.push(`<button class="b s" onclick="window.saProOpen('soundboard')">🎵 সাউন্ডবোর্ড</button>`);
+        btns.push(`<button class="b s" onclick="window.saProOpen('ceremony')">🎺 অনুষ্ঠান</button>`);
+        btns.push(`<button class="b s" onclick="window.saProOpen('backup')">💾 ব্যাকআপ</button>`);
       } else if(r === 'gp' || r === 'circle' || r === 'sub'){
         btns.push(`<button class="b s p" onclick="window.saProOpen('schedule')">🕒 শিডিউল সেট</button>`);
         btns.push(`<button class="b s p" onclick="window.saProOpen('prize')">🏆 পুরস্কার বিতরণী</button>`);
         btns.push(`<button class="b s" onclick="window.saProOpen('guest')">💐 অতিথিবরণ</button>`);
         btns.push(`<button class="b s d" onclick="window.saProOpen('agecheck')">⚠ বয়স যাচাই</button>`);
+        btns.push(`<button class="b s" onclick="window.saProOpen('champion')">🏆 চ্যাম্পিয়ন</button>`);
+        btns.push(`<button class="b s p" onclick="window.saOpenLiveBoard()">📺 লাইভ স্কোরবোর্ড</button>`);
+        btns.push(`<button class="b s" onclick="window.saProOpen('soundboard')">🎵 সাউন্ডবোর্ড</button>`);
+        btns.push(`<button class="b s" onclick="window.saProOpen('ceremony')">🎺 অনুষ্ঠান</button>`);
+        btns.push(`<button class="b s" onclick="window.saProOpen('backup')">💾 ব্যাকআপ</button>`);
       }
 
       if(!btns.length){
@@ -7158,15 +7243,42 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
       }
 
       const sig = r + '|' + t;
-      if(old && old.dataset.sig === sig && old.parentNode === app) return;
-      if(old) old.remove();
+      let bar = old;
+      if(!old || old.dataset.sig !== sig || old.parentNode !== app){
+        if(old) old.remove();
+        bar = document.createElement('div');
+        bar.id = 'sa-pro-inline-bar';
+        bar.className = 'sa-pro-bar';
+        bar.dataset.sig = sig;
+        bar.innerHTML = `<span class="sa-pro-bar-lbl">${r === 'owner' ? 'অনার সেটিংস:' : 'অ্যাডমিন টুলস:'}</span>` + btns.join('');
+        anchor.parentNode.insertBefore(bar, anchor.nextSibling);
+      }
 
-      const bar = document.createElement('div');
-      bar.id = 'sa-pro-inline-bar';
-      bar.className = 'sa-pro-bar';
-      bar.dataset.sig = sig;
-      bar.innerHTML = `<span class="sa-pro-bar-lbl">${r === 'owner' ? 'অনার সেটিংস:' : 'অ্যাডমিন টুলস:'}</span>` + btns.join('');
-      anchor.parentNode.insertBefore(bar, anchor.nextSibling);
+      /* মিনিমাল অ্যাডমিন স্ট্যাটাস ড্যাশবোর্ড (শুধুমাত্র অ্যাডমিন ট্যাবে, চালু থিমের রঙেই) */
+      const oldDash = document.getElementById('sa-mini-dash');
+      if(t === 'ad' && (r === 'owner' || r === 'sub' || r === 'circle' || r === 'gp')){
+        const ss = (r === 'owner') ? DB.u.filter(u => u.role === 'school') : (typeof schools === 'function' ? schools(ME.id) : []);
+        const lockedCnt = ss.filter(s => s.locked).length;
+        const sIds = new Set(ss.map(s => s.id));
+        const athCnt = (DB.a || []).filter(a => r === 'owner' || sIds.has(a.school)).length;
+        const resCnt = (typeof rsScope === 'function') ? rsScope().length : (DB.r || []).length;
+        const dSig = `${r}|${ss.length}|${lockedCnt}|${athCnt}|${resCnt}`;
+        if(!oldDash || oldDash.dataset.sig !== dSig){
+          if(oldDash) oldDash.remove();
+          const dash = document.createElement('div');
+          dash.id = 'sa-mini-dash';
+          dash.dataset.sig = dSig;
+          dash.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin:10px 0';
+          const mkCard = (lbl, val, sub) => `<div style="background:var(--cd);border:1px solid var(--bd,var(--a));border-radius:10px;padding:10px 12px;text-align:center;box-shadow:0 3px 10px rgba(0,0,0,.08)"><div style="font-size:12px;color:var(--mu)">${lbl}</div><div style="font-size:22px;font-weight:800;color:var(--h,var(--a));line-height:1.25">${val}</div>${sub?`<div style="font-size:11px;color:var(--mu)">${sub}</div>`:''}</div>`;
+          dash.innerHTML = mkCard('মোট ইউনিট / স্কুল', ss.length, '')
+            + mkCard('ফাইনাল সাবমিট', `${lockedCnt} / ${ss.length}`, ss.length ? Math.round((lockedCnt/ss.length)*100) + '% সম্পন্ন' : '')
+            + mkCard('মোট প্রতিযোগী', athCnt, '')
+            + mkCard('প্রকাশিত ফলাফল', resCnt, '');
+          bar.parentNode.insertBefore(dash, bar.nextSibling);
+        }
+      } else if(oldDash){
+        oldDash.remove();
+      }
     } catch(e){}
   }
 
@@ -7204,19 +7316,19 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
 
     if(tab === 'age'){
       const lim = getAgeLimits();
-      title.textContent = '📅 বয়স-সীমা সেটিংস (Owner)';
+      title.textContent = '📅 বয়স-সীমা রেঞ্জ সেটিংস (Owner)';
       body.innerHTML = `
-        <label class="mu">বিভাগ ক (সর্বনিম্ন জন্ম তারিখ বা তার পরে)</label>
-        <input type="date" id="sa-age-a" value="${lim.A}">
-        <label class="mu">বিভাগ খ (সর্বনিম্ন জন্ম তারিখ বা তার পরে)</label>
-        <input type="date" id="sa-age-b" value="${lim.B}">
-        <label class="mu">বিভাগ গ (সর্বনিম্ন জন্ম তারিখ বা তার পরে)</label>
-        <input type="date" id="sa-age-c" value="${lim.C}">
-        <div class="sa-pro-row">
+        <label class="mu">বিভাগ ক (শুরু থেকে শেষ তারিখ)</label>
+        <div class="sa-pro-row"><input type="date" id="sa-age-a-min" value="${lim.A.min}"><input type="date" id="sa-age-a-max" value="${lim.A.max}"></div>
+        <label class="mu">বিভাগ খ (শুরু থেকে শেষ তারিখ)</label>
+        <div class="sa-pro-row"><input type="date" id="sa-age-b-min" value="${lim.B.min}"><input type="date" id="sa-age-b-max" value="${lim.B.max}"></div>
+        <label class="mu">বিভাগ গ (শুরু থেকে শেষ তারিখ)</label>
+        <div class="sa-pro-row"><input type="date" id="sa-age-c-min" value="${lim.C.min}"><input type="date" id="sa-age-c-max" value="${lim.C.max}"></div>
+        <div class="sa-pro-row" style="margin-top:6px">
           <button class="b p" onclick="window.saProSaveAge()">💾 তারিখ সেভ করুন</button>
-          <button class="b" onclick="window.saProScanOverage()">🔍 বয়স বেশি এমন প্রতিযোগী খুঁজুন</button>
+          <button class="b" onclick="window.saProScanOverage()">🔍 সীমার বাইরের প্রতিযোগী খুঁজুন</button>
         </div>
-        <div id="sa-age-msg" class="sa-pro-note">পর্ষদের ১৯/১১/২০২৬ সংশোধনী অনুযায়ী ডিফল্ট সীমা: ক (০১/০১/২০১৯), খ (০১/০১/২০১৭), গ (০১/০১/২০১৫)।</div>
+        <div id="sa-age-msg" class="sa-pro-note">ডিফল্ট রেঞ্জ: ক (০১/০১/২০১৯ – ০১/০১/২০২২), খ (০১/০১/২০১৭ – ৩১/১২/২০১৮), গ (০১/০১/২০১৫ – ৩১/১২/২০১৬)।</div>
         <div id="sa-overage-list" style="margin-top:8px"></div>
       `;
     }
@@ -7226,7 +7338,9 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
       body.innerHTML = `
         <div class="sa-pro-note" style="margin-top:0">
           <b>নির্ধারিত বয়স-সীমা (Owner কর্তৃক):</b><br>
-          ক বিভাগ: ${fmtDateBn(lim.A)} বা তার পরে • খ বিভাগ: ${fmtDateBn(lim.B)} বা তার পরে • গ বিভাগ: ${fmtDateBn(lim.C)} বা তার পরে
+          ক বিভাগ: ${fmtDateBn(lim.A.min)} – ${fmtDateBn(lim.A.max)}<br>
+          খ বিভাগ: ${fmtDateBn(lim.B.min)} – ${fmtDateBn(lim.B.max)}<br>
+          গ বিভাগ: ${fmtDateBn(lim.C.min)} – ${fmtDateBn(lim.C.max)}
         </div>
         <div class="sa-pro-row" style="margin-top:8px">
           <button class="b p" onclick="window.saProScanOverage()">🔄 তালিকা রিফ্রেশ করুন</button>
@@ -7234,6 +7348,22 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
         <div id="sa-overage-list" style="margin-top:8px"></div>
       `;
       setTimeout(() => window.saProScanOverage(), 0);
+    }
+    else if(tab === 'backup'){
+      title.textContent = '💾 অফলাইন ব্যাকআপ ও রিস্টোর';
+      body.innerHTML = `
+        <div class="sa-pro-note" style="margin-top:0">
+          মাঠে ইন্টারনেট না থাকলেও পুরো প্রতিযোগিতার ডেটা (অ্যাকাউন্ট, প্রতিযোগী, ফলাফল, সেটিংস ও ডিকশনারি) একটি নিরাপদ <b>.json</b> ফাইলে সেভ করে রাখতে পারবেন এবং প্রয়োজনে যেকোনো সময় রিস্টোর করতে পারবেন।
+        </div>
+        <div class="sa-pro-row" style="margin-top:10px">
+          <button class="b p" onclick="window.saProExportBackup()">⬇ ব্যাকআপ ডাউনলোড (.json)</button>
+        </div>
+        <div style="margin-top:12px;padding-top:10px;border-top:1px dashed var(--bd,#334155)">
+          <label class="mu">আগের ব্যাকআপ ফাইল (.json) থেকে রিস্টোর করুন:</label>
+          <input type="file" accept=".json,application/json" onchange="window.saProImportBackup(this)">
+        </div>
+        <div id="sa-bk-msg" class="sa-pro-note">ব্যাকআপ ফাইলটি আপনার ফোন বা কম্পিউটারের Downloads ফোল্ডারে সেভ হবে।</div>
+      `;
     }
     else if(tab === 'schedule'){
       const scObj = getAdminSchedObj();
@@ -7397,9 +7527,18 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
 
   window.saProSaveAge = function(){
     const data = {
-      A: document.getElementById('sa-age-a').value || DEF_AGE.A,
-      B: document.getElementById('sa-age-b').value || DEF_AGE.B,
-      C: document.getElementById('sa-age-c').value || DEF_AGE.C
+      A: {
+        min: (document.getElementById('sa-age-a-min')||{}).value || DEF_AGE_RANGE.A.min,
+        max: (document.getElementById('sa-age-a-max')||{}).value || DEF_AGE_RANGE.A.max
+      },
+      B: {
+        min: (document.getElementById('sa-age-b-min')||{}).value || DEF_AGE_RANGE.B.min,
+        max: (document.getElementById('sa-age-b-max')||{}).value || DEF_AGE_RANGE.B.max
+      },
+      C: {
+        min: (document.getElementById('sa-age-c-min')||{}).value || DEF_AGE_RANGE.C.min,
+        max: (document.getElementById('sa-age-c-max')||{}).value || DEF_AGE_RANGE.C.max
+      }
     };
     localStorage.setItem('sa_age_limits', JSON.stringify(data));
     if(typeof DB !== 'undefined' && DB){
@@ -7407,7 +7546,53 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
       DB.cfg.ageLimits = data;
       if(typeof sv === 'function') sv();
     }
-    document.getElementById('sa-age-msg').textContent = '✅ নতুন বয়স-সীমা সেভ হয়েছে।';
+    document.getElementById('sa-age-msg').textContent = '✅ নতুন বয়স-সীমা রেঞ্জ সেভ হয়েছে।';
+  };
+
+  window.saProExportBackup = function(){
+    try {
+      const payload = JSON.stringify(DB, null, 2);
+      const blob = new Blob([payload], { type: 'application/json;charset=utf-8' });
+      const u = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = u;
+      a.download = 'sports-arena-backup-' + new Date().toISOString().slice(0,10) + '.json';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(u), 3000);
+      const msg = document.getElementById('sa-bk-msg');
+      if(msg) msg.textContent = '✅ ব্যাকআপ ফাইল সফলভাবে ডাউনলোড হয়েছে।';
+    } catch(e){
+      const msg = document.getElementById('sa-bk-msg');
+      if(msg) msg.textContent = '⚠ ব্যাকআপ তৈরি করা যায়নি: ' + e.message;
+    }
+  };
+
+  window.saProImportBackup = function(inp){
+    const f = inp && inp.files && inp.files[0];
+    if(!f) return;
+    const rd = new FileReader();
+    rd.onload = () => {
+      try {
+        const parsed = JSON.parse(rd.result);
+        if(!parsed || !Array.isArray(parsed.u) || !Array.isArray(parsed.a)){
+          return info('ভুল ব্যাকআপ ফাইল! সঠিক Sports Arena JSON ফাইল বেছে নিন।');
+        }
+        conf('এই ব্যাকআপ ফাইল রিস্টোর করলে বর্তমান ডেটা প্রতিস্থাপিত হবে। আপনি কি নিশ্চিত?', () => {
+          DB = parsed;
+          DB.e = DB.e || [];
+          if(typeof svNow === 'function') svNow();
+          else if(typeof sv === 'function') sv();
+          window.saProClose();
+          if(typeof draw === 'function') draw();
+          info('✅ ব্যাকআপ সফলভাবে রিস্টোর হয়েছে।');
+        });
+      } catch(e){
+        info('ফাইলটি পড়া যায়নি: সঠিক JSON ফাইল নয়।');
+      }
+    };
+    rd.readAsText(f);
   };
 
   window.saProScanOverage = function(){
@@ -7421,8 +7606,7 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     }
     const bad = pool.filter(x => {
       if(x.cat === 'teach' || !x.dob || !x.sec) return false;
-      const minD = lims[x.sec];
-      return minD && String(x.dob).trim() < minD;
+      return !checkDobRange(x.dob, x.sec, lims).ok;
     });
     if(!bad.length){
       box.innerHTML = `<div class="sa-pro-note">✅ বর্তমান বয়স-সীমা অনুযায়ী কোনো অযোগ্য প্রতিযোগী পাওয়া যায়নি।</div>`;
@@ -7788,6 +7972,1291 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     list.splice(idx, 1);
     saveGuestList(list);
     window.saProRenderGuests();
+  };
+})();
+</script>
+
+<script>
+/* =========================================================================
+   Sports Arena v17 — Live Scoreboard (High-Contrast Dark/Light Modes),
+   Individual Champion, Smart Hierarchy PNG Result Card, Offline Soundboard
+   (Gun/Cannon/Bell/Whistle/Fanfare/Applause), Ceremony Panel (National Anthem,
+   National Song, March Past Drum Loop, Sports Oath with Line-by-Line TTS & BGM),
+   & Schedule Reminder Alert
+   ========================================================================= */
+(function(){
+  if(window.__SA_V17_LOADED) return;
+  window.__SA_V17_LOADED = true;
+
+  /* --- Styles for High-Contrast Live Scoreboard (Dark & Light), Toast, Champion & Ceremony --- */
+  const st = document.createElement('style');
+  st.textContent = `
+    #sa-live-tv{position:fixed;inset:0;z-index:99999;background:#020617;color:#ffffff;display:none;flex-direction:column;font-family:"Hind Siliguri","Noto Sans Bengali",system-ui,sans-serif;overflow:hidden}
+    #sa-live-tv.open{display:flex}
+    .tv-top{display:flex;justify-content:space-between;align-items:center;padding:12px 22px;background:#0f172a;border-bottom:3px solid #38bdf8;flex-wrap:wrap;gap:10px}
+    .tv-title{font-size:24px;font-weight:700;color:#fde047;line-height:1.2}
+    .tv-sub{font-size:14px;color:#e2e8f0;font-weight:600}
+    .tv-ctrl{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+    .tv-ctrl button{background:#1e293b;color:#ffffff;border:2px solid #38bdf8;border-radius:8px;padding:6px 12px;font:700 13px inherit;cursor:pointer}
+    .tv-ctrl button:hover{background:#0284c7}
+    .tv-body{flex:1;padding:22px 28px;overflow-y:auto;display:flex;flex-direction:column;justify-content:center}
+    .tv-slide-hd{font-size:30px;font-weight:800;color:#fde047;margin:0 0 18px;text-align:center;letter-spacing:.3px;text-shadow:0 2px 6px rgba(0,0,0,.6)}
+    .tv-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:18px;max-width:1340px;width:100%;margin:0 auto}
+    .tv-card{background:#0f172a;border:2px solid #38bdf8;border-radius:16px;padding:18px 20px;box-shadow:0 8px 24px rgba(0,0,0,.45)}
+    .tv-card h3{margin:0 0 12px;font-size:21px;font-weight:700;color:#fde047;border-bottom:2px solid #334155;padding-bottom:8px}
+    .tv-win-row{display:flex;align-items:center;gap:12px;padding:10px 12px;margin:8px 0;background:#1e293b;border:1px solid #475569;border-radius:10px;font-size:18px;color:#ffffff}
+    .tv-win-sub{font-size:15px;color:#e2e8f0;font-weight:600}
+    .tv-win-chest{color:#7dd3fc;font-weight:700}
+    .tv-pts{font-weight:800;color:#fde047;font-size:21px}
+    .tv-med{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;flex-shrink:0;border:2px solid rgba(0,0,0,.25)}
+    .tv-m1{background:#facc15;color:#000000}.tv-m2{background:#e2e8f0;color:#000000}.tv-m3{background:#fb923c;color:#000000}.tv-m4{background:#64748b;color:#ffffff}
+    .tv-tbl{width:100%;border-collapse:collapse;font-size:19px}
+    .tv-tbl th,.tv-tbl td{padding:11px 14px;border-bottom:1px solid #334155;text-align:left;color:#ffffff}
+    .tv-tbl th{color:#fde047;font-size:16px;font-weight:700;background:#1e293b}
+    .tv-tbl tr:nth-child(even) td{background:#162033}
+    .tv-time{color:#fde047;font-weight:700;white-space:nowrap}
+    .tv-empty{text-align:center;font-size:22px;color:#e2e8f0;font-weight:600}
+    .tv-foot{padding:9px 22px;background:#0f172a;display:flex;justify-content:space-between;align-items:center;font-size:14px;font-weight:600;color:#e2e8f0;border-top:2px solid #334155}
+
+    /* High-Contrast LIGHT MODE for Outdoor Sunlight */
+    #sa-live-tv.tv-light{background:#ffffff;color:#000000}
+    #sa-live-tv.tv-light .tv-top{background:#0f172a;border-bottom:4px solid #15803d}
+    #sa-live-tv.tv-light .tv-slide-hd{color:#0f172a;text-shadow:none;border-bottom:3px solid #15803d;display:inline-block;padding-bottom:4px;margin:0 auto 18px}
+    #sa-live-tv.tv-light .tv-card{background:#f8fafc;border:2.5px solid #0f172a;box-shadow:0 4px 12px rgba(0,0,0,.1)}
+    #sa-live-tv.tv-light .tv-card h3{color:#14532d;border-bottom:2px solid #cbd5e1}
+    #sa-live-tv.tv-light .tv-win-row{background:#ffffff;border:2px solid #64748b;color:#000000}
+    #sa-live-tv.tv-light .tv-win-sub{color:#1e293b}
+    #sa-live-tv.tv-light .tv-win-chest{color:#1d4ed8}
+    #sa-live-tv.tv-light .tv-pts{color:#b91c1c}
+    #sa-live-tv.tv-light .tv-tbl th{background:#0f172a;color:#ffffff}
+    #sa-live-tv.tv-light .tv-tbl td{color:#000000;border-bottom:1.5px solid #94a3b8;font-weight:600}
+    #sa-live-tv.tv-light .tv-tbl tr:nth-child(even) td{background:#e2e8f0}
+    #sa-live-tv.tv-light .tv-time{color:#14532d}
+    #sa-live-tv.tv-light .tv-empty{color:#1e293b}
+    #sa-live-tv.tv-light .tv-foot{background:#e2e8f0;color:#0f172a;border-top:2px solid #0f172a}
+
+    #sa-sched-toast{position:fixed;right:16px;bottom:78px;z-index:99990;background:#0f172a;color:#f8fafc;border:2px solid #facc15;border-radius:14px;padding:14px 16px;max-width:340px;box-shadow:0 12px 32px rgba(0,0,0,.45);display:none}
+    #sa-sched-toast.show{display:block;animation:saPop .25s ease-out}
+    @keyframes saPop{from{transform:translateY(14px);opacity:0}to{transform:none;opacity:1}}
+    .sa-sb-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(138px,1fr));gap:8px;margin:8px 0}
+    .sa-champ-row{display:flex;justify-content:space-between;align-items:center;padding:7px 10px;border:1px solid var(--bd,#334155);border-radius:8px;margin:5px 0;background:rgba(255,255,255,.04);gap:8px}
+    .sa-cer-box{border:1px solid var(--bd,#334155);border-radius:10px;padding:10px 12px;margin:10px 0;background:rgba(255,255,255,.03)}
+    .sa-cer-box h4{margin:0 0 6px;font-size:15px;color:var(--a)}
+    .sa-oath-ta{width:100%;min-height:130px;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.25);background:rgba(0,0,0,.22);color:#fff;font:inherit;line-height:1.6;resize:vertical}
+    .sa-oath-ta.big{font-size:21px;min-height:240px;line-height:1.75;background:#0f172a;color:#fef08a;border:2px solid #facc15}
+  `;
+  document.head.appendChild(st);
+
+  /* --- Helpers: Bengali digits & Hierarchy lookup --- */
+  const BN_D = '০১২৩৪৫৬৭৮৯';
+  const toBnNum = n => String(n).replace(/\d/g, d => BN_D[+d]);
+  const fromBnNum = s => String(s || '').replace(/[০-৯]/g, ch => String(BN_D.indexOf(ch)));
+
+  function findAncByRole(u, targetRole){
+    let cur = u, g = 0;
+    while(cur && g++ < 8){
+      if(cur.role === targetRole || (cur.role === 'school' && cur.lvl === targetRole)) return cur.name || '';
+      cur = (typeof U === 'function' && cur.parent) ? U(cur.parent) : null;
+    }
+    return '';
+  }
+
+  function resolveWinnerMeta(x, w){
+    const pubU = (typeof U === 'function' && x && x.gp) ? U(x.gp) : null;
+    let pubRole = (pubU && pubU.role) || '';
+    const ath = (w && w.pid != null && DB && Array.isArray(DB.a))
+      ? DB.a.find(p => p.id === w.pid)
+      : (DB && Array.isArray(DB.a) ? DB.a.find(p => String(p.chest||'').trim().toUpperCase() === String((w&&w.chest)||'').trim().toUpperCase() && p.cat === x.cat && (p.sec||'') === (x.sec||'')) : null);
+    const schU = (ath && typeof U === 'function') ? U(ath.school) : null;
+
+    if(!pubRole || pubRole === 'owner'){
+      if(schU && schU.lvl === 'circle') pubRole = 'sub';
+      else if(schU && schU.lvl === 'gp') pubRole = 'circle';
+      else if(typeof ME !== 'undefined' && ME && ME.role !== 'owner' && ME.role !== 'school') pubRole = ME.role;
+      else pubRole = 'gp';
+    }
+
+    const actualSch = (ath && ath.sch && String(ath.sch).trim())
+      ? String(ath.sch).trim()
+      : (schU && !schU.lvl ? (schU.name || w.school || '') : '');
+
+    let line1 = '', line2 = '';
+    if(pubRole === 'sub'){
+      const cirName = findAncByRole(schU, 'circle') || (schU && schU.lvl === 'circle' ? schU.name : '') || w.school || '';
+      line1 = cirName ? ('সার্কেল: ' + cirName) : '';
+      if(actualSch && actualSch !== cirName) line2 = 'School: ' + actualSch;
+    } else if(pubRole === 'circle'){
+      const gpName = findAncByRole(schU, 'gp') || (schU && schU.lvl === 'gp' ? schU.name : '') || w.school || '';
+      line1 = gpName ? ('জিপি: ' + gpName) : '';
+      if(actualSch && actualSch !== gpName) line2 = 'School: ' + actualSch;
+    } else {
+      const schName = actualSch || w.school || (schU ? schU.name : '') || '-';
+      line1 = 'School: ' + schName;
+    }
+    return { ath, pubRole, pubName: (x && x.gpn) || (pubU && pubU.name) || '', line1, line2 };
+  }
+
+  /* =========================================================================
+     ১. অফলাইন সাউন্ডবোর্ড (Web Audio API — ১০০% ইন্টারনেট ছাড়াই চলে)
+        তালি, ফ্যানফেয়ার, ঘণ্টা, বাঁশি, বন্দুকের গুলি (Firing), তোপের শব্দ (Cannon)
+     ========================================================================= */
+  let _ac = null;
+  function getAC(){
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if(!Ctx) return null;
+    if(!_ac) _ac = new Ctx();
+    if(_ac.state === 'suspended') _ac.resume();
+    return _ac;
+  }
+
+  window.saPlaySfx = function(type){
+    try {
+      const ctx = getAC();
+      if(!ctx) return;
+      const now = ctx.currentTime;
+
+      if(type === 'bell'){
+        [880, 1174.66].forEach((freq, idx) => {
+          const osc = ctx.createOscillator();
+          const g = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, now + idx * 0.22);
+          g.gain.setValueAtTime(0.001, now + idx * 0.22);
+          g.gain.exponentialRampToValueAtTime(0.35, now + idx * 0.22 + 0.02);
+          g.gain.exponentialRampToValueAtTime(0.0008, now + idx * 0.22 + 1.1);
+          osc.connect(g); g.connect(ctx.destination);
+          osc.start(now + idx * 0.22);
+          osc.stop(now + idx * 0.22 + 1.15);
+        });
+      }
+      else if(type === 'fanfare'){
+        const notes = [
+          [523.25, 0.00, 0.16],
+          [659.25, 0.16, 0.16],
+          [783.99, 0.32, 0.16],
+          [1046.50, 0.48, 0.75]
+        ];
+        notes.forEach(([f, t, d]) => {
+          const osc = ctx.createOscillator();
+          const osc2 = ctx.createOscillator();
+          const g = ctx.createGain();
+          osc.type = 'triangle';
+          osc2.type = 'sawtooth';
+          osc.frequency.setValueAtTime(f, now + t);
+          osc2.frequency.setValueAtTime(f * 0.5, now + t);
+          g.gain.setValueAtTime(0.001, now + t);
+          g.gain.linearRampToValueAtTime(0.22, now + t + 0.03);
+          g.gain.exponentialRampToValueAtTime(0.001, now + t + d);
+          osc.connect(g); osc2.connect(g); g.connect(ctx.destination);
+          osc.start(now + t); osc2.start(now + t);
+          osc.stop(now + t + d + 0.05); osc2.stop(now + t + d + 0.05);
+        });
+      }
+      else if(type === 'applause'){
+        const dur = 2.6;
+        const bufSize = Math.floor(ctx.sampleRate * dur);
+        const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+        const data = buf.getChannelData(0);
+        for(let i = 0; i < bufSize; i++){
+          const t = i / ctx.sampleRate;
+          const env = Math.sin(Math.min(1, t / 0.25) * Math.PI / 2) * Math.max(0, 1 - Math.max(0, t - 1.6) / 1.0);
+          const flutter = 0.7 + 0.3 * Math.sin(t * 28) * Math.cos(t * 17);
+          data[i] = (Math.random() * 2 - 1) * env * flutter * 0.42;
+        }
+        const src = ctx.createBufferSource();
+        src.buffer = buf;
+        const bp = ctx.createBiquadFilter();
+        bp.type = 'bandpass';
+        bp.frequency.value = 1150;
+        bp.Q.value = 0.7;
+        src.connect(bp); bp.connect(ctx.destination);
+        src.start(now);
+      }
+      else if(type === 'whistle'){
+        const osc = ctx.createOscillator();
+        const lfo = ctx.createOscillator();
+        const lfoG = ctx.createGain();
+        const g = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(2800, now);
+        lfo.frequency.setValueAtTime(28, now);
+        lfoG.gain.setValueAtTime(120, now);
+        lfo.connect(lfoG); lfoG.connect(osc.frequency);
+        g.gain.setValueAtTime(0.001, now);
+        g.gain.linearRampToValueAtTime(0.28, now + 0.04);
+        g.gain.setValueAtTime(0.28, now + 0.55);
+        g.gain.exponentialRampToValueAtTime(0.001, now + 0.75);
+        osc.connect(g); g.connect(ctx.destination);
+        osc.start(now); lfo.start(now);
+        osc.stop(now + 0.78); lfo.stop(now + 0.78);
+      }
+      else if(type === 'gun'){
+        /* Starter Pistol Firing: Sharp crack + short punch + outdoor slapback echo */
+        const dur = 0.65;
+        const bufSize = Math.floor(ctx.sampleRate * dur);
+        const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+        const data = buf.getChannelData(0);
+        for(let i = 0; i < bufSize; i++){
+          const t = i / ctx.sampleRate;
+          const mainEnv = Math.exp(-t * 22);
+          const echoEnv = t > 0.14 ? 0.25 * Math.exp(-(t - 0.14) * 14) : 0;
+          data[i] = (Math.random() * 2 - 1) * (mainEnv + echoEnv);
+        }
+        const src = ctx.createBufferSource();
+        src.buffer = buf;
+        const hp = ctx.createBiquadFilter();
+        hp.type = 'highpass';
+        hp.frequency.setValueAtTime(650, now);
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0.95, now);
+        g.gain.exponentialRampToValueAtTime(0.001, now + dur);
+        src.connect(hp); hp.connect(g); g.connect(ctx.destination);
+        src.start(now);
+
+        /* Punchy transient thump */
+        const osc = ctx.createOscillator();
+        const og = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(340, now);
+        osc.frequency.exponentialRampToValueAtTime(55, now + 0.09);
+        og.gain.setValueAtTime(0.7, now);
+        og.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+        osc.connect(og); og.connect(ctx.destination);
+        osc.start(now); osc.stop(now + 0.11);
+      }
+      else if(type === 'cannon'){
+        /* Heavy Cannon Blast: Sub-bass drop + deep thunderous low-pass rumble */
+        const osc = ctx.createOscillator();
+        const og = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(115, now);
+        osc.frequency.exponentialRampToValueAtTime(26, now + 0.55);
+        og.gain.setValueAtTime(0.95, now);
+        og.gain.exponentialRampToValueAtTime(0.001, now + 0.75);
+        osc.connect(og); og.connect(ctx.destination);
+        osc.start(now); osc.stop(now + 0.8);
+
+        const dur = 2.0;
+        const bufSize = Math.floor(ctx.sampleRate * dur);
+        const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+        const data = buf.getChannelData(0);
+        for(let i = 0; i < bufSize; i++){
+          const t = i / ctx.sampleRate;
+          const env = (t < 0.02 ? t / 0.02 : Math.exp(-(t - 0.02) * 2.4));
+          data[i] = (Math.random() * 2 - 1) * env;
+        }
+        const src = ctx.createBufferSource();
+        src.buffer = buf;
+        const lp = ctx.createBiquadFilter();
+        lp.type = 'lowpass';
+        lp.frequency.setValueAtTime(620, now);
+        lp.frequency.exponentialRampToValueAtTime(95, now + 1.4);
+        const ng = ctx.createGain();
+        ng.gain.setValueAtTime(0.9, now);
+        ng.gain.exponentialRampToValueAtTime(0.001, now + dur);
+        src.connect(lp); lp.connect(ng); ng.connect(ctx.destination);
+        src.start(now);
+      }
+    } catch(e){}
+  };
+
+  window.saQuickCallout = function(callNo){
+    try {
+      const sel = document.getElementById('sa-sb-ev');
+      const idx = sel ? +sel.value : 0;
+      const item = (typeof ALLEV !== 'undefined' && ALLEV[idx]) ? ALLEV[idx] : null;
+      if(!item) return;
+      const [c, s, ev] = item;
+      const cLbl = (typeof CN !== 'undefined' && CN[c]) ? CN[c] : c;
+      const sLbl = (s && typeof SN !== 'undefined' && SN[s]) ? (SN[s] + ' বিভাগ, ') : '';
+      let txt = '';
+      if(callNo === 1){
+        window.saPlaySfx('bell');
+        txt = `প্রথম কল। ${cLbl} ${sLbl}${ev} প্রতিযোগিতার সকল প্রতিযোগীকে প্রস্তুত থাকার জন্য অনুরোধ করা হচ্ছে।`;
+      } else if(callNo === 2){
+        window.saPlaySfx('bell');
+        txt = `দ্বিতীয় কল। ${cLbl} ${sLbl}${ev} ইভেন্টের প্রতিযোগীদের অবিলম্বে কলিং কাউন্টারে রিপোর্ট করার জন্য অনুরোধ করা হচ্ছে।`;
+      } else {
+        window.saPlaySfx('whistle');
+        txt = `শেষ কল, ফাইনাল কল। ${cLbl} ${sLbl}${ev} প্রতিযোগিতা এখনই শুরু হতে চলেছে। সকল প্রতিযোগীকে দ্রুত মাঠে উপস্থিত হওয়ার জন্য শেষ বারের মতো অনুরোধ করা হচ্ছে।`;
+      }
+      const prof = (document.getElementById('sa-sb-voice') || {}).value;
+      if(prof && typeof window.paSetVoiceProfile === 'function') window.paSetVoiceProfile(prof);
+      setTimeout(() => {
+        if(typeof window.announcePaText === 'function'){
+          window.announcePaText(txt);
+        } else if(typeof speechSynthesis !== 'undefined'){
+          speechSynthesis.cancel();
+          const u = new SpeechSynthesisUtterance(txt);
+          u.lang = 'bn-IN';
+          speechSynthesis.speak(u);
+        }
+      }, 450);
+    } catch(e){}
+  };
+
+  /* =========================================================================
+     ১ক. অনুষ্ঠান / সেরেমনি ইঞ্জিন (জাতীয় সঙ্গীত, জাতীয় গীত, মার্চ পাস্ট ড্রাম, শপথ বাক্য)
+     ========================================================================= */
+  let _cerNodes = [];
+  let _cerTimers = [];
+  let _marchTimer = null;
+  let _oathRunning = false;
+  let _oathBgmNodes = [];
+  let _customAudio = null;
+  const _customUrls = { anthem: '', song: '', march: '' };
+
+  function setCerStatus(msg){
+    const el = document.getElementById('sa-cer-status');
+    if(el) el.textContent = msg || '';
+  }
+
+  window.saCerStopAll = function(){
+    _oathRunning = false;
+    _cerTimers.forEach(t => clearTimeout(t));
+    _cerTimers = [];
+    if(_marchTimer){ clearInterval(_marchTimer); _marchTimer = null; }
+    _cerNodes.forEach(n => { try { n.stop(); } catch(e){} try { n.disconnect(); } catch(e){} });
+    _cerNodes = [];
+    _oathBgmNodes.forEach(n => { try { n.stop(); } catch(e){} try { n.disconnect(); } catch(e){} });
+    _oathBgmNodes = [];
+    if(_customAudio){ try { _customAudio.pause(); _customAudio.currentTime = 0; } catch(e){} }
+    if(typeof window.stopPaAnnouncement === 'function'){ try { window.stopPaAnnouncement(); } catch(e){} }
+    if(typeof speechSynthesis !== 'undefined') speechSynthesis.cancel();
+    setCerStatus('⏹ বন্ধ করা হয়েছে।');
+  };
+
+  /* Helper: play musical note sequence with warm brass/harmonium timbre */
+  const NOTE_F = {
+    'C4':261.63,'C#4':277.18,'D4':293.66,'Eb4':311.13,'E4':329.63,'F4':349.23,'F#4':369.99,
+    'G4':392.00,'Ab4':415.30,'A4':440.00,'Bb4':466.16,'B4':493.88,
+    'C5':523.25,'D5':587.33,'E5':659.25,'F5':698.46,'G5':783.99,'R':0
+  };
+
+  function playMelody(seq, beatSec, label){
+    window.saCerStopAll();
+    const ctx = getAC();
+    if(!ctx) return;
+    setCerStatus('▶ বাজছে: ' + label + ' ...');
+    let t = ctx.currentTime + 0.08;
+    const master = ctx.createGain();
+    master.gain.setValueAtTime(0.28, t);
+    master.connect(ctx.destination);
+    _cerNodes.push(master);
+
+    let totalSec = 0;
+    seq.forEach(([note, beats]) => {
+      const dur = beats * beatSec;
+      const freq = NOTE_F[note] || 0;
+      if(freq > 0){
+        const o1 = ctx.createOscillator();
+        const o2 = ctx.createOscillator();
+        const g = ctx.createGain();
+        o1.type = 'triangle';
+        o2.type = 'sine';
+        o1.frequency.setValueAtTime(freq, t);
+        o2.frequency.setValueAtTime(freq * 2, t);
+        const g2 = ctx.createGain();
+        g2.gain.setValueAtTime(0.25, t);
+        o2.connect(g2); g2.connect(g);
+        o1.connect(g);
+        g.gain.setValueAtTime(0.001, t);
+        g.gain.linearRampToValueAtTime(0.85, t + 0.04);
+        g.gain.setValueAtTime(0.75, t + Math.max(0.06, dur - 0.07));
+        g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+        g.connect(master);
+        o1.start(t); o2.start(t);
+        o1.stop(t + dur + 0.02); o2.stop(t + dur + 0.02);
+        _cerNodes.push(o1, o2, g);
+      }
+      t += dur;
+      totalSec += dur;
+    });
+    _cerTimers.push(setTimeout(() => setCerStatus('✅ সমাপ্ত: ' + label), Math.ceil(totalSec * 1000) + 200));
+  }
+
+  /* Jana Gana Mana (Standard 52s instrumental notation in C major) */
+  window.saPlayAnthem = function(){
+    if(_customUrls.anthem){ return window.saPlayCustomAudio('anthem', 'জাতীয় সঙ্গীত (নিজস্ব MP3)'); }
+    const seq = [
+      ['C4',1],['D4',1],['E4',1],['E4',1],['E4',1],['E4',1],['E4',1],['E4',1],['E4',1],['E4',1],['D4',1],['E4',1],['F4',2],
+      ['E4',1],['E4',1],['E4',1],['D4',1],['D4',1],['D4',1],['B4',1],['D4',1],['C4',2],['R',1],
+      ['C4',1],['G4',1],['G4',1],['G4',1],['G4',1],['G4',1],['G4',1],['G4',1],['F#4',1],['G4',1],['A4',1],['G4',2],
+      ['F4',1],['F4',1],['F4',1],['E4',1],['E4',1],['E4',1],['D4',1],['F4',1],['E4',2],['R',1],
+      ['E4',1],['E4',1],['E4',1],['E4',1],['D4',1],['G4',1],['G4',1],['G4',1],['F4',1],['F4',2],
+      ['E4',1],['E4',1],['E4',1],['D4',1],['D4',1],['D4',1],['B4',1],['D4',1],['C4',2],['R',1],
+      ['C4',1],['D4',1],['E4',1],['E4',1],['E4',1],['D4',1],['E4',1],['F4',2],
+      ['E4',1],['F4',1],['G4',1],['G4',1],['G4',1],['F4',1],['E4',1],['D4',1],['F4',1],['E4',2],['R',1],
+      ['E4',1],['E4',1],['E4',1],['D4',1],['D4',1],['D4',1],['B4',1],['D4',1],['C4',2],['R',1],
+      ['G4',1],['G4',1],['G4',1],['G4',1],['G4',1],['G4',1],['F#4',1],['G4',1],['A4',1],['G4',2],
+      ['F4',1],['F4',1],['F4',1],['E4',1],['E4',1],['E4',1],['D4',1],['F4',1],['E4',2],['R',1],
+      ['C5',1.5],['B4',1.5],['C5',2],['B4',1.5],['A4',1.5],['B4',2],['A4',1.5],['G4',1.5],['A4',2],
+      ['C4',1],['C4',1],['D4',1],['D4',1],['E4',1],['E4',1],['D4',1],['E4',1],['F4',3]
+    ];
+    playMelody(seq, 0.365, '🇮🇳 জাতীয় সঙ্গীত (জনগণমন — ৫২ সেকেন্ড)');
+  };
+
+  /* Vande Mataram (Offline instrumental) */
+  window.saPlayNationalSong = function(){
+    if(_customUrls.song){ return window.saPlayCustomAudio('song', 'জাতীয় গীত (নিজস্ব MP3)'); }
+    const seq = [
+      ['C4',1.5],['D4',1.5],['F4',1.5],['G4',2],['F4',1],['G4',2.5],['R',0.5],
+      ['F4',1.5],['G4',1.5],['B4',1.5],['C5',2],['B4',1],['C5',2.5],['R',0.5],
+      ['C5',1.5],['D5',1.5],['B4',1.5],['A4',1.5],['G4',2],['F4',1],['E4',1.5],['D4',1.5],['C4',2.5],['R',0.5],
+      ['C4',1.5],['D4',1.5],['F4',1.5],['E4',1.5],['D4',1.5],['C4',2.5],['R',0.5],
+      ['F4',1.5],['G4',1.5],['A4',1.5],['G4',1.5],['F4',1.5],['E4',1.5],['D4',1.5],['C4',3]
+    ];
+    playMelody(seq, 0.42, '🇮🇳 জাতীয় গীত (বন্দে মাতরম্)');
+  };
+
+  /* March Past Parade Drum Loop (Snare + Bass Drum Cadence) */
+  function hitDrum(ctx, kind, t){
+    if(kind === 'bass'){
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = 'sine';
+      o.frequency.setValueAtTime(110, t);
+      o.frequency.exponentialRampToValueAtTime(42, t + 0.14);
+      g.gain.setValueAtTime(0.75, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+      o.connect(g); g.connect(ctx.destination);
+      o.start(t); o.stop(t + 0.19);
+    } else {
+      /* Snare */
+      const dur = kind === 'roll' ? 0.08 : 0.13;
+      const bs = Math.floor(ctx.sampleRate * dur);
+      const buf = ctx.createBuffer(1, bs, ctx.sampleRate);
+      const d = buf.getChannelData(0);
+      for(let i = 0; i < bs; i++) d[i] = (Math.random() * 2 - 1) * Math.exp(-(i / ctx.sampleRate) * 24);
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      const hp = ctx.createBiquadFilter();
+      hp.type = 'highpass';
+      hp.frequency.value = 900;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(kind === 'roll' ? 0.35 : 0.55, t);
+      src.connect(hp); hp.connect(g); g.connect(ctx.destination);
+      src.start(t);
+    }
+  }
+
+  window.saStartMarchDrum = function(){
+    if(_customUrls.march){ return window.saPlayCustomAudio('march', 'মার্চ পাস্ট (নিজস্ব MP3)'); }
+    window.saCerStopAll();
+    const ctx = getAC();
+    if(!ctx) return;
+    const bpm = parseInt((document.getElementById('sa-march-bpm') || {}).value, 10) || 116;
+    const stepMs = Math.round((60000 / bpm) / 2); // eighth-note grid
+    let step = 0;
+    setCerStatus(`🥁 মার্চ পাস্ট ড্রাম চলছে (${toBnNum(bpm)} BPM) — থামাতে ⏹ চাপুন`);
+
+    const tick = () => {
+      const t = ctx.currentTime + 0.01;
+      const m = step % 16;
+      if(m === 0 || m === 4 || m === 8 || m === 12) hitDrum(ctx, 'bass', t);
+      if(m === 2 || m === 6 || m === 10) hitDrum(ctx, 'snare', t);
+      if(m === 13 || m === 14 || m === 15) hitDrum(ctx, 'roll', t);
+      step++;
+    };
+    tick();
+    _marchTimer = setInterval(tick, stepMs);
+  };
+
+  window.saLoadCustomAudio = function(key, inp){
+    const f = inp && inp.files && inp.files[0];
+    if(!f) return;
+    if(_customUrls[key]) URL.revokeObjectURL(_customUrls[key]);
+    _customUrls[key] = URL.createObjectURL(f);
+    setCerStatus(`🎵 ফাইল লোড হয়েছে: ${f.name} — এখন Play বাটনে ক্লিক করুন`);
+  };
+
+  window.saPlayCustomAudio = function(key, label){
+    window.saCerStopAll();
+    if(!_customUrls[key]) return;
+    _customAudio = new Audio(_customUrls[key]);
+    _customAudio.play().catch(()=>{});
+    setCerStatus('▶ বাজছে: ' + label);
+  };
+
+  /* Sports Oath: Line-by-Line TTS + Soft Background Music */
+  const DEF_OATH = [
+    'আমরা সকল প্রতিযোগী এই মর্মে শপথ গ্রহণ করছি যে,',
+    'আমরা এই বার্ষিক ক্রীড়া প্রতিযোগিতায় সম্পূর্ণ সততা ও নিষ্ঠার সঙ্গে অংশগ্রহণ করব।',
+    'আমরা খেলার সমস্ত নিয়মকানুন ও বিচারকদের সিদ্ধান্ত শ্রদ্ধার সঙ্গে মেনে চলব।',
+    'আমরা প্রকৃত খেলোয়াড়সুলভ মনোভাব নিয়ে, বন্ধুত্ব ও সৌভ্রাতৃত্ব বজায় রাখব।',
+    'জয় বা পরাজয় যাই হোক না কেন, আমরা আমাদের বিদ্যালয় ও অঞ্চলের গৌরব অক্ষুণ্ণ রাখব।',
+    'জয় হিন্দ! বন্দে মাতরম্!'
+  ].join('\n');
+
+  function startOathBgm(){
+    try {
+      const ctx = getAC();
+      if(!ctx) return;
+      const now = ctx.currentTime;
+      const master = ctx.createGain();
+      master.gain.setValueAtTime(0.001, now);
+      master.gain.linearRampToValueAtTime(0.075, now + 1.2); // gentle low volume so TTS stays crystal clear
+      master.connect(ctx.destination);
+      [130.81, 196.00, 261.63, 329.63].forEach(freq => {
+        const osc = ctx.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now);
+        osc.connect(master);
+        osc.start(now);
+        _oathBgmNodes.push(osc);
+      });
+      _oathBgmNodes.push(master);
+    } catch(e){}
+  }
+
+  function vprofOptsHtml(id){
+    const cur = window.__saVoiceProfile || localStorage.getItem('sa_vprof_cf') || 'male_bashkar';
+    const opts = [
+      ['male_bashkar', 'ভাস্কর (পুরুষ কণ্ঠ — অনলাইন/সার্ভার)'],
+      ['male_pradeep', 'প্রদীপ (গম্ভীর পুরুষ কণ্ঠ — অনলাইন/সার্ভার)'],
+      ['female_tanishaa', 'তনিষা (মহিলা কণ্ঠ — অনলাইন/সার্ভার)'],
+      ['female_classic', 'ক্লাসিক ইকো মহিলা কণ্ঠ (অফলাইন)'],
+      ['male_native', 'ডিভাইস পুরুষ কণ্ঠ (অফলাইন)']
+    ];
+    return `<label class="mu" style="display:block;margin-top:4px">🎙️ কণ্ঠস্বর বাছাই করুন:</label>
+      <select id="${id}" class="sa-vprof-sel" onchange="if(typeof window.paSetVoiceProfile==='function')window.paSetVoiceProfile(this.value)">
+        ${opts.map(o => `<option value="${o[0]}"${o[0] === cur ? ' selected' : ''}>${o[1]}</option>`).join('')}
+      </select>`;
+  }
+
+  window.saStartOath = function(){
+    window.saCerStopAll();
+    const ta = document.getElementById('sa-oath-ta');
+    const raw = (ta ? ta.value : DEF_OATH) || DEF_OATH;
+    try { localStorage.setItem('sa_custom_oath', raw); } catch(e){}
+    const lines = raw.split('\n').map(s => s.trim()).filter(Boolean);
+    if(!lines.length) return;
+
+    const prof = (document.getElementById('sa-oath-voice') || {}).value;
+    if(prof && typeof window.paSetVoiceProfile === 'function') window.paSetVoiceProfile(prof);
+
+    const pauseSec = parseFloat((document.getElementById('sa-oath-pause') || {}).value) || 3.5;
+    const withBgm = !!((document.getElementById('sa-oath-bgm') || {}).checked);
+    _oathRunning = true;
+    if(withBgm) startOathBgm();
+
+    let idx = 0;
+    const afterLine = () => {
+      if(!_oathRunning) return;
+      idx++;
+      if(idx < lines.length){
+        setCerStatus(`⏳ বিরতি (${toBnNum(pauseSec)} সে.) — ছাত্রছাত্রীদের বলার সময়...`);
+        _cerTimers.push(setTimeout(speakNext, Math.round(pauseSec * 1000)));
+      } else {
+        _cerTimers.push(setTimeout(() => {
+          window.saCerStopAll();
+          setCerStatus('✅ শপথ বাক্য পাঠ সম্পূর্ণ হয়েছে।');
+        }, 900));
+      }
+    };
+
+    const speakNext = () => {
+      if(!_oathRunning) return;
+      if(idx >= lines.length){
+        window.saCerStopAll();
+        setCerStatus('✅ শপথ বাক্য পাঠ সম্পূর্ণ হয়েছে।');
+        return;
+      }
+      const line = lines[idx];
+      setCerStatus(`🔊 শপথ পাঠ — লাইন ${toBnNum(idx + 1)} / ${toBnNum(lines.length)}: "${line.slice(0, 36)}..."`);
+      if(typeof window.announcePaText === 'function'){
+        window.announcePaText(line, { noMusic: true, onDone: afterLine });
+      } else if(typeof speechSynthesis !== 'undefined'){
+        speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(line);
+        u.lang = 'bn-IN';
+        u.rate = 0.88;
+        u.onend = afterLine;
+        u.onerror = () => { idx++; _cerTimers.push(setTimeout(speakNext, 1500)); };
+        speechSynthesis.speak(u);
+      }
+    };
+    speakNext();
+  };
+
+  window.saToggleOathBig = function(){
+    const ta = document.getElementById('sa-oath-ta');
+    if(ta) ta.classList.toggle('big');
+  };
+
+  /* =========================================================================
+     ২. ব্যক্তিগত চ্যাম্পিয়ন (Individual Champion) ও দলগত চ্যাম্পিয়ন হিসাব
+     ========================================================================= */
+  const PTS_ARR = [5, 3, 1, 0];
+
+  function computeChampionship(secFilter){
+    const rs = (typeof ME !== 'undefined' && ME && typeof rsScope === 'function')
+      ? rsScope()
+      : ((typeof DB !== 'undefined' && DB && Array.isArray(DB.r)) ? DB.r : []);
+    const indMap = {};
+    const teamSch = {};
+    const teamGp = {};
+
+    rs.forEach(x => {
+      (x.win || []).forEach(w => {
+        const p = PTS_ARR[(w.pos || 4) - 1] || 0;
+        if(w.school) teamSch[w.school] = (teamSch[w.school] || 0) + p;
+        if(x.gpn) teamGp[x.gpn] = (teamGp[x.gpn] || 0) + p;
+
+        if(x.cat !== 'boys' && x.cat !== 'girls') return;
+        if(secFilter && secFilter !== 'ALL' && x.sec !== secFilter) return;
+
+        const key = (w.pid != null ? ('id:' + w.pid) : ('k:' + x.cat + '|' + (x.sec||'') + '|' + String(w.chest||'').trim() + '|' + String(w.name||'').trim().toUpperCase()));
+        if(!indMap[key]){
+          indMap[key] = {
+            cat: x.cat, sec: x.sec || '', chest: w.chest || '', name: w.name || '',
+            school: w.school || '', gpn: x.gpn || '', pts: 0, g: 0, s: 0, b: 0, evs: []
+          };
+        }
+        const rec = indMap[key];
+        rec.pts += p;
+        if(w.pos === 1) rec.g++;
+        else if(w.pos === 2) rec.s++;
+        else if(w.pos === 3) rec.b++;
+        if(x.ev && !rec.evs.includes(x.ev)) rec.evs.push(x.ev);
+      });
+    });
+
+    const sortInd = (a, b) => (b.pts - a.pts) || (b.g - a.g) || (b.s - a.s) || (b.b - a.b) || a.name.localeCompare(b.name);
+    const boys = Object.values(indMap).filter(r => r.cat === 'boys' && r.pts > 0).sort(sortInd);
+    const girls = Object.values(indMap).filter(r => r.cat === 'girls' && r.pts > 0).sort(sortInd);
+    const schoolsRank = Object.entries(teamSch).sort((a,b) => b[1] - a[1]);
+    const gpRank = Object.entries(teamGp).sort((a,b) => b[1] - a[1]);
+    return { boys, girls, schoolsRank, gpRank, totalRes: rs.length };
+  }
+  window.saComputeChampionship = computeChampionship;
+
+  window.saRenderChampionTab = function(secFilter){
+    const box = document.getElementById('sa-champ-body');
+    if(!box) return;
+    const sf = secFilter || 'ALL';
+    const data = computeChampionship(sf);
+    const mkList = (arr, title) => {
+      if(!arr.length) return `<h3 style="margin:10px 0 4px">${title}</h3><p class="mu">এখনও কোনো ফলাফল প্রকাশিত হয়নি।</p>`;
+      return `<h3 style="margin:10px 0 6px">${title}</h3>` + arr.slice(0, 6).map((r, i) => `
+        <div class="sa-champ-row">
+          <div>
+            <b>${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (toBnNum(i+1)+'.')} ${esc(r.name)}</b>
+            <span class="mu">(চেস্ট: ${esc(r.chest)}${r.sec ? ' • ' + (SN[r.sec]||r.sec) + ' বিভাগ' : ''})</span><br>
+            <span class="mu">${esc(r.school)} • ${esc(r.evs.join(', '))}</span>
+          </div>
+          <div style="text-align:right;flex-shrink:0">
+            <b style="font-size:17px;color:var(--a)">${toBnNum(r.pts)} পয়েন্ট</b><br>
+            <span class="mu">🥇${toBnNum(r.g)} 🥈${toBnNum(r.s)} 🥉${toBnNum(r.b)}</span>
+          </div>
+        </div>`).join('');
+    };
+    const mkTeam = (arr, title) => {
+      if(!arr.length) return '';
+      return `<h3 style="margin:12px 0 6px">${title}</h3>` + arr.slice(0, 8).map(([nm, pt], i) => `
+        <div class="sa-champ-row">
+          <div><b>${toBnNum(i+1)}. ${esc(nm)}</b></div>
+          <div><b style="color:var(--a)">${toBnNum(pt)} পয়েন্ট</b></div>
+        </div>`).join('');
+    };
+    box.innerHTML =
+      mkList(data.boys, '🏃 বালক বিভাগ — ব্যক্তিগত চ্যাম্পিয়ন') +
+      mkList(data.girls, '🏃‍♀️ বালিকা বিভাগ — ব্যক্তিগত চ্যাম্পিয়ন') +
+      mkTeam(data.schoolsRank, '🏫 দলগত চ্যাম্পিয়ন (ইউনিট / বিদ্যালয় ভিত্তিক)') +
+      (data.gpRank.length > 1 ? mkTeam(data.gpRank, '🚩 অঞ্চল ভিত্তিক চ্যাম্পিয়ন') : '');
+  };
+
+  window.saPrintChampionship = function(){
+    const data = computeChampionship('ALL');
+    const mkT = (arr, ttl) => arr.length ? `<h3>${ttl}</h3><table><tr><th>ক্রম</th><th>চেস্ট</th><th>নাম</th><th>বিভাগ</th><th>বিদ্যালয়/ইউনিট</th><th>ইভেন্ট</th><th>পয়েন্ট</th></tr>${arr.slice(0,10).map((r,i)=>`<tr><td>${i+1}</td><td>${esc(r.chest)}</td><td>${esc(r.name)}</td><td>${SN[r.sec]||''}</td><td>${esc(r.school)}</td><td>${esc(r.evs.join(', '))}</td><td><b>${r.pts}</b></td></tr>`).join('')}</table>` : '';
+    const mkTm = (arr, ttl) => arr.length ? `<h3>${ttl}</h3><table><tr><th>ক্রম</th><th>নাম</th><th>মোট পয়েন্ট</th></tr>${arr.slice(0,15).map(([n,p],i)=>`<tr><td>${i+1}</td><td>${esc(n)}</td><td><b>${p}</b></td></tr>`).join('')}</table>` : '';
+    const h = `<style>@page{size:A4 portrait;margin:8mm}</style><div class="pg"><div class="ttl"><b style="font-size:17px">${esc(DB.cfg.h)}</b><br>${esc(DB.cfg.s)} ${esc(DB.cfg.d)}<br><b>ব্যক্তিগত ও দলগত চ্যাম্পিয়নশিপ তালিকা</b></div>${mkT(data.boys,'বালক বিভাগ — ব্যক্তিগত চ্যাম্পিয়ন')}${mkT(data.girls,'বালিকা বিভাগ — ব্যক্তিগত চ্যাম্পিয়ন')}${mkTm(data.schoolsRank,'দলগত চ্যাম্পিয়নশিপ')}${data.gpRank.length>1?mkTm(data.gpRank,'অঞ্চল ভিত্তিক চ্যাম্পিয়নশিপ'):''}</div>`;
+    if(typeof PD === 'function') PD(h, 'চ্যাম্পিয়নশিপ-তালিকা');
+  };
+
+  /* =========================================================================
+     ৩. হোয়াটসঅ্যাপ রেজাল্ট কার্ড (PNG ছবি — মহকুমা/সার্কেল/জিপি স্তর অনুযায়ী স্মার্ট লেবেল)
+     ========================================================================= */
+  function roundRect(ctx, x, y, w, h, r){
+    ctx.beginPath();
+    ctx.moveTo(x+r, y);
+    ctx.arcTo(x+w, y, x+w, y+h, r);
+    ctx.arcTo(x+w, y+h, x, y+h, r);
+    ctx.arcTo(x, y+h, x, y, r);
+    ctx.arcTo(x, y, x+w, y, r);
+    ctx.closePath();
+  }
+
+  function renderResultCardCanvas(x){
+    const W = 1080, H = 1350;
+    const cv = document.createElement('canvas');
+    cv.width = W; cv.height = H;
+    const ctx = cv.getContext('2d');
+
+    const bg = ctx.createLinearGradient(0, 0, W, H);
+    bg.addColorStop(0, '#f7fdf9');
+    bg.addColorStop(0.55, '#fefce8');
+    bg.addColorStop(1, '#ecfdf5');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, W, H);
+
+    ctx.fillStyle = 'rgba(22, 101, 52, 0.08)';
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(360,0); ctx.lineTo(0,260); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = 'rgba(234, 179, 8, 0.14)';
+    ctx.beginPath(); ctx.moveTo(W,H); ctx.lineTo(W-380,H); ctx.lineTo(W,H-280); ctx.closePath(); ctx.fill();
+
+    ctx.strokeStyle = '#15803d';
+    ctx.lineWidth = 10;
+    roundRect(ctx, 28, 28, W-56, H-56, 26);
+    ctx.stroke();
+
+    ctx.strokeStyle = '#eab308';
+    ctx.lineWidth = 3;
+    roundRect(ctx, 44, 44, W-88, H-88, 20);
+    ctx.stroke();
+
+    const hb = ctx.createLinearGradient(56, 56, W-56, 240);
+    hb.addColorStop(0, '#14532d');
+    hb.addColorStop(1, '#166534');
+    ctx.fillStyle = hb;
+    roundRect(ctx, 56, 56, W-112, 190, 18);
+    ctx.fill();
+
+    ctx.fillStyle = '#dc2626';
+    roundRect(ctx, W/2 - 140, 224, 280, 8, 4);
+    ctx.fill();
+
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#fef08a';
+    ctx.font = '700 40px "Hind Siliguri", "Noto Sans Bengali", sans-serif';
+    ctx.fillText(String((DB && DB.cfg && DB.cfg.h) || 'বার্ষিক ক্রীড়া ও সাংস্কৃতিক প্রতিযোগিতা').slice(0, 48), W/2, 130);
+
+    const firstMeta = resolveWinnerMeta(x, (x.win && x.win[0]) || {});
+    const roleTag = { sub: 'মহকুমা (সাব-ডিভিশন)', circle: 'সার্কেল', gp: 'জিপি' }[firstMeta.pubRole] || '';
+    ctx.fillStyle = '#e2e8f0';
+    ctx.font = '600 25px "Hind Siliguri", "Noto Sans Bengali", sans-serif';
+    const subParts = [
+      firstMeta.pubName ? (firstMeta.pubName + (roleTag ? ' (' + roleTag + ')' : '')) : '',
+      DB && DB.cfg && DB.cfg.d
+    ].filter(Boolean);
+    ctx.fillText(subParts.join(' • ') || 'অফিসিয়াল ফলাফল কার্ড', W/2, 186);
+
+    const catLbl = (typeof CN !== 'undefined' && CN[x.cat]) ? CN[x.cat] : x.cat;
+    const secLbl = (x.sec && typeof SN !== 'undefined' && SN[x.sec]) ? (' • ' + SN[x.sec] + ' বিভাগ') : '';
+    ctx.fillStyle = '#fef08a';
+    roundRect(ctx, W/2 - 240, 276, 480, 54, 27);
+    ctx.fill();
+    ctx.strokeStyle = '#ca8a04';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.fillStyle = '#14532d';
+    ctx.font = '700 29px "Hind Siliguri", "Noto Sans Bengali", sans-serif';
+    ctx.fillText(`🏆 ${catLbl}${secLbl}`, W/2, 313);
+
+    ctx.fillStyle = '#0f172a';
+    ctx.font = '700 48px "Hind Siliguri", "Noto Sans Bengali", sans-serif';
+    ctx.fillText(String(x.ev || ''), W/2, 396);
+
+    const wins = (x.win || []).slice().sort((a,b) => a.pos - b.pos).slice(0, 4);
+    const medColors = [
+      { bg: '#fef9c3', bd: '#eab308', badge: '#ca8a04', lbl: '১ম স্থান' },
+      { bg: '#f1f5f9', bd: '#94a3b8', badge: '#475569', lbl: '২য় স্থান' },
+      { bg: '#ffedd5', bd: '#f97316', badge: '#c2410c', lbl: '৩য় স্থান' },
+      { bg: '#f8fafc', bd: '#cbd5e1', badge: '#64748b', lbl: '৪র্থ স্থান' }
+    ];
+
+    let y = 440;
+    const rowH = wins.length <= 3 ? 218 : 172;
+    const gap = 20;
+
+    wins.forEach((w, idx) => {
+      const m = medColors[(w.pos || idx + 1) - 1] || medColors[3];
+      const meta = resolveWinnerMeta(x, w);
+      ctx.fillStyle = m.bg;
+      roundRect(ctx, 74, y, W - 148, rowH, 18);
+      ctx.fill();
+      ctx.strokeStyle = m.bd;
+      ctx.lineWidth = 3.5;
+      ctx.stroke();
+
+      ctx.fillStyle = m.badge;
+      roundRect(ctx, 98, y + 22, 168, rowH - 44, 14);
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.textAlign = 'center';
+      ctx.font = '700 33px "Hind Siliguri", "Noto Sans Bengali", sans-serif';
+      ctx.fillText(m.lbl, 182, y + rowH/2 - 4);
+      ctx.font = '600 23px "Hind Siliguri", "Noto Sans Bengali", sans-serif';
+      ctx.fillText('চেস্ট: ' + (w.chest || '-'), 182, y + rowH/2 + 34);
+
+      const bnNm = meta.ath && meta.ath.bn ? (' (' + meta.ath.bn + ')') : '';
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#0f172a';
+      ctx.font = '700 34px "Hind Siliguri", "Noto Sans Bengali", sans-serif';
+
+      if(meta.line2){
+        ctx.fillText(String((w.name || '') + bnNm).slice(0, 34), 292, y + rowH/2 - 26);
+        ctx.fillStyle = '#14532d';
+        ctx.font = '700 25px "Hind Siliguri", "Noto Sans Bengali", sans-serif';
+        ctx.fillText(String(meta.line1).slice(0, 42), 292, y + rowH/2 + 12);
+        ctx.fillStyle = '#334155';
+        ctx.font = '600 23px "Hind Siliguri", "Noto Sans Bengali", sans-serif';
+        ctx.fillText(String(meta.line2).slice(0, 44), 292, y + rowH/2 + 48);
+      } else {
+        ctx.fillText(String((w.name || '') + bnNm).slice(0, 34), 292, y + rowH/2 - 10);
+        ctx.fillStyle = '#1e293b';
+        ctx.font = '600 26px "Hind Siliguri", "Noto Sans Bengali", sans-serif';
+        ctx.fillText(String(meta.line1 || '-').slice(0, 42), 292, y + rowH/2 + 34);
+      }
+
+      y += rowH + gap;
+    });
+
+    ctx.fillStyle = '#14532d';
+    roundRect(ctx, 56, H - 144, W - 112, 84, 16);
+    ctx.fill();
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '600 27px "Hind Siliguri", "Noto Sans Bengali", sans-serif';
+    ctx.fillText(`পরিচালনায়: ${firstMeta.pubName || 'Sports Arena'}  •  অফিসিয়াল রেজাল্ট কার্ড`, W/2, H - 93);
+
+    return cv;
+  }
+
+  window.saOpenResultCard = function(rid){
+    try {
+      const x = (DB && Array.isArray(DB.r)) ? DB.r.find(r => r.id === rid) : null;
+      if(!x) return;
+      const cv = renderResultCardCanvas(x);
+      const dataUrl = cv.toDataURL('image/png');
+      window._saLastCardUrl = dataUrl;
+      window._saLastCardName = 'result-card-' + String(x.ev || 'event').replace(/[^\u0980-\u09FFa-zA-Z0-9]+/g, '-') + '.png';
+
+      const mb = document.getElementById('mb');
+      const md = document.getElementById('md');
+      if(mb && md){
+        mb.innerHTML = `
+          <h2 style="margin:0 0 8px">🖼️ রেজাল্ট কার্ড (PNG ছবি)</h2>
+          <div style="text-align:center"><img src="${dataUrl}" style="max-width:100%;max-height:58vh;border-radius:10px;border:1px solid var(--a)"></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;justify-content:center">
+            <button class="b p" onclick="window.saDownloadLastCard()">⬇ PNG ডাউনলোড</button>
+            <button class="b" onclick="window.saShareLastCard()">📤 শেয়ার করুন</button>
+            <button class="b d" onclick="document.getElementById('md').style.display='none'">বন্ধ করুন</button>
+          </div>`;
+        md.style.display = 'flex';
+      } else {
+        window.saDownloadLastCard();
+      }
+    } catch(e){ console.error(e); }
+  };
+
+  window.saDownloadLastCard = function(){
+    if(!window._saLastCardUrl) return;
+    const a = document.createElement('a');
+    a.href = window._saLastCardUrl;
+    a.download = window._saLastCardName || 'result-card.png';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  };
+
+  window.saShareLastCard = async function(){
+    try {
+      if(!window._saLastCardUrl) return;
+      const res = await fetch(window._saLastCardUrl);
+      const blob = await res.blob();
+      const file = new File([blob], window._saLastCardName || 'result-card.png', { type: 'image/png' });
+      if(navigator.canShare && navigator.canShare({ files: [file] })){
+        await navigator.share({ files: [file], title: 'Sports Arena ফলাফল কার্ড' });
+        return;
+      }
+    } catch(e){}
+    window.saDownloadLastCard();
+  };
+
+  /* =========================================================================
+     ৪. ফুল-স্ক্রিন লাইভ স্কোরবোর্ড (হাই-কন্ট্রাস্ট ডার্ক মোড ও রোদের জন্য লাইট মোড)
+     ========================================================================= */
+  let tvIdx = 0, tvTimer = null, tvPaused = false, tvClockTimer = null;
+
+  function ensureTvDom(){
+    let el = document.getElementById('sa-live-tv');
+    if(el) return el;
+    el = document.createElement('div');
+    el.id = 'sa-live-tv';
+    if(localStorage.getItem('sa_tv_theme') === 'light') el.classList.add('tv-light');
+    el.innerHTML = `
+      <div class="tv-top">
+        <div>
+          <div class="tv-title" id="tv-h1">Sports Arena — লাইভ স্কোরবোর্ড</div>
+          <div class="tv-sub" id="tv-h2"></div>
+        </div>
+        <div class="tv-ctrl">
+          <span id="tv-clock" style="font-weight:700;color:#fde047;margin-right:8px;font-size:15px"></span>
+          <button id="tv-theme-btn" onclick="window.saTvToggleTheme()">${el.classList.contains('tv-light') ? '🌙 ডার্ক মোড' : '☀️ লাইট মোড'}</button>
+          <button onclick="window.saTvStep(-1)">◀ আগে</button>
+          <button id="tv-pause-btn" onclick="window.saTvTogglePause()">⏸ থামান</button>
+          <button onclick="window.saTvStep(1)">পরে ▶</button>
+          <button onclick="window.saTvFullscreen()">⛶ ফুল-স্ক্রিন</button>
+          <button style="background:#be123c;border-color:#fda4af" onclick="window.saCloseLiveBoard()">✕ বন্ধ</button>
+        </div>
+      </div>
+      <div class="tv-body" id="tv-body"></div>
+      <div class="tv-foot">
+        <span id="tv-slide-ind">স্লাইড ১ / ৪</span>
+        <span>Sports Arena Live Broadcast • হাই-কন্ট্রাস্ট ডিসপ্লে</span>
+      </div>`;
+    document.body.appendChild(el);
+    return el;
+  }
+
+  window.saTvToggleTheme = function(){
+    const el = ensureTvDom();
+    const isLight = el.classList.toggle('tv-light');
+    try { localStorage.setItem('sa_tv_theme', isLight ? 'light' : 'dark'); } catch(e){}
+    const btn = document.getElementById('tv-theme-btn');
+    if(btn) btn.textContent = isLight ? '🌙 ডার্ক মোড' : '☀️ লাইট মোড';
+  };
+
+  function renderTvSlide(){
+    const body = document.getElementById('tv-body');
+    const ind = document.getElementById('tv-slide-ind');
+    const h1 = document.getElementById('tv-h1');
+    const h2 = document.getElementById('tv-h2');
+    if(!body) return;
+    if(h1) h1.textContent = (DB && DB.cfg && DB.cfg.h) ? DB.cfg.h : 'Sports Arena — লাইভ স্কোরবোর্ড';
+    if(h2) h2.textContent = [DB && DB.cfg && DB.cfg.s, DB && DB.cfg && DB.cfg.d, (typeof ME !== 'undefined' && ME ? ME.name : '')].filter(Boolean).join(' • ');
+
+    const rs = (typeof ME !== 'undefined' && ME && typeof rsScope === 'function')
+      ? rsScope()
+      : ((DB && Array.isArray(DB.r)) ? DB.r : []);
+    const champ = computeChampionship('ALL');
+    const slides = 4;
+    tvIdx = ((tvIdx % slides) + slides) % slides;
+    if(ind) ind.textContent = `স্লাইড ${toBnNum(tvIdx + 1)} / ${toBnNum(slides)}`;
+
+    if(tvIdx === 0){
+      const latest = rs.slice(-2).reverse();
+      if(!latest.length){
+        body.innerHTML = `<div class="tv-slide-hd">📢 সর্বশেষ প্রকাশিত ফলাফল</div><div class="tv-empty">এখনও কোনো ফলাফল প্রকাশিত হয়নি। ফলাফল প্রকাশিত হলেই এখানে স্বয়ংক্রিয়ভাবে দেখাবে।</div>`;
+        return;
+      }
+      body.innerHTML = `<div class="tv-slide-hd">📢 সর্বশেষ প্রকাশিত ফলাফল</div><div class="tv-grid">` +
+        latest.map(x => `
+          <div class="tv-card">
+            <h3>${(CN[x.cat]||x.cat)}${x.sec ? ' (' + (SN[x.sec]||x.sec) + ' বিভাগ)' : ''} — ${esc(x.ev)}</h3>
+            ${(x.win||[]).slice().sort((a,b)=>a.pos-b.pos).map(w => {
+              const meta = resolveWinnerMeta(x, w);
+              const sub = [meta.line1, meta.line2].filter(Boolean).join(' • ');
+              return `<div class="tv-win-row">
+                <div class="tv-med tv-m${Math.min(4, w.pos||4)}">${toBnNum(w.pos)}</div>
+                <div><b>${esc(w.name)}</b> <span class="tv-win-chest">(চেস্ট: ${esc(w.chest)})</span><br><span class="tv-win-sub">${esc(sub)}</span></div>
+              </div>`;
+            }).join('')}
+          </div>`).join('') + `</div>`;
+    }
+    else if(tvIdx === 1){
+      const list = champ.schoolsRank.slice(0, 8);
+      body.innerHTML = `<div class="tv-slide-hd">📊 শীর্ষ পয়েন্ট টেবিল</div>
+        <div class="tv-card" style="max-width:960px;width:100%;margin:0 auto">
+          ${list.length ? `<table class="tv-tbl"><tr><th>ক্রম</th><th>ইউনিট / বিদ্যালয়ের নাম</th><th style="text-align:right">মোট পয়েন্ট</th></tr>${list.map(([nm, pt], i) => `<tr><td>${i===0?'🥇':i===1?'🥈':i===2?'🥉':toBnNum(i+1)}</td><td><b>${esc(nm)}</b></td><td style="text-align:right" class="tv-pts">${toBnNum(pt)}</td></tr>`).join('')}</table>` : '<p class="tv-empty">পয়েন্ট টেবিল এখনও প্রস্তুত হয়নি।</p>'}
+        </div>`;
+    }
+    else if(tvIdx === 2){
+      const mkBox = (arr, title) => `
+        <div class="tv-card">
+          <h3>${title}</h3>
+          ${arr.length ? arr.slice(0, 4).map((r, i) => `
+            <div class="tv-win-row" style="justify-content:space-between">
+              <div style="display:flex;align-items:center;gap:10px">
+                <div class="tv-med tv-m${Math.min(4, i+1)}">${toBnNum(i+1)}</div>
+                <div><b>${esc(r.name)}</b> <span class="tv-win-chest">(${esc(r.chest)})</span><br><span class="tv-win-sub">${esc(r.school)}</span></div>
+              </div>
+              <div class="tv-pts">${toBnNum(r.pts)} পয়েন্ট</div>
+            </div>`).join('') : '<p class="tv-empty" style="font-size:16px">তথ্য নেই</p>'}
+        </div>`;
+      body.innerHTML = `<div class="tv-slide-hd">🏆 ব্যক্তিগত চ্যাম্পিয়ন (Individual Champion)</div><div class="tv-grid">${mkBox(champ.boys, '🏃 বালক বিভাগ (শীর্ষ ৪)')}${mkBox(champ.girls, '🏃‍♀️ বালিকা বিভাগ (শীর্ষ ৪)')}</div>`;
+    }
+    else {
+      let rows = [];
+      try {
+        const uid = (typeof ME !== 'undefined' && ME && ME.id) ? ME.id : 'default';
+        const fromDb = DB && DB.cfg && DB.cfg.customSchedMap && DB.cfg.customSchedMap[uid];
+        const fromLs = JSON.parse(localStorage.getItem('sa_csched_' + uid) || 'null');
+        const sc = fromDb || fromLs;
+        if(sc && Array.isArray(sc.rows) && sc.rows.length) rows = sc.rows;
+      } catch(e){}
+      if(!rows.length){
+        rows = [
+          { time: '০৯:৩০ - ১০:০০', track: 'উদ্বোধনী অনুষ্ঠান', field: 'অতিথিবরণ', cult: 'মশাল দৌড়' },
+          { time: '১০:০০ - ১১:০০', track: '৭৫ মি. / ১০০ মি. দৌড়', field: 'দীর্ঘ / উচ্চ লম্ফন', cult: 'আবৃত্তি' },
+          { time: '১১:০০ - ১২:৩০', track: '২০০ মি. / শাটল দৌড়', field: 'যোগাসন / জিমন্যাস্টিক্স', cult: 'অঙ্কন' },
+          { time: '০২:৩০ - ০৩:৩০', track: 'শিক্ষক-শিক্ষিকা দৌড়', field: 'ফাইনাল ইভেন্ট', cult: 'পুরস্কার বিতরণী' }
+        ];
+      }
+      body.innerHTML = `<div class="tv-slide-hd">🕒 আজকের ক্রীড়া ও সাংস্কৃতিক সূচি</div>
+        <div class="tv-card" style="max-width:1100px;width:100%;margin:0 auto">
+          <table class="tv-tbl"><tr><th>সময়</th><th>ট্র্যাক ইভেন্ট</th><th>ফিল্ড ইভেন্ট</th><th>সাংস্কৃতিক / বিশেষ</th></tr>
+            ${rows.slice(0, 7).map(r => `<tr><td class="tv-time">${esc(r.time)}</td><td>${esc(r.track||'-')}</td><td>${esc(r.field||'-')}</td><td>${esc(r.cult||'-')}</td></tr>`).join('')}
+          </table>
+        </div>`;
+    }
+  }
+
+  window.saOpenLiveBoard = function(){
+    const el = ensureTvDom();
+    el.classList.add('open');
+    tvIdx = 0; tvPaused = false;
+    const pb = document.getElementById('tv-pause-btn');
+    if(pb) pb.textContent = '⏸ থামান';
+    renderTvSlide();
+    clearInterval(tvTimer);
+    tvTimer = setInterval(() => { if(!tvPaused){ tvIdx++; renderTvSlide(); } }, 8000);
+    clearInterval(tvClockTimer);
+    const updClk = () => {
+      const ck = document.getElementById('tv-clock');
+      if(ck){
+        const d = new Date();
+        const hh = d.getHours() % 12 || 12;
+        const mm = String(d.getMinutes()).padStart(2,'0');
+        ck.textContent = '🕒 ' + toBnNum(hh) + ':' + toBnNum(mm) + (d.getHours() >= 12 ? ' PM' : ' AM');
+      }
+    };
+    updClk();
+    tvClockTimer = setInterval(updClk, 15000);
+  };
+
+  window.saCloseLiveBoard = function(){
+    const el = document.getElementById('sa-live-tv');
+    if(el) el.classList.remove('open');
+    clearInterval(tvTimer); clearInterval(tvClockTimer);
+    if(document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(()=>{});
+  };
+
+  window.saTvStep = function(d){ tvIdx += d; renderTvSlide(); };
+  window.saTvTogglePause = function(){
+    tvPaused = !tvPaused;
+    const pb = document.getElementById('tv-pause-btn');
+    if(pb) pb.textContent = tvPaused ? '▶ চালু করুন' : '⏸ থামান';
+  };
+  window.saTvFullscreen = function(){
+    const el = document.getElementById('sa-live-tv');
+    if(!el) return;
+    if(!document.fullscreenElement && el.requestFullscreen) el.requestFullscreen().catch(()=>{});
+    else if(document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(()=>{});
+  };
+
+  /* =========================================================================
+     ৫. স্বয়ংক্রিয় শিডিউল রিমাইন্ডার অ্যালার্ট (৫ মিনিট আগে ঘণ্টা ও টোস্ট)
+     ========================================================================= */
+  const alertedSlots = new Set();
+
+  function parseSlotStartMins(timeStr){
+    const s = fromBnNum(timeStr);
+    const m = s.match(/(\d{1,2})\s*[:.]\s*(\d{2})/);
+    if(!m) return null;
+    let h = parseInt(m[1], 10), mn = parseInt(m[2], 10);
+    if(/PM/i.test(s) && h < 12) h += 12;
+    else if(/AM/i.test(s) && h === 12) h = 0;
+    else if(h >= 1 && h <= 6) h += 12;
+    return h * 60 + mn;
+  }
+
+  function showSchedToast(row){
+    let t = document.getElementById('sa-sched-toast');
+    if(!t){
+      t = document.createElement('div');
+      t.id = 'sa-sched-toast';
+      document.body.appendChild(t);
+    }
+    const evDesc = [row.track, row.field, row.cult].filter(Boolean).join(', ');
+    window._saToastRow = row;
+    t.innerHTML = `
+      <div style="font-weight:700;color:#facc15;font-size:15px">🔔 শিডিউল রিমাইন্ডার (${esc(row.time)})</div>
+      <div style="font-size:13.5px;margin:6px 0 10px;line-height:1.4">পরবর্তী ইভেন্ট শুরু হতে চলেছে:<br><b>${esc(evDesc)}</b></div>
+      <div style="display:flex;gap:6px">
+        <button class="b s p" onclick="window.saAnnounceToastRow()">🔊 এখনই মাইকিং করুন</button>
+        <button class="b s d" onclick="document.getElementById('sa-sched-toast').classList.remove('show')">✕ বন্ধ</button>
+      </div>`;
+    t.classList.add('show');
+    window.saPlaySfx('bell');
+  }
+
+  window.saAnnounceToastRow = function(){
+    const row = window._saToastRow;
+    const t = document.getElementById('sa-sched-toast');
+    if(t) t.classList.remove('show');
+    if(!row) return;
+    const parts = [];
+    if(row.track) parts.push('ট্র্যাক ইভেন্টে ' + row.track);
+    if(row.field) parts.push('ফিল্ড ইভেন্টে ' + row.field);
+    if(row.cult) parts.push('সাংস্কৃতিক বিভাগে ' + row.cult);
+    const txt = `সুধী দর্শক ও প্রতিযোগীবৃন্দ, ${row.time} সময়ের সূচি অনুযায়ী এখন ${parts.join(', ')} শুরু হতে চলেছে। সংশ্লিষ্ট সকল প্রতিযোগীকে প্রস্তুত থাকার অনুরোধ করা হচ্ছে।`;
+    if(typeof window.announcePaText === 'function'){
+      window.announcePaText(txt);
+    } else if(typeof speechSynthesis !== 'undefined'){
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(txt);
+      u.lang = 'bn-IN';
+      speechSynthesis.speak(u);
+    }
+  };
+
+  setInterval(() => {
+    try {
+      if(localStorage.getItem('sa_sched_alert_on') === '0') return;
+      if(typeof ME === 'undefined' || !ME || ME.role === 'school') return;
+      const uid = ME.id || 'default';
+      const sc = (DB && DB.cfg && DB.cfg.customSchedMap && DB.cfg.customSchedMap[uid]) ||
+        JSON.parse(localStorage.getItem('sa_csched_' + uid) || 'null');
+      if(!sc || !Array.isArray(sc.rows)) return;
+      const now = new Date();
+      const nowMins = now.getHours() * 60 + now.getMinutes();
+      const dayKey = now.toISOString().slice(0,10);
+      sc.rows.forEach((r, i) => {
+        const sm = parseSlotStartMins(r.time);
+        if(sm == null) return;
+        const diff = sm - nowMins;
+        const k = dayKey + '|' + i + '|' + r.time;
+        if(diff >= 0 && diff <= 5 && !alertedSlots.has(k)){
+          alertedSlots.add(k);
+          showSchedToast(r);
+        }
+      });
+    } catch(e){}
+  }, 30000);
+
+  /* =========================================================================
+     ৬. saProOpen হুক — 'champion', 'soundboard' ও 'ceremony' ট্যাব যুক্ত করা
+     ========================================================================= */
+  const _origSaProOpen = window.saProOpen;
+  window.saProOpen = function(tab){
+    if(tab === 'champion' || tab === 'soundboard' || tab === 'ceremony'){
+      const ov = document.getElementById('sa-pro-overlay');
+      const title = document.getElementById('sa-pro-title');
+      const body = document.getElementById('sa-pro-body');
+      if(!ov || !title || !body) return;
+
+      if(tab === 'champion'){
+        title.textContent = '🏆 ব্যক্তিগত ও দলগত চ্যাম্পিয়নশিপ';
+        body.innerHTML = `
+          <div class="sa-pro-row" style="margin-bottom:8px;flex-wrap:wrap">
+            <button class="b s p" onclick="window.saRenderChampionTab('ALL')">সব বিভাগ</button>
+            <button class="b s" onclick="window.saRenderChampionTab('A')">ক বিভাগ</button>
+            <button class="b s" onclick="window.saRenderChampionTab('B')">খ বিভাগ</button>
+            <button class="b s" onclick="window.saRenderChampionTab('C')">গ বিভাগ</button>
+            <button class="b s" onclick="window.saPrintChampionship()">🖨 প্রিন্ট</button>
+          </div>
+          <div id="sa-champ-body"></div>
+          <div class="sa-pro-note">পয়েন্ট নিয়ম: ১ম স্থান = ৫ পয়েন্ট, ২য় স্থান = ৩ পয়েন্ট, ৩য় স্থান = ১ পয়েন্ট।</div>
+        `;
+        ov.classList.add('open');
+        window.saRenderChampionTab('ALL');
+        return;
+      }
+      if(tab === 'soundboard'){
+        title.textContent = '🎵 মাঠের সাউন্ডবোর্ড ও রিমাইন্ডার';
+        const alOn = localStorage.getItem('sa_sched_alert_on') !== '0';
+        const evOpts = (typeof ALLEV !== 'undefined' ? ALLEV : []).map((x, i) =>
+          `<option value="${i}">${(CN[x[0]]||x[0])}${x[1]?' '+(SN[x[1]]||x[1])+' বিভাগ':''} — ${esc(x[2])}</option>`
+        ).join('');
+        body.innerHTML = `
+          <div style="font-weight:700;font-size:14px;margin-bottom:4px">তাৎক্ষণিক আবহশব্দ (১০০% অফলাইন):</div>
+          <div class="sa-sb-grid">
+            <button class="b p" onclick="window.saPlaySfx('gun')">🔫 বন্দুকের গুলি</button>
+            <button class="b d" onclick="window.saPlaySfx('cannon')">💥 তোপের শব্দ</button>
+            <button class="b p" onclick="window.saPlaySfx('applause')">👏 তালি (Applause)</button>
+            <button class="b p" onclick="window.saPlaySfx('fanfare')">🎺 বিজয় ফ্যানফেয়ার</button>
+            <button class="b" onclick="window.saPlaySfx('bell')">🔔 ঘোষণার ঘণ্টা</button>
+            <button class="b" onclick="window.saPlaySfx('whistle')">📣 বাঁশি (Whistle)</button>
+          </div>
+          <div style="margin-top:12px;padding-top:10px;border-top:1px dashed var(--bd,#334155)">
+            <div style="font-weight:700;font-size:14px;margin-bottom:4px">📢 এক-ক্লিকে ইভেন্ট কলিং (১ম / ২য় / শেষ কল):</div>
+            ${vprofOptsHtml('sa-sb-voice')}
+            <select id="sa-sb-ev">${evOpts}</select>
+            <div class="sa-pro-row">
+              <button class="b s" onclick="window.saQuickCallout(1)">১ম কল</button>
+              <button class="b s" onclick="window.saQuickCallout(2)">২য় কল</button>
+              <button class="b s d" onclick="window.saQuickCallout(3)">শেষ কল (Final)</button>
+              <button class="b s" onclick="if(typeof window.stopPaAnnouncement==='function')window.stopPaAnnouncement();if(typeof stopVoice==='function')stopVoice();if(typeof speechSynthesis!=='undefined')speechSynthesis.cancel()">⏹ থামান</button>
+            </div>
+          </div>
+          <div style="margin-top:12px;padding-top:10px;border-top:1px dashed var(--bd,#334155)">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13.5px">
+              <input type="checkbox" ${alOn ? 'checked' : ''} style="width:auto;min-height:auto;margin:0" onchange="localStorage.setItem('sa_sched_alert_on', this.checked ? '1' : '0')">
+              <span>🔔 শিডিউলের ৫ মিনিট আগে স্বয়ংক্রিয় রিমাইন্ডার ঘণ্টা ও নোটিফিকেশন দেখান</span>
+            </label>
+          </div>
+        `;
+        ov.classList.add('open');
+        return;
+      }
+      if(tab === 'ceremony'){
+        title.textContent = '🎺 উদ্বোধনী ও সেরেমনি (সঙ্গীত, মার্চ পাস্ট ও শপথ)';
+        let savedOath = DEF_OATH;
+        try { savedOath = localStorage.getItem('sa_custom_oath') || DEF_OATH; } catch(e){}
+        body.innerHTML = `
+          <div id="sa-cer-status" class="mu" style="font-weight:700;color:#fde047;min-height:20px;margin-bottom:6px"></div>
+
+          <div class="sa-cer-box">
+            <h4>🇮🇳 জাতীয় সঙ্গীত ও জাতীয় গীত (অফলাইন / নিজস্ব MP3)</h4>
+            <div class="sa-sb-grid">
+              <button class="b p" onclick="window.saPlayAnthem()">▶ জাতীয় সঙ্গীত (৫২ সে.)</button>
+              <button class="b p" onclick="window.saPlayNationalSong()">▶ জাতীয় গীত (বন্দে মাতরম্)</button>
+              <button class="b d" onclick="window.saCerStopAll()">⏹ সব বন্ধ করুন</button>
+            </div>
+            <details style="margin-top:6px"><summary class="mu" style="cursor:pointer">📂 নিজস্ব MP3 অডিও যুক্ত করুন (ঐচ্ছিক)</summary>
+              <div style="margin-top:6px;font-size:13px">
+                <label>জাতীয় সঙ্গীত MP3: <input type="file" accept="audio/*" onchange="window.saLoadCustomAudio('anthem',this)"></label>
+                <label>জাতীয় গীত MP3: <input type="file" accept="audio/*" onchange="window.saLoadCustomAudio('song',this)"></label>
+                <label>মার্চ পাস্ট MP3: <input type="file" accept="audio/*" onchange="window.saLoadCustomAudio('march',this)"></label>
+              </div>
+            </details>
+          </div>
+
+          <div class="sa-cer-box">
+            <h4>🥁 মার্চ পাস্ট ড্রাম বিট (অফলাইন লুপ)</h4>
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px">
+              <span style="font-size:13px">গতি (BPM): <b id="sa-bpm-val">১১৬</b></span>
+              <input id="sa-march-bpm" type="range" min="90" max="140" value="116" style="flex:1;min-height:auto;margin:0" oninput="document.getElementById('sa-bpm-val').textContent=this.value">
+            </div>
+            <div class="sa-pro-row">
+              <button class="b p" onclick="window.saStartMarchDrum()">🥁 মার্চ পাস্ট চালু</button>
+              <button class="b d" onclick="window.saCerStopAll()">⏹ থামান</button>
+            </div>
+          </div>
+
+          <div class="sa-cer-box">
+            <h4>✋ ক্রীড়া শপথ বাক্য (লাইন-বাই-লাইন মাইকিং ও মিউজিক)</h4>
+            ${vprofOptsHtml('sa-oath-voice')}
+            <textarea id="sa-oath-ta" class="sa-oath-ta">${esc(savedOath)}</textarea>
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:6px 0">
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px">
+                <input id="sa-oath-bgm" type="checkbox" checked style="width:auto;min-height:auto;margin:0">
+                <span>🎵 হালকা ব্যাকগ্রাউন্ড মিউজিক</span>
+              </label>
+              <label style="font-size:13px">বিরতি:
+                <select id="sa-oath-pause" style="width:auto;min-height:32px;padding:2px 6px;margin:0">
+                  <option value="2.5">২.৫ সেকেন্ড</option>
+                  <option value="3.5" selected>৩.৫ সেকেন্ড</option>
+                  <option value="4.5">৪.৫ সেকেন্ড</option>
+                  <option value="6">৬ সেকেন্ড</option>
+                </select>
+              </label>
+            </div>
+            <div class="sa-pro-row">
+              <button class="b p" onclick="window.saStartOath()">🔊 লাইন-বাই-লাইন শপথ পাঠ</button>
+              <button class="b" onclick="window.saToggleOathBig()">📖 বড় ফন্ট</button>
+              <button class="b d" onclick="window.saCerStopAll()">⏹ থামান</button>
+            </div>
+          </div>
+        `;
+        ov.classList.add('open');
+        return;
+      }
+    }
+    if(typeof _origSaProOpen === 'function') return _origSaProOpen.apply(this, arguments);
   };
 })();
 </script>
