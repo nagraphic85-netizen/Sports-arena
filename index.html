@@ -8318,8 +8318,7 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     if(_marchTimer){ clearInterval(_marchTimer); _marchTimer = null; }
     _cerNodes.forEach(n => { try { n.stop(); } catch(e){} try { n.disconnect(); } catch(e){} });
     _cerNodes = [];
-    _oathBgmNodes.forEach(n => { try { n.stop(); } catch(e){} try { n.disconnect(); } catch(e){} });
-    _oathBgmNodes = [];
+    stopOathBgm();
     if(_customAudio){ try { _customAudio.pause(); _customAudio.currentTime = 0; } catch(e){} }
     if(typeof window.stopPaAnnouncement === 'function'){ try { window.stopPaAnnouncement(); } catch(e){} }
     if(typeof speechSynthesis !== 'undefined') speechSynthesis.cancel();
@@ -8488,15 +8487,32 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     'জয় হিন্দ! বন্দে মাতরম্!'
   ].join('\n');
 
+  let _oathBgmGain = null;
+
+  function stopOathBgm(){
+    _oathBgmNodes.forEach(n => { try { n.stop(); } catch(e){} try { n.disconnect(); } catch(e){} });
+    _oathBgmNodes = [];
+    _oathBgmGain = null;
+  }
+
+  function getOathVolGain(){
+    const pct = parseFloat((document.getElementById('sa-oath-vol') || {}).value);
+    const v = isNaN(pct) ? 20 : pct;
+    return Math.max(0, Math.min(100, v)) / 100 * 0.06;
+  }
+
   function startOathBgm(){
     try {
+      stopOathBgm();
       const ctx = getAC();
       if(!ctx) return;
       const now = ctx.currentTime;
       const master = ctx.createGain();
-      master.gain.setValueAtTime(0.001, now);
-      master.gain.linearRampToValueAtTime(0.075, now + 1.2); // gentle low volume so TTS stays crystal clear
+      const target = getOathVolGain();
+      master.gain.setValueAtTime(0.0001, now);
+      master.gain.linearRampToValueAtTime(Math.max(0.0001, target), now + 0.8);
       master.connect(ctx.destination);
+      _oathBgmGain = master;
       [130.81, 196.00, 261.63, 329.63].forEach(freq => {
         const osc = ctx.createOscillator();
         osc.type = 'sine';
@@ -8508,6 +8524,23 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
       _oathBgmNodes.push(master);
     } catch(e){}
   }
+
+  window.saOathBgmToggle = function(checked){
+    if(!checked){
+      stopOathBgm();
+    } else if(_oathRunning){
+      startOathBgm();
+    }
+  };
+
+  window.saOathVolChange = function(val){
+    const lbl = document.getElementById('sa-oath-vol-val');
+    if(lbl) lbl.textContent = toBnNum(val) + '%';
+    if(_oathBgmGain && _ac){
+      const target = Math.max(0.0001, (parseFloat(val) || 0) / 100 * 0.06);
+      try { _oathBgmGain.gain.setTargetAtTime(target, _ac.currentTime, 0.08); } catch(e){}
+    }
+  };
 
   function vprofOptsHtml(id){
     const cur = window.__saVoiceProfile || localStorage.getItem('sa_vprof_cf') || 'male_bashkar';
@@ -8524,13 +8557,98 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
       </select>`;
   }
 
-  window.saStartOath = function(){
-    window.saCerStopAll();
+  let _oathIdx = 0;
+
+  function getOathLines(){
     const ta = document.getElementById('sa-oath-ta');
     const raw = (ta ? ta.value : DEF_OATH) || DEF_OATH;
     try { localStorage.setItem('sa_custom_oath', raw); } catch(e){}
-    const lines = raw.split('\n').map(s => s.trim()).filter(Boolean);
+    return raw.split('\n').map(s => s.trim()).filter(Boolean);
+  }
+
+  function updateOathPos(total){
+    const el = document.getElementById('sa-oath-pos');
+    if(!el) return;
+    if(_oathIdx >= total && total > 0){
+      el.textContent = '✅ সব লাইন পড়া সম্পূর্ণ (আবার চাপলে ১ম লাইন থেকে শুরু হবে)';
+    } else {
+      el.textContent = `📍 পরবর্তী লাইন: ${toBnNum(_oathIdx + 1)} / ${toBnNum(total)}`;
+    }
+  }
+
+  function stopOathSpeechOnly(){
+    _oathRunning = false;
+    _cerTimers.forEach(t => clearTimeout(t));
+    _cerTimers = [];
+    if(typeof window.stopPaAnnouncement === 'function'){ try { window.stopPaAnnouncement(); } catch(e){} }
+    if(typeof speechSynthesis !== 'undefined') speechSynthesis.cancel();
+  }
+
+  window.saOathPause = function(){
+    stopOathSpeechOnly();
+    stopOathBgm();
+    const lines = getOathLines();
+    updateOathPos(lines.length);
+    setCerStatus(`⏸ বিরতি দেওয়া হয়েছে — পরের বার চালু করলে লাইন ${toBnNum(Math.min(_oathIdx + 1, lines.length))} / ${toBnNum(lines.length)} থেকে শুরু হবে।`);
+  };
+
+  window.saOathReset = function(){
+    window.saCerStopAll();
+    _oathIdx = 0;
+    const lines = getOathLines();
+    updateOathPos(lines.length);
+    setCerStatus('↺ শপথ বাক্য ১ম লাইনে রিসেট করা হয়েছে।');
+  };
+
+  window.saOathNextLine = function(){
+    stopOathSpeechOnly();
+    const lines = getOathLines();
     if(!lines.length) return;
+    if(_oathIdx >= lines.length) _oathIdx = 0;
+
+    const prof = (document.getElementById('sa-oath-voice') || {}).value;
+    if(prof && typeof window.paSetVoiceProfile === 'function') window.paSetVoiceProfile(prof);
+
+    const withBgm = !!((document.getElementById('sa-oath-bgm') || {}).checked);
+    _oathRunning = true;
+    if(withBgm && !_oathBgmGain) startOathBgm();
+
+    const cur = _oathIdx;
+    const line = lines[cur];
+    _oathIdx = cur + 1;
+    updateOathPos(lines.length);
+    setCerStatus(`🔊 শপথ পাঠ (ম্যানুয়াল) — লাইন ${toBnNum(cur + 1)} / ${toBnNum(lines.length)}: "${line.slice(0, 36)}..."`);
+
+    const onLineDone = () => {
+      if(!_oathRunning) return;
+      _oathRunning = false;
+      if(_oathIdx >= lines.length){
+        stopOathBgm();
+        setCerStatus('✅ শপথ বাক্য পাঠ সম্পূর্ণ হয়েছে।');
+      } else {
+        setCerStatus(`⏸ লাইন ${toBnNum(cur + 1)} / ${toBnNum(lines.length)} শেষ — বাচ্চারা বলার পর “▶ পরের লাইন বলুন” চাপুন।`);
+      }
+      updateOathPos(lines.length);
+    };
+
+    if(typeof window.announcePaText === 'function'){
+      window.announcePaText(line, { noMusic: true, onDone: onLineDone });
+    } else if(typeof speechSynthesis !== 'undefined'){
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(line);
+      u.lang = 'bn-IN';
+      u.rate = 0.88;
+      u.onend = onLineDone;
+      u.onerror = onLineDone;
+      speechSynthesis.speak(u);
+    }
+  };
+
+  window.saStartOath = function(){
+    stopOathSpeechOnly();
+    const lines = getOathLines();
+    if(!lines.length) return;
+    if(_oathIdx >= lines.length) _oathIdx = 0;
 
     const prof = (document.getElementById('sa-oath-voice') || {}).value;
     if(prof && typeof window.paSetVoiceProfile === 'function') window.paSetVoiceProfile(prof);
@@ -8540,30 +8658,34 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     _oathRunning = true;
     if(withBgm) startOathBgm();
 
-    let idx = 0;
     const afterLine = () => {
       if(!_oathRunning) return;
-      idx++;
-      if(idx < lines.length){
+      updateOathPos(lines.length);
+      if(_oathIdx < lines.length){
         setCerStatus(`⏳ বিরতি (${toBnNum(pauseSec)} সে.) — ছাত্রছাত্রীদের বলার সময়...`);
         _cerTimers.push(setTimeout(speakNext, Math.round(pauseSec * 1000)));
       } else {
         _cerTimers.push(setTimeout(() => {
           window.saCerStopAll();
           setCerStatus('✅ শপথ বাক্য পাঠ সম্পূর্ণ হয়েছে।');
+          updateOathPos(lines.length);
         }, 900));
       }
     };
 
     const speakNext = () => {
       if(!_oathRunning) return;
-      if(idx >= lines.length){
+      if(_oathIdx >= lines.length){
         window.saCerStopAll();
         setCerStatus('✅ শপথ বাক্য পাঠ সম্পূর্ণ হয়েছে।');
+        updateOathPos(lines.length);
         return;
       }
-      const line = lines[idx];
-      setCerStatus(`🔊 শপথ পাঠ — লাইন ${toBnNum(idx + 1)} / ${toBnNum(lines.length)}: "${line.slice(0, 36)}..."`);
+      const cur = _oathIdx;
+      const line = lines[cur];
+      _oathIdx = cur + 1;
+      updateOathPos(lines.length);
+      setCerStatus(`🔊 শপথ পাঠ (অটো) — লাইন ${toBnNum(cur + 1)} / ${toBnNum(lines.length)}: "${line.slice(0, 36)}..."`);
       if(typeof window.announcePaText === 'function'){
         window.announcePaText(line, { noMusic: true, onDone: afterLine });
       } else if(typeof speechSynthesis !== 'undefined'){
@@ -8572,7 +8694,7 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
         u.lang = 'bn-IN';
         u.rate = 0.88;
         u.onend = afterLine;
-        u.onerror = () => { idx++; _cerTimers.push(setTimeout(speakNext, 1500)); };
+        u.onerror = () => { _cerTimers.push(setTimeout(speakNext, 1500)); };
         speechSynthesis.speak(u);
       }
     };
@@ -9233,8 +9355,12 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
             <textarea id="sa-oath-ta" class="sa-oath-ta">${esc(savedOath)}</textarea>
             <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:6px 0">
               <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px">
-                <input id="sa-oath-bgm" type="checkbox" checked style="width:auto;min-height:auto;margin:0">
-                <span>🎵 হালকা ব্যাকগ্রাউন্ড মিউজিক</span>
+                <input id="sa-oath-bgm" type="checkbox" style="width:auto;min-height:auto;margin:0" onchange="window.saOathBgmToggle(this.checked)">
+                <span>🎵 ব্যাকগ্রাউন্ড মিউজিক (ডিফল্ট অফ)</span>
+              </label>
+              <label style="display:flex;align-items:center;gap:6px;font-size:13px;flex:1;min-width:160px">
+                <span>ভলিউম: <b id="sa-oath-vol-val">২০%</b></span>
+                <input id="sa-oath-vol" type="range" min="0" max="100" value="20" style="flex:1;min-height:auto;margin:0" oninput="window.saOathVolChange(this.value)">
               </label>
               <label style="font-size:13px">বিরতি:
                 <select id="sa-oath-pause" style="width:auto;min-height:32px;padding:2px 6px;margin:0">
@@ -9245,10 +9371,13 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
                 </select>
               </label>
             </div>
+            <div id="sa-oath-pos" class="mu" style="margin:4px 0 6px;font-weight:600;color:var(--a)">📍 পরবর্তী লাইন: ১</div>
             <div class="sa-pro-row">
-              <button class="b p" onclick="window.saStartOath()">🔊 লাইন-বাই-লাইন শপথ পাঠ</button>
+              <button class="b p" onclick="window.saOathNextLine()">▶ পরের লাইন বলুন (ম্যানুয়াল)</button>
+              <button class="b" onclick="window.saStartOath()">🔊 অটো পাঠ (চালু / রিজিউম)</button>
+              <button class="b d" onclick="window.saOathPause()">⏸ বিরতি / থামান</button>
+              <button class="b" onclick="window.saOathReset()">↺ শুরু থেকে</button>
               <button class="b" onclick="window.saToggleOathBig()">📖 বড় ফন্ট</button>
-              <button class="b d" onclick="window.saCerStopAll()">⏹ থামান</button>
             </div>
           </div>
         `;
