@@ -10787,6 +10787,19 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
   // --- Bengali TTS Helper for Calling ---
   let _callRepeatTimer = 0;
   function speakBn(text){
+    if(!text) return;
+    if(typeof window.announcePaText === 'function'){
+      try {
+        window.announcePaText(text, { noMusic: true });
+        return;
+      } catch(e){}
+    }
+    if(typeof window.saSpeak === 'function'){
+      try {
+        window.saSpeak(text, 0.96, function(){});
+        return;
+      } catch(e){}
+    }
     if(!('speechSynthesis' in window)) return info('⚠️ এই ব্রাউজারে বাংলা ভয়েস (TTS) সাপোর্ট নেই।');
     try {
       window.speechSynthesis.cancel();
@@ -10803,6 +10816,8 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
   window.saStopCallingVoice = function(){
     clearInterval(_callRepeatTimer);
     _callRepeatTimer = 0;
+    try { if(typeof window.stopPaAnnouncement === 'function') window.stopPaAnnouncement(); } catch(e){}
+    try { if(typeof window.stopVoice === 'function') window.stopVoice(); } catch(e){}
     try { if('speechSynthesis' in window) window.speechSynthesis.cancel(); } catch(e){}
     const st = document.getElementById('sa-call-rep-st');
     if(st) st.textContent = '';
@@ -11250,9 +11265,32 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     const presList = parts.filter(x => isPresent(x.id, mEv));
     const absList  = parts.filter(x => !isPresent(x.id, mEv));
 
+    const _curProf29 = window.__saVoiceProfile || localStorage.getItem('sa_vprof_cf') || 'male_bashkar';
+    const _curSpd29 = window.__saVoiceSpeed || localStorage.getItem('sa_vspd') || 'auto';
     const monitorCard = `
       <div class="cd">
         <h2>📢 কলিং রুম মনিটর ও অনুপস্থিতি ঘোষণা (Auto-Calling)</h2>
+        <div class="g" style="margin-bottom:6px">
+          <div>
+            <label class="mu">🎙 ঘোষণার কণ্ঠস্বর (Voice Option)</label>
+            <select class="sa-vprof-sel" onchange="if(window.setVoiceProfile)setVoiceProfile(this.value);else{window.__saVoiceProfile=this.value;localStorage.setItem('sa_vprof_cf',this.value);}">
+              <option value="male_bashkar" ${_curProf29==='male_bashkar'?'selected':''}>🎙 ভাস্কর পুরুষ কণ্ঠ (ইকোসহ • সেরা)</option>
+              <option value="male_pradeep" ${_curProf29==='male_pradeep'?'selected':''}>🎙 প্রদীপ গম্ভীর পুরুষ কণ্ঠ (ইকোসহ)</option>
+              <option value="female_classic" ${_curProf29==='female_classic'?'selected':''}>🎙 ক্লাসিক মহিলা কণ্ঠ (আগের সেই সেরা ইকো)</option>
+              <option value="female_tanishaa" ${_curProf29==='female_tanishaa'?'selected':''}>🎙 তনিষা মহিলা কণ্ঠ (Neural ইকো)</option>
+              <option value="male_native" ${_curProf29==='male_native'?'selected':''}>📱 ডিভাইস নিজস্ব পুরুষ কণ্ঠ (অফলাইন)</option>
+            </select>
+          </div>
+          <div>
+            <label class="mu">⚡ বলার গতি (Speed)</label>
+            <select class="sa-vspd-sel" onchange="if(window.setVoiceSpeed)setVoiceSpeed(this.value);else{window.__saVoiceSpeed=this.value;localStorage.setItem('sa_vspd',this.value);}">
+              <option value="auto" ${_curSpd29==='auto'?'selected':''}>⚡ অটো স্পিড (স্বাভাবিক)</option>
+              <option value="0.88" ${_curSpd29==='0.88'?'selected':''}>🐢 একটু ধীরে (স্পষ্ট)</option>
+              <option value="1.0" ${_curSpd29==='1.0'?'selected':''}>▶ সাধারণ (1.0x)</option>
+              <option value="1.15" ${_curSpd29==='1.15'?'selected':''}>🐇 দ্রুত (1.15x)</option>
+            </select>
+          </div>
+        </div>
         <select onchange="window.saMonitorPick(+this.value)">
           ${ALLEV.map((x,i) => `<option value="${i}"${i===_mEvIdx?' selected':''}>${i+1}. ${CN[x[0]]} ${SN[x[1]]} — ${x[2]}</option>`).join('')}
         </select>
