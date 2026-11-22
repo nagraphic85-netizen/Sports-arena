@@ -115,7 +115,7 @@ let rows='';for(let i=0;i<20;i++)rows+=`<tr><td>${i+1}</td><td>${tm()}</td><td>$
 return`<style>@page{size:A4 ${o};margin:8mm}</style><div class="pg"><div class="sheet"><h3>${esc(DB.cfg.h)} — মাস্টার শিডিউল</h3><table><tr><th>অর্ডার</th><th>সময়</th><th>ইভেন্ট ১</th><th>ইভেন্ট ২</th></tr>${rows}</table><p style="font-size:11px"><span class="red">লাল</span> = একাধিক ইভেন্টে থাকা কমন চেস্ট</p></div></div>`}
 function sched(){return`<div class="cd"><h2>মাস্টার শিডিউল (ট্র্যাক / ফিল্ড / কালচারাল)</h2>${oriBtns()}</div><div id="pv"></div>`}
 function resEntry(){const c=window.RC||'boys';let s=window.RS||'A';if(!secs(c).includes(s))s=secs(c)[0];const l=evs(c,s),sel=l.includes(window.RE)?window.RE:l[0];
-return`<div class="cd"><div class="top" style="margin-bottom:6px"><h2>ফলাফল এন্ট্রি</h2><div><button class="b s p" onclick="window.saOpenQrScan('event')">📷 ইভেন্ট QR স্ক্যান</button> <button class="b s" onclick="window.saOpenQrScan('verify')">🔍 চেস্ট কার্ড ভেরিফাই</button></div></div><select onchange="window.RC=this.value;window.RE=null;draw()">${Object.keys(CN).map(k=>`<option value="${k}"${k===c?' selected':''}>${CN[k]}</option>`).join('')}</select>${c==='teach'?'':`<select onchange="window.RS=this.value;window.RE=null;draw()">${secs(c).map(k=>`<option value="${k}"${k===s?' selected':''}>${SN[k]} বিভাগ</option>`).join('')}</select>`}<select id="re" onchange="window.RE=this.value">${l.map(e=>`<option${e===sel?' selected':''}>${e}</option>`).join('')}</select>${[1,2,3,4].map(p=>`<div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.15);border-radius:10px;padding:8px;margin-bottom:8px"><div style="display:flex;gap:6px;align-items:center"><input id="w${p}" type="text" placeholder="${p}ম স্থানের চেস্ট নম্বর" oninput="look(${p})" style="flex:1;min-width:0;margin:0"><button type="button" class="b s" style="flex-shrink:0;margin:0;min-height:44px" onclick="window.saOpenQrScan('pos',${p})" title="QR স্ক্যান করুন">📷 স্ক্যান</button><button type="button" class="b s d" style="flex-shrink:0;margin:0;min-height:44px;padding:0 11px" onclick="var el=document.getElementById('w${p}');if(el){el.value='';look(${p});el.focus()}" title="মুছুন">✕</button></div><div class="mu" id="wn${p}" style="margin:4px 0"></div><input id="wt${p}" type="text" placeholder="${p}ম স্থানের সময় (ঐচ্ছিক)" style="margin:2px 0 0"></div>`).join('')}<button class="b p" onclick="pubR()">Publish Result</button></div><div class="cd"><h2>প্রকাশিত</h2>${DB.r.filter(x=>x.gp===ME.id).map(x=>`<div class="res"><b>${CN[x.cat]} ${SN[x.sec]} — ${esc(x.ev)}</b> <button class="b d s" onclick="conf('মুছবেন?',()=>{DB.r=DB.r.filter(y=>y.id!=='${x.id}');sv();draw()})">মুছুন</button>${x.win.map(w=>`<div>${w.pos}ম: ${esc(w.chest)} ${esc(w.name)}</div>`).join('')}</div>`).join('')}</div>`+resPrintCard()}
+return`<div class="cd"><div class="top" style="margin-bottom:6px"><h2>ফলাফল এন্ট্রি</h2><div style="display:flex;gap:4px;flex-wrap:wrap"><button class="b s p" onclick="window.saOpenQrScan('event')">📷 ইভেন্ট QR স্ক্যান</button><button class="b s" onclick="window.saOpenQrScan('verify')">🔍 চেস্ট ভেরিফাই</button><button class="b s" onclick="window.saOpenPhotoFinish()">🎬 ফটো-ফিনিশ (স্লো-মো)</button></div></div><select onchange="window.RC=this.value;window.RE=null;draw()">${Object.keys(CN).map(k=>`<option value="${k}"${k===c?' selected':''}>${CN[k]}</option>`).join('')}</select>${c==='teach'?'':`<select onchange="window.RS=this.value;window.RE=null;draw()">${secs(c).map(k=>`<option value="${k}"${k===s?' selected':''}>${SN[k]} বিভাগ</option>`).join('')}</select>`}<select id="re" onchange="window.RE=this.value;if(window.saSyncResLabels)window.saSyncResLabels()">${l.map(e=>`<option${e===sel?' selected':''}>${e}</option>`).join('')}</select>${[1,2,3,4].map(p=>`<div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.15);border-radius:10px;padding:8px;margin-bottom:8px"><div style="display:flex;gap:6px;align-items:center"><input id="w${p}" type="text" placeholder="${p}ম স্থানের চেস্ট নম্বর" oninput="look(${p})" style="flex:1;min-width:0;margin:0;background:#e0f2fe;color:#0b1426;font-weight:700;border:2px solid #0284c7"><button type="button" class="b s" style="flex-shrink:0;margin:0;min-height:44px" onclick="window.saOpenQrScan('pos',${p})" title="QR স্ক্যান করুন">📷 স্ক্যান</button><button type="button" class="b s d" style="flex-shrink:0;margin:0;min-height:44px;padding:0 11px" onclick="var el=document.getElementById('w${p}');if(el){el.value='';look(${p});el.focus()}" title="মুছুন">✕</button></div><div class="mu" id="wn${p}" style="margin:4px 0"></div><input id="wt${p}" type="text" placeholder="${window.saValPh?window.saValPh(p,c,sel):p+'ম স্থানের সময় (ঐচ্ছিক)'}" style="margin:2px 0 0;background:#ffffff;color:#111111;border:1px solid #94a3b8"></div>`).join('')}<button class="b p" onclick="pubR()">Publish Result</button></div><div class="cd"><h2>প্রকাশিত</h2>${DB.r.filter(x=>x.gp===ME.id).map(x=>`<div class="res"><b>${CN[x.cat]} ${SN[x.sec]} — ${esc(x.ev)}</b> <button class="b d s" onclick="conf('মুছবেন?',()=>{DB.r=DB.r.filter(y=>y.id!=='${x.id}');sv();draw()})">মুছুন</button>${x.win.map(w=>`<div>${w.pos}ম: ${esc(w.chest)} ${esc(w.name)}</div>`).join('')}</div>`).join('')}</div>`+resPrintCard()}
 function find(ch){const ids=schools(ME.id).map(s=>s.id),c=window.RC||'boys',e=$('re').value;return DB.a.find(x=>ids.includes(x.school)&&x.chest.toUpperCase()===ch.trim().toUpperCase()&&x.cat===c&&x.ev.includes(e))}
 function look(p){const v=$('w'+p).value,x=v&&find(v);$('wn'+p).textContent=x?x.name+' — '+U(x.school).name:v?'এই ইভেন্টে পাওয়া যায়নি':''}
 function pubR(){const w=[];for(let p=1;p<=4;p++){const v=$('w'+p).value;if(v){const x=find(v);if(!x)return info(p+'ম স্থানের চেস্ট ভুল');w.push({pos:p,chest:x.chest,name:x.name,school:U(x.school).name,pid:x.id})}}
@@ -202,7 +202,7 @@ const rsScope=()=>{const g=ME.role==='owner'?null:[...desc(ME.id),ME.id];return 
 const ptM=rs=>{const s={},g={};rs.forEach(x=>x.win.forEach(w=>{const p=PTS[w.pos-1];s[w.school]=(s[w.school]||0)+p;g[x.gpn]=(g[x.gpn]||0)+p}));return[s,g]};
 const rkT=(m,t,c2)=>{const k=Object.keys(m).sort((a,b)=>m[b]-m[a]||(a>b?1:-1));return k.length?`<h3>${t}</h3><table><tr><th>ক্রম</th><th>${c2}</th><th>মোট পয়েন্ট</th></tr>${k.map(x=>`<tr><td>${k.findIndex(y=>m[y]===m[x])+1}</td><td>${esc(x)}</td><td>${m[x]}</td></tr>`).join('')}</table>`:''};
 const resTbl=rs=>{let h='',last='';rs.forEach(x=>{const k=x.cat+x.sec;if(k!==last){h+=`<h3>${CN[x.cat]}${x.sec?' — '+SN[x.sec]+' বিভাগ':''}</h3>`;last=k}h+=`<table style="margin-bottom:6px"><tr><th colspan="6">ইভেন্ট ${++EVN}: ${esc(x.ev)}</th></tr><tr><th>স্থান</th><th>চেস্ট</th><th>নাম</th><th>বিদ্যালয়</th><th>জিপি</th><th>পয়েন্ট</th></tr>${x.win.map(w=>`<tr><td>${w.pos}ম</td><td>${esc(w.chest)}</td><td>${esc(w.name)}</td><td>${esc(w.school)}</td><td>${esc(x.gpn)}</td><td>${PTS[w.pos-1]}</td></tr>`).join('')}</table>`});return h};
-function resPrintCard(){return`<div class="cd"><h2>🖨 ফলাফল (A4 প্রিভিউ ও প্রিন্ট)</h2><select onchange="RPM=this.value;draw()"><option value="cat"${RPM==='cat'?' selected':''}>বিভাগ অনুযায়ী (বালক / বালিকা / সাংস্কৃতিক / শিক্ষক) + পয়েন্ট</option><option value="gp"${RPM==='gp'?' selected':''}>জিপি অনুযায়ী</option><option value="sch"${RPM==='sch'?' selected':''}>স্কুল অনুযায়ী</option></select><p class="mu">পয়েন্ট: ১ম ৫, ২য় ৩, ৩য় ১, ৪র্থ ০</p><button class="b" onclick="resXls()">📥 Excel ডাউনলোড (.xlsx)</button></div><div id="pv"></div>`}
+function resPrintCard(){return`<div class="cd"><h2>🖨 ফলাফল (A4 প্রিভিউ ও প্রিন্ট)</h2><select onchange="RPM=this.value;draw()"><option value="cat"${RPM==='cat'?' selected':''}>বিভাগ অনুযায়ী (বালক / বালিকা / সাংস্কৃতিক / শিক্ষক) + পয়েন্ট</option><option value="gp"${RPM==='gp'?' selected':''}>জিপি অনুযায়ী</option><option value="sch"${RPM==='sch'?' selected':''}>স্কুল অনুযায়ী</option></select><p class="mu">পয়েন্ট: ১ম ৫, ২য় ৩, ৩য় ১, ৪র্থ ০</p><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"><button class="b" onclick="resXls()">📥 Excel ডাউনলোড (.xlsx)</button><button class="b p" onclick="window.saPrintSummaryReport()">📊 অফিশিয়াল সামারি রিপোর্ট (PDF)</button><button class="b" onclick="window.saPrintLiveQrPoster()">📱 লাইভ ট্র্যাকার QR (গেট পোস্টার)</button></div></div><div id="pv"></div>`}
 window.resXls=function(){const rs=rsScope();if(!rs.length)return info('ডাউনলোড করার মতো ফলাফল নেই');
 const mx=window.RXF||1,SB=ME.role==='sub',UC=(()=>{try{return ME.role!=='school'&&schools(ME.id).length>0}catch(e){return false}})(),HD=(UC?['Unit']:[]).concat(['Name','NameBn','Father','DOB(DD/MM/YYYY)','Class','PEN','Category(boys/girls/cult/teach)','Group(A/B/C)','Event1','Event2'].concat(SB?['Circle']:[]).concat(['School'])),
 nmOf=a=>{try{return U(a.school).name}catch(e){return''}},
@@ -638,7 +638,7 @@ window.rcH=wc(function(){const A=[];RK().forEach(x=>x.win.forEach(w=>{const a=by
 window.resH=wc(function(){if(RPM==='pc1')return chart('bg');if(RPM==='pc2')return chart('cult');if(RPM==='ev')return byEvent();if(RPM==='cc')return rcH();if(RPM==='cp')return certH('pos');if(RPM==='cq')return certH('par');return byUnit()});
 if(typeof RPM==='undefined'||['cat','gp','sch'].includes(RPM))RPM='ev';
 window.resPrintCard=function(){const B=[['ev','ইভেন্ট অনুযায়ী ফলাফল'],['unit','ফলাফল ('+UL[ME.role]+' অনুযায়ী)'],['pc1','বালক-বালিকা পয়েন্ট চার্ট'],['pc2','সাংস্কৃতিক পয়েন্ট চার্ট'],['cc','চেস্ট কার্ড অনুযায়ী ফলাফল']];
- return`<div class="cd"><h2>🖨 ফলাফল ও সার্টিফিকেট</h2>${B.map(([k,l])=>`<button class="b${RPM===k?' on':''}" onclick="RPM='${k}';draw()">${l}</button>`).join('')}<div class="res"><b>📥 Excel (পরের স্তরের এন্ট্রির জন্য):</b> ${[[1,'প্রথম'],[2,'দ্বিতীয় পর্যন্ত'],[3,'তৃতীয় পর্যন্ত'],[4,'চতুর্থ পর্যন্ত']].map(([n,l])=>`<button class="b s${(window.RXF||1)===n?' on':''}" onclick="window.RXF=${n};draw()">${l}</button>`).join('')} <button class="b p" onclick="resXls()">📥 Excel ডাউনলোড (.xlsx)</button></div><p class="mu">পয়েন্ট: ১ম ৫, ২য় ৩, ৩য় ১, ৪র্থ ০।</p></div><div id="pv"></div>`};
+ return`<div class="cd"><h2>🖨 ফলাফল ও সার্টিফিকেট</h2>${B.map(([k,l])=>`<button class="b${RPM===k?' on':''}" onclick="RPM='${k}';draw()">${l}</button>`).join('')}<div class="res"><b>📥 Excel (পরের স্তরের এন্ট্রির জন্য):</b> ${[[1,'প্রথম'],[2,'দ্বিতীয় পর্যন্ত'],[3,'তৃতীয় পর্যন্ত'],[4,'চতুর্থ পর্যন্ত']].map(([n,l])=>`<button class="b s${(window.RXF||1)===n?' on':''}" onclick="window.RXF=${n};draw()">${l}</button>`).join('')} <button class="b p" onclick="resXls()">📥 Excel ডাউনলোড (.xlsx)</button></div><div class="res" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><b>📊 রিপোর্ট ও লাইভ QR:</b> <button class="b p" onclick="window.saPrintSummaryReport()">📊 অফিশিয়াল সামারি রিপোর্ট (PDF)</button> <button class="b" onclick="window.saPrintLiveQrPoster()">📱 লাইভ ট্র্যাকার QR (গেট পোস্টার)</button></div><p class="mu">পয়েন্ট: ১ম ৫, ২য় ৩, ৩য় ১, ৪র্থ ০।</p></div><div id="pv"></div>`};
 
 /* ===== ধাপ ৮: সার্টিফিকেট (এক A4-এ দুটি) ===== */
 const TT=['প্রধান','পঞ্চায়েত সমিতির সভাপতি','বিডিও','এসআই অফ স্কুলস','মহকুমা শাসক','মহকুমা পরিদর্শক','সভাপতি','সম্পাদক','আহ্বায়ক'];
@@ -9631,6 +9631,325 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
       if(st) st.textContent = '⚠️ ক্যামেরা চালু করা যায়নি। অনুগ্রহ করে Camera Permission (Allow) দিন।';
     }
   };
+})();
+</script>
+
+
+<script>
+/* =========================================================================
+   v23: মাস্টার শিডিউলে চেস্ট নম্বর (কাস্টম শিডিউলসহ), ইভেন্ট-ভিত্তিক ফলাফল ঘর,
+        ফটো-ফিনিশ স্লো-মোশন ক্যামেরা, অফিশিয়াল সামারি রিপোর্ট (PDF) ও লাইভ ট্র্যাকার QR
+   ========================================================================= */
+(function(){
+  // --- 1. ইভেন্ট অনুযায়ী মানের ঘরের (wt1..wt4) প্লেসহোল্ডার ---
+  window.saValPh = function(p, cat, ev){
+    const e = String(ev || '');
+    const ty = (typeof tyOf === 'function') ? tyOf(e) : 'tr';
+    if(cat === 'cult' || ty === 'yg' || ty === 'gy') return `${p}ম স্থানের মোট পয়েন্ট (ঐচ্ছিক)`;
+    if(ty === 'hj') return `${p}ম স্থানের সর্বোচ্চ উচ্চতা (ঐচ্ছিক)`;
+    if(ty === 'lj' || ty === 'fb') return `${p}ম স্থানের সর্বোচ্চ দূরত্ব (ঐচ্ছিক)`;
+    return `${p}ম স্থানের সময় (ঐচ্ছিক)`;
+  };
+
+  window.saSyncResLabels = function(){
+    const reEl = document.getElementById('re');
+    const ev = reEl ? reEl.value : (window.RE || '');
+    const cat = window.RC || 'boys';
+    for(let p=1; p<=4; p++){
+      const wt = document.getElementById('wt' + p);
+      if(wt) wt.placeholder = window.saValPh(p, cat, ev);
+    }
+  };
+
+  // Ensure labels stay synced after draw
+  const _origAfterDraw23 = window.afterDraw;
+  if(typeof _origAfterDraw23 === 'function'){
+    window.afterDraw = function(){
+      _origAfterDraw23.apply(this, arguments);
+      if(typeof TAB !== 'undefined' && TAB === 'rs') window.saSyncResLabels();
+    };
+  }
+
+  // --- 2. মাস্টার শিডিউলে (কাস্টম শিডিউল হলেও) প্রতিটি ইভেন্টের চেস্ট নম্বর যুক্ত করা ---
+  const _origSchedH23 = window.schedH;
+  if(typeof _origSchedH23 === 'function'){
+    window.schedH = function(o){
+      let html = _origSchedH23.apply(this, arguments);
+      if(!html || typeof DB === 'undefined' || !ME) return html;
+      // If custom schedule was used, cells won't have <span class="ch"> yet -> inject matching chest numbers!
+      if(html.indexOf('class="ch"') === -1){
+        try {
+          const ids = (typeof schools === 'function') ? schools(ME.id).map(s=>s.id) : [];
+          const ath = (DB.a || []).filter(x => ids.includes(x.school) && x.chest);
+          const cc = {};
+          const evMap = [];
+          (ALLEV || []).forEach(([c,s,e]) => {
+            const list = ath.filter(x => x.cat===c && x.sec===s && (x.ev||[]).includes(e))
+              .sort((p,q) => String(p.chest).replace(/\D/g,'') - String(q.chest).replace(/\D/g,''))
+              .map(x => x.chest);
+            list.forEach(ch => cc[ch] = (cc[ch]||0) + 1);
+            evMap.push({ c, s, e, cn: CN[c]||'', sn: SN[s]||'', ch: list });
+          });
+
+          const tmp = document.createElement('div');
+          tmp.innerHTML = html;
+          tmp.querySelectorAll('table.ms tr').forEach((tr, ri) => {
+            if(ri === 0) return;
+            const tds = tr.querySelectorAll('td');
+            for(let ci = 2; ci < tds.length; ci++){
+              const td = tds[ci];
+              const txt = (td.textContent || '').trim();
+              if(!txt || txt === '-') continue;
+              // Match event name + category/section in cell text
+              const matched = evMap.filter(m => {
+                if(!m.e || txt.indexOf(m.e) === -1) return false;
+                if(m.cn && txt.indexOf(m.cn) !== -1){
+                  if(m.sn && txt.indexOf(m.sn) !== -1) return true;
+                  if(!m.sn) return true;
+                }
+                return false;
+              });
+              const pick = matched.length ? matched : evMap.filter(m => m.e && txt.indexOf(m.e) !== -1);
+              if(pick.length){
+                const chests = [];
+                pick.forEach(m => m.ch.forEach(ch => { if(!chests.includes(ch)) chests.push(ch); }));
+                if(chests.length){
+                  const chHtml = chests.map(ch => cc[ch] > 1 ? `<span class="red">${esc(ch)}</span>` : esc(ch)).join(', ');
+                  td.innerHTML += `<span class="ch" style="display:block;font-size:12px;font-weight:700;margin-top:2px">[${chHtml}]</span>`;
+                }
+              }
+            }
+          });
+          html = tmp.innerHTML;
+        } catch(e){}
+      }
+      return html;
+    };
+  }
+
+  // --- 3. মোবাইল ফটো-ফিনিশ (স্লো-মোশন রিভিউ ক্যামেরা) ---
+  let _pfStream = null, _pfRec = null, _pfChunks = [], _pfUrl = '';
+  window.saClosePhotoFinish = function(){
+    if(_pfRec && _pfRec.state !== 'inactive'){ try { _pfRec.stop(); } catch(e){} }
+    _pfRec = null;
+    if(_pfStream){ _pfStream.getTracks().forEach(t => { try { t.stop(); } catch(e){} }); _pfStream = null; }
+    if(_pfUrl){ try { URL.revokeObjectURL(_pfUrl); } catch(e){} _pfUrl = ''; }
+    const ov = document.getElementById('sa-pf-ov');
+    if(ov) ov.remove();
+  };
+
+  window.saOpenPhotoFinish = async function(){
+    window.saClosePhotoFinish();
+    const ov = document.createElement('div');
+    ov.id = 'sa-pf-ov';
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(4,10,22,.95);z-index:9999;display:flex;align-items:center;justify-content:center;padding:12px;overflow-y:auto';
+    ov.innerHTML = `
+      <div style="background:#101f38;border:2px solid var(--a);border-radius:14px;padding:14px;max-width:480px;width:100%;text-align:center;box-shadow:0 0 24px var(--g)">
+        <div style="font-weight:700;font-size:17px;color:var(--a);margin-bottom:6px">🎬 ফটো-ফিনিশ (স্লো-মোশন রিভিউ)</div>
+        <div id="sa-pf-live-box">
+          <video id="sa-pf-vid" playsinline muted style="width:100%;max-height:48vh;background:#000;border-radius:10px;border:2px solid rgba(0,240,255,.4)"></video>
+          <div id="sa-pf-st" class="mu" style="margin:6px 0">ফিনিশ লাইনের দিকে ক্যামেরা ধরে রেকর্ড চাপুন।</div>
+          <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap">
+            <button id="sa-pf-start" class="b p">⏺ রেকর্ড শুরু (সর্বোচ্চ ১৫ সে.)</button>
+            <button id="sa-pf-stop" class="b d" disabled>⏹ থামুন ও রিভিউ দেখুন</button>
+          </div>
+        </div>
+        <div id="sa-pf-rev-box" style="display:none">
+          <video id="sa-pf-play" playsinline controls style="width:100%;max-height:48vh;background:#000;border-radius:10px;border:2px solid #39ff14"></video>
+          <div style="margin:8px 0;display:flex;gap:4px;justify-content:center;flex-wrap:wrap">
+            <button class="b s" onclick="window.saPfSpeed(0.1)">0.1x</button>
+            <button class="b s p" onclick="window.saPfSpeed(0.25)">0.25x (স্লো-মো)</button>
+            <button class="b s" onclick="window.saPfSpeed(0.5)">0.5x</button>
+            <button class="b s" onclick="window.saPfSpeed(1)">1x</button>
+          </div>
+          <div style="margin:6px 0;display:flex;gap:6px;justify-content:center;flex-wrap:wrap">
+            <button class="b s" onclick="window.saPfStep(-0.04)">⏮ -১ ফ্রেম</button>
+            <button class="b s" onclick="window.saPfStep(0.04)">+১ ফ্রেম ⏭</button>
+            <button class="b s" onclick="window.saOpenPhotoFinish()">🔄 নতুন রেকর্ড</button>
+          </div>
+        </div>
+        <button class="b d" style="width:100%;margin-top:8px" onclick="window.saClosePhotoFinish()">✖ বন্ধ করুন</button>
+      </div>
+    `;
+    document.body.appendChild(ov);
+
+    const vid = document.getElementById('sa-pf-vid');
+    const st = document.getElementById('sa-pf-st');
+    const bStart = document.getElementById('sa-pf-start');
+    const bStop = document.getElementById('sa-pf-stop');
+
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || typeof MediaRecorder === 'undefined'){
+      st.textContent = '⚠️ এই ব্রাউজারে ভিডিও রেকর্ডিং সাপোর্ট নেই বা HTTPS লিংক নয়।';
+      bStart.disabled = true;
+      return;
+    }
+
+    try {
+      _pfStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+      vid.srcObject = _pfStream;
+      await vid.play();
+    } catch(e){
+      st.textContent = '⚠️ ক্যামেরা চালু করা যায়নি। Camera Permission (Allow) দিন।';
+      bStart.disabled = true;
+      return;
+    }
+
+    let autoStopTimer = 0;
+    bStart.onclick = () => {
+      _pfChunks = [];
+      try {
+        _pfRec = new MediaRecorder(_pfStream);
+      } catch(e){
+        st.textContent = '⚠️ রেকর্ডার শুরু করা যায়নি।';
+        return;
+      }
+      _pfRec.ondataavailable = ev => { if(ev.data && ev.data.size) _pfChunks.push(ev.data); };
+      _pfRec.onstop = () => {
+        clearTimeout(autoStopTimer);
+        if(_pfStream){ _pfStream.getTracks().forEach(t => { try { t.stop(); } catch(e){} }); _pfStream = null; }
+        const blob = new Blob(_pfChunks, { type: _pfRec.mimeType || 'video/webm' });
+        _pfUrl = URL.createObjectURL(blob);
+        document.getElementById('sa-pf-live-box').style.display = 'none';
+        document.getElementById('sa-pf-rev-box').style.display = 'block';
+        const pv = document.getElementById('sa-pf-play');
+        pv.src = _pfUrl;
+        pv.playbackRate = 0.25;
+        pv.play().catch(()=>{});
+      };
+      _pfRec.start();
+      bStart.disabled = true;
+      bStop.disabled = false;
+      st.textContent = '🔴 রেকর্ডিং চলছে... দৌড় শেষ হলে থামুন চাপুন।';
+      autoStopTimer = setTimeout(() => { if(_pfRec && _pfRec.state === 'recording') _pfRec.stop(); }, 15000);
+    };
+
+    bStop.onclick = () => {
+      if(_pfRec && _pfRec.state === 'recording') _pfRec.stop();
+    };
+  };
+
+  window.saPfSpeed = function(spd){
+    const pv = document.getElementById('sa-pf-play');
+    if(pv) pv.playbackRate = spd;
+  };
+  window.saPfStep = function(delta){
+    const pv = document.getElementById('sa-pf-play');
+    if(pv){ pv.pause(); pv.currentTime = Math.max(0, (pv.currentTime || 0) + delta); }
+  };
+
+  // --- 4. অটোমেটিক অফিশিয়াল সামারি রিপোর্ট (১-ক্লিক PDF) ---
+  window.saPrintSummaryReport = function(){
+    if(typeof DB === 'undefined' || !ME) return;
+    const ss = ME.role === 'owner' ? (DB.u || []).filter(u => u.role === 'school') : schools(ME.id);
+    const sIds = ss.map(s => s.id);
+    const ath = (DB.a || []).filter(x => sIds.includes(x.school));
+    const rs = (typeof rsScope === 'function') ? rsScope() : (DB.r || []);
+
+    const boys = ath.filter(x => x.cat === 'boys').length;
+    const girls = ath.filter(x => x.cat === 'girls').length;
+    const cult = ath.filter(x => x.cat === 'cult').length;
+    const teach = ath.filter(x => x.cat === 'teach').length;
+    const totalEv = (ALLEV || []).length;
+    const doneEv = rs.length;
+
+    const PTS = [5, 3, 1, 0];
+    const schPts = {}, gpPts = {}, schMed = {};
+    rs.forEach(x => (x.win || []).forEach(w => {
+      const p = PTS[w.pos - 1] || 0;
+      schPts[w.school] = (schPts[w.school] || 0) + p;
+      gpPts[x.gpn] = (gpPts[x.gpn] || 0) + p;
+      schMed[w.school] = schMed[w.school] || [0, 0, 0];
+      if(w.pos >= 1 && w.pos <= 3) schMed[w.school][w.pos - 1]++;
+    }));
+
+    const topSch = Object.keys(schPts).sort((a,b) => schPts[b] - schPts[a]).slice(0, 15);
+    const topGp = Object.keys(gpPts).sort((a,b) => gpPts[b] - gpPts[a]);
+
+    const html = `
+      <style>
+        @page{size:A4 portrait;margin:10mm}
+        .sr-box{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0}
+        .sr-k{border:1px solid #0b2a6b;border-radius:6px;padding:8px;text-align:center;background:#f8fafc}
+        .sr-k b{display:block;font-size:20px;color:#0b2a6b}
+        .sg{display:flex;justify-content:space-around;margin-top:22mm}
+        .sg div{border-top:1px solid #000;padding:3px 16px;font-weight:700}
+      </style>
+      <div class="pg">
+        <div class="ttl">
+          <b style="font-size:18px">${esc(DB.cfg.h)}</b><br>
+          ${esc(DB.cfg.s)} ${esc(DB.cfg.d)}<br>
+          <b style="font-size:15px">অফিশিয়াল সামারি রিপোর্ট — ${RN[ME.role]}: ${esc(ME.name)}</b>
+        </div>
+        <div class="sr-box">
+          <div class="sr-k">মোট বিদ্যালয়<b>${ss.length}</b></div>
+          <div class="sr-k">মোট প্রতিযোগী<b>${ath.length}</b></div>
+          <div class="sr-k">সম্পন্ন ইভেন্ট<b>${doneEv} / ${totalEv}</b></div>
+          <div class="sr-k">প্রকাশিত বিজয়ী<b>${rs.reduce((s,x)=>s+(x.win||[]).length,0)}</b></div>
+        </div>
+        <h3>বিভাগ অনুযায়ী অংশগ্রহণ</h3>
+        <table>
+          <tr><th>বালক</th><th>বালিকা</th><th>সাংস্কৃতিক</th><th>শিক্ষক/শিক্ষিকা</th><th>মোট</th></tr>
+          <tr><td>${boys}</td><td>${girls}</td><td>${cult}</td><td>${teach}</td><td><b>${ath.length}</b></td></tr>
+        </table>
+        ${topGp.length > 1 ? `<h3>জিপি ভিত্তিক ফলাফল ও পয়েন্ট</h3><table><tr><th>ক্রম</th><th>জিপি</th><th>মোট পয়েন্ট</th></tr>${topGp.map((g,i)=>`<tr><td>${i+1}</td><td>${esc(g)}</td><td><b>${gpPts[g]}</b></td></tr>`).join('')}</table>` : ''}
+        <h3>শীর্ষ বিদ্যালয় ও পদক তালিকা</h3>
+        <table>
+          <tr><th>ক্রম</th><th>বিদ্যালয়ের নাম</th><th>১ম (স্বর্ণ)</th><th>২য় (রৌপ্য)</th><th>৩য় (ব্রোঞ্জ)</th><th>মোট পয়েন্ট</th></tr>
+          ${topSch.length ? topSch.map((s,i)=>`<tr><td>${i+1}</td><td>${esc(s)}</td><td>${(schMed[s]||[0,0,0])[0]}</td><td>${(schMed[s]||[0,0,0])[1]}</td><td>${(schMed[s]||[0,0,0])[2]}</td><td><b>${schPts[s]}</b></td></tr>`).join('') : '<tr><td colspan="6" style="text-align:center">এখনও কোনো ফলাফল প্রকাশিত হয়নি</td></tr>'}
+        </table>
+        <div class="sg"><div>সম্পাদক / কনভেনার</div><div>সভাপতি</div><div>পরিদর্শক (SI of Schools)</div></div>
+      </div>
+    `;
+    PD(html, 'Official-Summary-Report');
+  };
+
+  // --- 5. অভিভাবক ও শিক্ষকদের জন্য লাইভ ট্র্যাকার QR (গেট পোস্টার) ---
+  window.saPrintLiveQrPoster = function(){
+    if(typeof DB === 'undefined' || !ME) return;
+    const liveUrl = (location.href || '').split('#')[0] + '#live';
+    const qrSrc = (typeof window.saMakeQr === 'function') ? window.saMakeQr(liveUrl, 320) : '';
+    const html = `
+      <style>
+        @page{size:A4 portrait;margin:12mm}
+        .lp{text-align:center;border:4px double #0b2a6b;border-radius:14px;padding:16mm 10mm;min-height:255mm;display:flex;flex-direction:column;justify-content:space-between;box-sizing:border-box}
+        .lp h1{font-size:26px;color:#0b2a6b;margin:0 0 6px}
+        .lp .sub{font-size:16px;color:#334155;margin-bottom:10px}
+        .lp .bdg{display:inline-block;background:#0b2a6b;color:#fff;padding:6px 18px;border-radius:30px;font-size:18px;font-weight:700;margin:8px 0}
+        .lp img.qr{width:95mm;height:95mm;margin:10mm auto;border:3px solid #0b2a6b;padding:4mm;border-radius:12px;background:#fff;display:block}
+        .lp .ins{font-size:16px;line-height:1.7;background:#f1f5f9;padding:10px 14px;border-radius:10px;border:1px solid #cbd5e1}
+      </style>
+      <div class="pg">
+        <div class="lp">
+          <div>
+            <h1>${esc(DB.cfg.h)}</h1>
+            <div class="sub">${esc(DB.cfg.s)} ${esc(DB.cfg.d)}</div>
+            <div class="sub"><b>${esc(ME.name)}</b></div>
+            <div class="bdg">📱 লাইভ ফলাফল ও ইভেন্ট ট্র্যাকার</div>
+          </div>
+          <div>
+            ${qrSrc ? `<img class="qr" src="${qrSrc}" alt="Live QR">` : '<p style="font-size:18px;color:#b91c1c">QR কোড তৈরি হয়নি — পেজ রিফ্রেশ করে আবার চেষ্টা করুন।</p>'}
+            <div style="font-size:12px;color:#475569;word-break:break-all">${esc(liveUrl)}</div>
+          </div>
+          <div class="ins">
+            <b>অভিভাবক ও শিক্ষকদের জন্য:</b><br>
+            আপনার মোবাইলের ক্যামেরা বা Google Lens দিয়ে ওপরের QR কোডটি স্ক্যান করুন।<br>
+            মাঠের <b>লাইভ ফলাফল, বিজয়ীদের তালিকা ও পয়েন্ট টেবিল</b> সরাসরি আপনার ফোনেই দেখতে পাবেন।
+          </div>
+        </div>
+      </div>
+    `;
+    PD(html, 'Live-Tracker-QR-Poster');
+  };
+
+  // Auto-scroll to Live Results if opened via #live QR
+  window.addEventListener('load', () => {
+    if(location.hash === '#live'){
+      setTimeout(() => {
+        const resEl = document.querySelector('.cd h2');
+        if(resEl) resEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 600);
+    }
+  });
 })();
 </script>
 
