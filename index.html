@@ -11389,4 +11389,122 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
 })();
 </script>
 
+
+<script>
+/* =========================================================================
+   v28: Auto-Calling & Attendance (DB.att) ক্লাউড/সার্ভার সিঙ্ক (Supabase-Sync)
+        - কলিং রুম ও বিচারকের উপস্থিতি/অনুপস্থিতি সেভ হলে সাথে সাথে সার্ভার সিঙ্ক ট্রিগার
+        - সার্ভার থেকে ডেটা এলে Timestamp (ts) অনুযায়ী সর্বশেষ উপস্থিতি/অনুপস্থিতি মার্জ
+        - কলিং রুম, বিচারক প্যানেল ও অ্যাডমিন মনিটর রিয়েল-টাইমে অটো-রিফ্রেশ
+   ========================================================================= */
+(function(){
+  const normAtt = v => (v && typeof v === 'object') ? { st: v.st ? 1 : 0, ts: Number(v.ts) || 1, by: v.by || 'calling' } : (v ? { st: 1, ts: 1, by: 'calling' } : null);
+
+  function mergeAttMaps(localAtt, remoteAtt){
+    const out = {};
+    const l = localAtt || {}, r = remoteAtt || {};
+    const keys = new Set([...Object.keys(l), ...Object.keys(r)]);
+    keys.forEach(k => {
+      const a = normAtt(l[k]), b = normAtt(r[k]);
+      if(a && b) out[k] = (b.ts >= a.ts) ? b : a;
+      else if(b) out[k] = b;
+      else if(a) out[k] = a;
+    });
+    return out;
+  }
+
+  // Keep a shadow copy of latest attendance in memory/localStorage so cloud pulls never wipe newer timestamps
+  const ATT_SHADOW_KEY = (window.SA_KEY || 'sa2') + '_att_shadow';
+  function saveAttShadow(att){
+    try { localStorage.setItem(ATT_SHADOW_KEY, JSON.stringify(att || {})); } catch(e){}
+  }
+  function loadAttShadow(){
+    try { return JSON.parse(localStorage.getItem(ATT_SHADOW_KEY) || '{}') || {}; } catch(e){ return {}; }
+  }
+
+  // 1) Wrap svNow() so every save merges attendance shadow and triggers immediate cloud push if available
+  const _origSvNow28 = window.svNow;
+  if(typeof _origSvNow28 === 'function'){
+    window.svNow = function(){
+      if(typeof DB !== 'undefined' && DB){
+        DB.att = mergeAttMaps(loadAttShadow(), DB.att);
+        saveAttShadow(DB.att);
+      }
+      _origSvNow28.apply(this, arguments);
+      // Trigger supabase-sync push if exposed
+      try {
+        if(typeof window.saPush === 'function') window.saPush();
+        else if(typeof window.syncNow === 'function') window.syncNow();
+      } catch(e){}
+    };
+  }
+
+  // 2) Intercept localStorage.setItem(SA_KEY, ...) used by supabase-sync.js when pulling from cloud
+  const _origSetItem = Storage.prototype.setItem;
+  Storage.prototype.setItem = function(k, v){
+    if(k === window.SA_KEY && typeof v === 'string'){
+      try {
+        const parsed = JSON.parse(v);
+        if(parsed && typeof parsed === 'object'){
+          const mergedAtt = mergeAttMaps(loadAttShadow(), parsed.att);
+          parsed.att = mergedAtt;
+          saveAttShadow(mergedAtt);
+          if(typeof DB !== 'undefined' && DB) DB.att = mergedAtt;
+          v = JSON.stringify(parsed);
+        }
+      } catch(e){}
+    }
+    return _origSetItem.call(this, k, v);
+  };
+
+  // 3) Live auto-refresh for Calling Room, Judge Panel, and Admin Calling Monitor when cloud updates arrive
+  function refreshActivePanels28(){
+    try {
+      const d = JSON.parse(localStorage.getItem(window.SA_KEY) || 'null');
+      if(d && typeof DB !== 'undefined' && DB){
+        DB.att = mergeAttMaps(loadAttShadow(), d.att);
+        saveAttShadow(DB.att);
+        if(Array.isArray(d.r)) DB.r = d.r;
+      }
+    } catch(e){}
+
+    // Refresh Calling Room overlay if open and logged in
+    const cOv = document.getElementById('sa-calling-ov');
+    if(cOv && document.getElementById('sa-calling-ov').querySelector('table')){
+      const sel = cOv.querySelector('select');
+      if(sel && typeof window.saCallingPick === 'function') window.saCallingPick(+sel.value);
+    }
+
+    // Refresh Judge Panel attendance table if open and logged in
+    const jOv = document.getElementById('sa-judge-ov');
+    if(jOv && document.getElementById('sa-je')){
+      const activeTag = (document.activeElement || {}).tagName;
+      if(!/^(INPUT|SELECT|TEXTAREA)$/.test(activeTag)){
+        const curEv = document.getElementById('sa-je').value;
+        if(typeof window.saJudgeSet === 'function') window.saJudgeSet('e', curEv);
+      }
+    }
+
+    // Refresh Admin '📊 রিপোর্ট ও লাইভ' tab if active (without interrupting active typing)
+    if(typeof ME !== 'undefined' && ME && typeof TAB !== 'undefined' && TAB === 'rl'){
+      const activeTag = (document.activeElement || {}).tagName;
+      if(!/^(INPUT|SELECT|TEXTAREA)$/.test(activeTag) && typeof draw === 'function'){
+        draw();
+      }
+    }
+  }
+
+  window.addEventListener('storage', function(e){
+    if(e.key === window.SA_KEY) refreshActivePanels28();
+  });
+
+  // Periodic background sync check (every 4s) for single-tab Supabase pull updates
+  setInterval(function(){
+    if(document.hidden) return;
+    const hasOpenPanel = document.getElementById('sa-calling-ov') || document.getElementById('sa-judge-ov') || (typeof TAB !== 'undefined' && TAB === 'rl');
+    if(hasOpenPanel) refreshActivePanels28();
+  }, 4000);
+})();
+</script>
+
 </body></html>
