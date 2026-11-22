@@ -68,7 +68,7 @@ function draw(){rebuildEV();document.body.className=ME?ME.role:'owner';let h=`<d
 if(!ME)h+=notices()+home()+`<div class="cd"><h2>লগইন</h2><select id="lr" onchange="document.body.className=this.value">${Object.keys(RN).map(k=>`<option value="${k}">${RN[k]}${k==='owner'?' (পাসওয়ার্ড)':' (৪-ডিজিট পিন)'}</option>`).join('')}</select><input id="li" placeholder="আইডি"><input id="lp" type="password" placeholder="পিন / পাসওয়ার্ড"><button class="b p" onclick="login()">লগইন</button></div>`;
 else{const r=ME.role;let t=r==='owner'?[['set','সেটিংস/নোটিশ'],['ad','অ্যাডমিন']]:r==='school'?[['entry','এন্ট্রি'],['list','তালিকা']]:[['ad','অ্যাডমিন']];
 if(r==='gp'||r==='circle')t.push(['ch','চেস্ট কার্ড'],['sc','শিডিউল'],['sh','ইভেন্ট শিট']);if(r==='gp')t.push(['rs','ফলাফল']);if(r==='school'&&DB.cfg&&DB.cfg.certOn)t.push(['ct','সার্টিফিকেট']);if(r==='circle'||r==='sub'||r==='owner')t.push(['rp','ফলাফল প্রিন্ট']);if(r!=='school')t.splice(1,0,['sb','জমা তালিকা']);if(r!=='school'&&r!=='owner')t.push(['es','এসকর্ট']);t.push(['home','হোম']);
-h+=`<div class="tabs">${t.map(x=>`<button class="b${TAB===x[0]?' on':''}" onclick="setT('${x[0]}')">${x[1]}</button>`).join('')}</div>${notices()}${view()}`}
+if(ME&&['gp','circle','sub','owner'].includes(ME.role)&&!t.some(x=>x[0]==='rl'))t.splice(t.length-1,0,['rl','📊 রিপোর্ট ও লাইভ']);h+=`<div class="tabs">${t.map(x=>`<button class="b${TAB===x[0]?' on':''}" onclick="setT('${x[0]}')">${x[1]}</button>`).join('')}</div>${notices()}${view()}`}
 $('app').innerHTML=h;afterDraw()}
 function home(){const rs=DB.r.filter(x=>!Q||JSON.stringify(x).toLowerCase().includes(Q.toLowerCase()));
 return`<div class="cd hero"><div class="tx"><img class="lgo" src="${LGT()}" alt="NA"><h1 style="margin-top:8px">${esc(DB.cfg.h)}</h1><div class="mu">${esc(DB.cfg.s)} ${esc(DB.cfg.d)}</div></div><div class="runw"><div class="sl"><i></i><i></i><i></i></div><img class="kid" src="${RN_IMG}" alt=""><div class="shd"></div></div></div><div class="cd"><h2>🔎 ফলাফল</h2>${resPub()}</div>`}
@@ -11225,6 +11225,15 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
       window.saAdminCallAllAbsent();
     }, sec * 1000);
   };
+
+  // Ensure TAB === 'rl' always renders saReportLiveView regardless of view() wrapper order
+  const _origView27 = window.view;
+  if(typeof _origView27 === 'function'){
+    window.view = function(){
+      if(typeof TAB !== 'undefined' && TAB === 'rl') return window.saReportLiveView();
+      return _origView27.apply(this, arguments);
+    };
+  }
 
   const _origReportLive27 = window.saReportLiveView;
   window.saReportLiveView = function(){
