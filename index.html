@@ -115,7 +115,7 @@ let rows='';for(let i=0;i<20;i++)rows+=`<tr><td>${i+1}</td><td>${tm()}</td><td>$
 return`<style>@page{size:A4 ${o};margin:8mm}</style><div class="pg"><div class="sheet"><h3>${esc(DB.cfg.h)} — মাস্টার শিডিউল</h3><table><tr><th>অর্ডার</th><th>সময়</th><th>ইভেন্ট ১</th><th>ইভেন্ট ২</th></tr>${rows}</table><p style="font-size:11px"><span class="red">লাল</span> = একাধিক ইভেন্টে থাকা কমন চেস্ট</p></div></div>`}
 function sched(){return`<div class="cd"><h2>মাস্টার শিডিউল (ট্র্যাক / ফিল্ড / কালচারাল)</h2>${oriBtns()}</div><div id="pv"></div>`}
 function resEntry(){const c=window.RC||'boys';let s=window.RS||'A';if(!secs(c).includes(s))s=secs(c)[0];const l=evs(c,s),sel=l.includes(window.RE)?window.RE:l[0];
-return`<div class="cd"><h2>ফলাফল এন্ট্রি</h2><select onchange="window.RC=this.value;window.RE=null;draw()">${Object.keys(CN).map(k=>`<option value="${k}"${k===c?' selected':''}>${CN[k]}</option>`).join('')}</select>${c==='teach'?'':`<select onchange="window.RS=this.value;window.RE=null;draw()">${secs(c).map(k=>`<option value="${k}"${k===s?' selected':''}>${SN[k]} বিভাগ</option>`).join('')}</select>`}<select id="re" onchange="window.RE=this.value">${l.map(e=>`<option${e===sel?' selected':''}>${e}</option>`).join('')}</select>${[1,2,3,4].map(p=>`<input id="w${p}" placeholder="${p}ম স্থান — চেস্ট নম্বর" oninput="look(${p})"><div class="mu" id="wn${p}"></div>`).join('')}<button class="b p" onclick="pubR()">Publish Result</button></div><div class="cd"><h2>প্রকাশিত</h2>${DB.r.filter(x=>x.gp===ME.id).map(x=>`<div class="res"><b>${CN[x.cat]} ${SN[x.sec]} — ${esc(x.ev)}</b> <button class="b d s" onclick="conf('মুছবেন?',()=>{DB.r=DB.r.filter(y=>y.id!=='${x.id}');sv();draw()})">মুছুন</button>${x.win.map(w=>`<div>${w.pos}ম: ${esc(w.chest)} ${esc(w.name)}</div>`).join('')}</div>`).join('')}</div>`+resPrintCard()}
+return`<div class="cd"><div class="top" style="margin-bottom:6px"><h2>ফলাফল এন্ট্রি</h2><div><button class="b s p" onclick="window.saOpenQrScan('event')">📷 ইভেন্ট QR স্ক্যান</button> <button class="b s" onclick="window.saOpenQrScan('verify')">🔍 চেস্ট কার্ড ভেরিফাই</button></div></div><select onchange="window.RC=this.value;window.RE=null;draw()">${Object.keys(CN).map(k=>`<option value="${k}"${k===c?' selected':''}>${CN[k]}</option>`).join('')}</select>${c==='teach'?'':`<select onchange="window.RS=this.value;window.RE=null;draw()">${secs(c).map(k=>`<option value="${k}"${k===s?' selected':''}>${SN[k]} বিভাগ</option>`).join('')}</select>`}<select id="re" onchange="window.RE=this.value">${l.map(e=>`<option${e===sel?' selected':''}>${e}</option>`).join('')}</select>${[1,2,3,4].map(p=>`<div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.15);border-radius:10px;padding:8px;margin-bottom:8px"><div style="display:flex;gap:6px;align-items:center"><input id="w${p}" type="text" placeholder="${p}ম স্থানের চেস্ট নম্বর" oninput="look(${p})" style="flex:1;min-width:0;margin:0"><button type="button" class="b s" style="flex-shrink:0;margin:0;min-height:44px" onclick="window.saOpenQrScan('pos',${p})" title="QR স্ক্যান করুন">📷 স্ক্যান</button><button type="button" class="b s d" style="flex-shrink:0;margin:0;min-height:44px;padding:0 11px" onclick="var el=document.getElementById('w${p}');if(el){el.value='';look(${p});el.focus()}" title="মুছুন">✕</button></div><div class="mu" id="wn${p}" style="margin:4px 0"></div><input id="wt${p}" type="text" placeholder="${p}ম স্থানের সময় (ঐচ্ছিক)" style="margin:2px 0 0"></div>`).join('')}<button class="b p" onclick="pubR()">Publish Result</button></div><div class="cd"><h2>প্রকাশিত</h2>${DB.r.filter(x=>x.gp===ME.id).map(x=>`<div class="res"><b>${CN[x.cat]} ${SN[x.sec]} — ${esc(x.ev)}</b> <button class="b d s" onclick="conf('মুছবেন?',()=>{DB.r=DB.r.filter(y=>y.id!=='${x.id}');sv();draw()})">মুছুন</button>${x.win.map(w=>`<div>${w.pos}ম: ${esc(w.chest)} ${esc(w.name)}</div>`).join('')}</div>`).join('')}</div>`+resPrintCard()}
 function find(ch){const ids=schools(ME.id).map(s=>s.id),c=window.RC||'boys',e=$('re').value;return DB.a.find(x=>ids.includes(x.school)&&x.chest.toUpperCase()===ch.trim().toUpperCase()&&x.cat===c&&x.ev.includes(e))}
 function look(p){const v=$('w'+p).value,x=v&&find(v);$('wn'+p).textContent=x?x.name+' — '+U(x.school).name:v?'এই ইভেন্টে পাওয়া যায়নি':''}
 function pubR(){const w=[];for(let p=1;p<=4;p++){const v=$('w'+p).value;if(v){const x=find(v);if(!x)return info(p+'ম স্থানের চেস্ট ভুল');w.push({pos:p,chest:x.chest,name:x.name,school:U(x.school).name,pid:x.id})}}
@@ -123,7 +123,7 @@ if(!w.length)return info('কমপক্ষে একজন বিজয়ী 
 DB.r=DB.r.filter(x=>x.id!==id);DB.r.push({id,gp:ME.id,gpn:ME.name,cat:c,sec:s,ev:e,win:w});sv();draw();info('প্রকাশিত ✔')}
 const tyOf=e=>e.includes('দীর্ঘ')?'lj':e.includes('উচ্চ')?'hj':e.includes('যোগ')?'yg':e.includes('জিমন')?'gy':e.includes('বল ছোঁড়া')?'fb':'tr';
 const HJ0={boys:{B:1.10,C:1.15},girls:{B:1.00,C:1.05}};
-function shSel(){return`<div class="cd"><h2>ইভেন্ট শিট — অফিস / কলিং / ফাইনাল জাজমেন্ট (A4)</h2><select onchange="SHSEL=+this.value;SHALL=0;draw()">${ALLEV.map((x,i)=>`<option value="${i}"${i===SHSEL?' selected':''}>${CN[x[0]]} ${SN[x[1]]} — ${x[2]}</option>`).join('')}</select><button class="b${SHALL?'':' on'}" onclick="SHALL=0;draw()">এই ইভেন্ট (৩ কপি)</button><button class="b${SHALL?' on':''}" onclick="SHALL=1;draw()">সব ইভেন্ট</button>${(SHALL||tyOf(ALLEV[SHSEL][2])==='tr')?`<div style="margin-top:8px"><b>হিট:</b> <button class="b${SHHT?'':' on'}" onclick="SHHT=0;draw()">না</button><button class="b${SHHT?' on':''}" onclick="SHHT=1;draw()">হ্যাঁ</button>${SHHT?` &nbsp; এক হিটে সর্বোচ্চ কতজন: <input type="number" min="1" value="${SHHM}" style="width:70px" onchange="SHHM=Math.max(1,parseInt(this.value)||8);draw()">`:''}<div class="mu">শুধু ট্র্যাক/দৌড় ইভেন্টে প্রযোজ্য।</div></div>`:''}<p class="mu">আগে চেস্ট নম্বর তৈরি করুন।</p></div><div id="pv"></div>`}
+function shSel(){return`<div class="cd"><h2>ইভেন্ট শিট — অফিস / কলিং / ফাইনাল জাজমেন্ট (A4)</h2><select onchange="SHSEL=+this.value;SHALL=0;draw()">${ALLEV.map((x,i)=>`<option value="${i}"${i===SHSEL?' selected':''}>${CN[x[0]]} ${SN[x[1]]} — ${x[2]}</option>`).join('')}</select><button class="b${SHALL?'':' on'}" onclick="SHALL=0;draw()">এই ইভেন্ট (৩ কপি)</button><button class="b${SHALL?' on':''}" onclick="SHALL=1;draw()">সব ইভেন্ট</button>${(SHALL||tyOf(ALLEV[SHSEL][2])==='tr')?`<div style="margin-top:8px"><b>হিট:</b> <button class="b${SHHT?'':' on'}" onclick="SHHT=0;draw()">না</button><button class="b${SHHT?' on':''}" onclick="SHHT=1;draw()">হ্যাঁ</button>${SHHT?` &nbsp; এক হিটে সর্বোচ্চ কতজন: <input type="number" min="1" value="${SHHM}" style="width:70px" onchange="SHHM=Math.max(1,parseInt(this.value)||8);draw()">`:''}<div class="mu">শুধু ট্র্যাক/দৌড় ইভেন্টে প্রযোজ্য।</div></div>`:''}<div style="margin-top:8px"><b>📷 ফাইনাল জাজমেন্ট কপিতে QR কোড:</b> <button class="b${window.SHQR===false?'':' on'}" onclick="window.SHQR=true;draw()">হ্যাঁ (স্ক্যানযোগ্য)</button><button class="b${window.SHQR===false?' on':''}" onclick="window.SHQR=false;draw()">না</button><div class="mu">চালু থাকলে ফাইনাল জাজমেন্ট কপিতে ইভেন্ট ও প্রতিটি প্রতিযোগীর QR কোড প্রিন্ট হবে।</div></div><p class="mu">আগে চেস্ট নম্বর তৈরি করুন।</p></div><div id="pv"></div>`}
 const NB=x=>esc(x.name)+(x.bn?'<br>('+esc(x.bn)+')':'');
 const SMZ=(n,k)=>{const b=k===2?150:230,f=Math.max(5,Math.min(11,((b/n-.6)/2.3)/.3528));return f>=11?{c:'',s:''}:{c:' sm',s:' style="--fz:'+f.toFixed(1)+'px;--rh:'+Math.max(2,Math.min(6.6,b/n-.9)).toFixed(1)+'mm"'}};
 function heatH(a,k,t,c,s,e,gp,ex0){const M=Math.max(1,parseInt(SHHM)||8),N=a.length,H=Math.ceil(N/M),b=Math.floor(N/H),rm=N%H,hs=[];let p=0;for(let i=0;i<H;i++){const z=b+(i<rm?1:0);hs.push(a.slice(p,p+z));p+=z}
@@ -3747,15 +3747,38 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
             return;
           }
 
-          const n = a.length, _z = SMZ(n,k);
-          let r = '';
-          for(let i=0;i<n;i++){
-            const x = a[i];
-            r += `<tr><td class="sl-c">${i+1}</td><td class="fit">${fmtUnitCell(x)}</td><td class="fit"><b>${esc(x.name)}</b>${x.bn?'<br><small>('+esc(x.bn)+')</small>':''}</td><td class="ch-c">${esc(x.chest)}</td>${ex.map(()=>'<td></td>').join('')}</tr>`;
-          }
-          if(!n) r = `<tr><td colspan="${4+ex.length}" style="text-align:center">কোনো প্রতিযোগী নেই</td></tr>`;
+          const useQr = (k === 2 && window.SHQR !== false && typeof window.saMakeQr === 'function');
+          const evIdx = ALLEV.findIndex(v => v[0]===c && v[1]===s && v[2]===e);
+          const evQr = useQr ? window.saMakeQr(`SA|E|${c}|${s||''}|${evIdx}`, 96) : '';
+          const ttlHtml = `<div class="ttl" style="position:relative;${evQr?'min-height:17.5mm;padding-right:19mm':''}"><b style="font-size:15.5px">${esc(DB.cfg.h)}</b><br>${esc(DB.cfg.s)} ${esc(DB.cfg.d)}<br>${esc(ME.name)} • <b>${CN[c]}${s?' '+SN[s]+' বিভাগ':''}</b><br><span class="ev-bdg">${esc(biEv(e))} — ${t}</span>${evQr?`<img src="${evQr}" style="position:absolute;right:0;top:0;width:16mm;height:16mm;background:#fff;padding:0.5mm;border:1px solid #94a3b8" alt="Event QR">`:''}</div>`;
+          const fTbl = k===2 ? `<table style="margin-top:7px"><tr><th style="width:12%">স্থান</th><th style="width:36%">বিজয়ীর নাম</th><th style="width:12%">চেস্ট</th><th style="width:28%">${uColTitle}</th><th style="width:12%">মান/সময়</th></tr>${['প্রথম','দ্বিতীয়','তৃতীয়','চতুর্থ'].map(p=>`<tr><td><b>${p}</b></td><td></td><td></td><td></td><td></td></tr>`).join('')}</table><div class="sg"><div>১ম বিচারক</div><div>২য় বিচারক</div><div>প্রধান বিচারক</div></div>` : '';
 
-          h += `<div class="sheet pg${_z.c}"${_z.s}><div class="m-pstrip"></div><div class="ttl"><b style="font-size:15.5px">${esc(DB.cfg.h)}</b><br>${esc(DB.cfg.s)} ${esc(DB.cfg.d)}<br>${esc(ME.name)} • <b>${CN[c]}${s?' '+SN[s]+' বিভাগ':''}</b><br><span class="ev-bdg">${esc(biEv(e))} — ${t}</span></div>${note?`<div style="font-size:10.5px;margin-bottom:2px">📌 ${note}</div>`:''}<table class="fx"><tr><th style="width:${colW[0]}%">ক্রম</th><th style="width:${colW[1]}%">${uColTitle}</th><th style="width:${colW[2]}%">প্রতিযোগীর নাম</th><th style="width:${colW[3]}%">চেস্ট</th>${ex.map((x,xi)=>`<th style="width:${colW[4+xi]||8}%">${x}</th>`).join('')}</tr>${r}</table>${k===2?`<table style="margin-top:7px"><tr><th style="width:12%">স্থান</th><th style="width:36%">বিজয়ীর নাম</th><th style="width:12%">চেস্ট</th><th style="width:28%">${uColTitle}</th><th style="width:12%">মান/সময়</th></tr>${['প্রথম','দ্বিতীয়','তৃতীয়','চতুর্থ'].map(p=>`<tr><td><b>${p}</b></td><td></td><td></td><td></td><td></td></tr>`).join('')}</table><div class="sg"><div>১ম বিচারক</div><div>২য় বিচারক</div><div>প্রধান বিচারক</div></div>`:''}</div>`;
+          if(useQr){
+            const perPg = 12;
+            const chunks = [];
+            for(let i=0; i<Math.max(1, a.length); i+=perPg) chunks.push(a.slice(i, i+perPg));
+            const qrColW = [colW[0], Math.max(14, colW[1]-4), Math.max(18, colW[2]-4), colW[3], 9, ...colW.slice(4).map(v => Math.max(5, v - 1/ex.length))];
+            chunks.forEach((chunk, ci) => {
+              const isLast = (ci === chunks.length - 1);
+              let r = '';
+              chunk.forEach((x, j) => {
+                const sl = ci * perPg + j + 1;
+                const aQr = window.saMakeQr(`SA|A|${x.chest}|${x.cat}|${x.sec||''}`, 84);
+                r += `<tr style="height:14.5mm"><td class="sl-c">${sl}</td><td class="fit">${fmtUnitCell(x)}</td><td class="fit"><b>${esc(x.name)}</b>${x.bn?'<br><small>('+esc(x.bn)+')</small>':''}</td><td class="ch-c">${esc(x.chest)}</td><td style="text-align:center;padding:1px">${aQr?`<img src="${aQr}" style="width:12.5mm;height:12.5mm;display:block;margin:0 auto" alt="QR">`:''}</td>${ex.map(()=>'<td></td>').join('')}</tr>`;
+              });
+              if(!chunk.length) r = `<tr><td colspan="${5+ex.length}" style="text-align:center">কোনো প্রতিযোগী নেই</td></tr>`;
+              h += `<div class="sheet pg"><div class="m-pstrip"></div>${ttlHtml}${note?`<div style="font-size:10.5px;margin-bottom:2px">📌 ${note}</div>`:''}<table class="fx"><tr><th style="width:${qrColW[0]}%">ক্রম</th><th style="width:${qrColW[1]}%">${uColTitle}</th><th style="width:${qrColW[2]}%">প্রতিযোগীর নাম</th><th style="width:${qrColW[3]}%">চেস্ট</th><th style="width:${qrColW[4]}%;text-align:center">QR</th>${ex.map((x,xi)=>`<th style="width:${qrColW[5+xi]||8}%">${x}</th>`).join('')}</tr>${r}</table>${isLast?fTbl:''}</div>`;
+            });
+          } else {
+            const n = a.length, _z = SMZ(n,k);
+            let r = '';
+            for(let i=0;i<n;i++){
+              const x = a[i];
+              r += `<tr><td class="sl-c">${i+1}</td><td class="fit">${fmtUnitCell(x)}</td><td class="fit"><b>${esc(x.name)}</b>${x.bn?'<br><small>('+esc(x.bn)+')</small>':''}</td><td class="ch-c">${esc(x.chest)}</td>${ex.map(()=>'<td></td>').join('')}</tr>`;
+            }
+            if(!n) r = `<tr><td colspan="${4+ex.length}" style="text-align:center">কোনো প্রতিযোগী নেই</td></tr>`;
+            h += `<div class="sheet pg${_z.c}"${_z.s}><div class="m-pstrip"></div>${ttlHtml}${note?`<div style="font-size:10.5px;margin-bottom:2px">📌 ${note}</div>`:''}<table class="fx"><tr><th style="width:${colW[0]}%">ক্রম</th><th style="width:${colW[1]}%">${uColTitle}</th><th style="width:${colW[2]}%">প্রতিযোগীর নাম</th><th style="width:${colW[3]}%">চেস্ট</th>${ex.map((x,xi)=>`<th style="width:${colW[4+xi]||8}%">${x}</th>`).join('')}</tr>${r}</table>${fTbl}</div>`;
+          }
         });
       });
       return h.indexOf('class="sheet')<0 ? null : h;
@@ -4003,9 +4026,12 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
             const key = a.school; if(!(key in colMap)) colMap[key] = PAL[k++%PAL.length];
             const c = isResult ? PAL[(item.pos||1)-1] : colMap[key];
             const l = loc(a), L = String(a.chest).length;
-            const fs = Math.min(W/(L*.64), mark ? 35 : Hn*.90).toFixed(1);
+            const qrImg = (typeof window.saMakeQr === 'function') ? window.saMakeQr(`SA|A|${a.chest}|${a.cat}|${a.sec||''}`, 96) : '';
+            const qrMm = ori==='portrait' ? 15 : 11.5;
+            const effH = qrImg ? (ori==='portrait' ? 50 : 26) : Hn;
+            const fs = Math.min(W/(L*.64), mark ? (qrImg ? 26 : 35) : effH*.90).toFixed(1);
             const uLine = (ME.role==='circle'||ME.role==='sub') && l.u ? `${UL[ME.role]}: <b>${esc(l.u)}</b> • ` : '';
-            return `<div class="card mc"><div class="h" style="background:${c}"><img src="${lgOn(c)}" style="height:6mm"><br><div style="font-size:13px;font-weight:800">${esc(DB.cfg.h)}</div><div>${esc(ME.name)}</div><span class="bdg-cat">${CN[a.cat]}${a.sec?' — '+SN[a.sec]+' বিভাগ':''}</span></div><div class="n" style="color:${NC(a)}"><div style="font-size:${fs}mm">${esc(a.chest)}</div>${mark?`<div style="font-size:8.5mm;color:${c};margin-top:1.5mm;letter-spacing:1px">${mark}</div>`:''}</div><div class="f" style="background:${c}"><span class="nm">${esc(a.name)}</span><div>${uLine}বিদ্যালয়: <b>${esc(l.s)}</b></div><div class="evp">ইভেন্ট: ${esc(a.ev.join(' ও '))}</div></div></div>`;
+            return `<div class="card mc"><div class="h" style="background:${c}"><img src="${lgOn(c)}" style="height:6mm"><br><div style="font-size:13px;font-weight:800">${esc(DB.cfg.h)}</div><div>${esc(ME.name)}</div><span class="bdg-cat">${CN[a.cat]}${a.sec?' — '+SN[a.sec]+' বিভাগ':''}</span></div><div class="n" style="color:${NC(a)};padding:1.5mm 0">${qrImg?`<img src="${qrImg}" style="width:${qrMm}mm;height:${qrMm}mm;background:#fff;padding:0.8mm;border:1px solid #cbd5e1;border-radius:3px;margin-bottom:${ori==='portrait'?2:1}mm;display:block" alt="QR">`:''}<div style="font-size:${fs}mm;line-height:1">${esc(a.chest)}</div>${mark?`<div style="font-size:${qrImg?7:8.5}mm;color:${c};margin-top:1.5mm;letter-spacing:1px">${mark}</div>`:''}</div><div class="f" style="background:${c}"><span class="nm">${esc(a.name)}</span><div>${uLine}বিদ্যালয়: <b>${esc(l.s)}</b></div><div class="evp">ইভেন্ট: ${esc(a.ev.join(' ও '))}</div></div></div>`;
           }).join('')}</div></div>`;
         }
       });
@@ -4616,8 +4642,10 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
             const wInp = document.getElementById('w'+p);
             if(wInp && !wInp.dataset.tie){
               wInp.dataset.tie = 1;
-              wInp.placeholder = `${p}ম স্থান — চেস্ট নম্বর (যৌথ হলে কমা দিন, যেমন: 102, 108)`;
-              wInp.insertAdjacentHTML('afterend', `<input id="wt${p}" placeholder="${p}ম স্থানের সময় / দূরত্ব / নম্বর (ঐচ্ছিক, যেমন: 12.4s)" style="margin-top:-2px">`);
+              wInp.placeholder = `${p}ম স্থানের চেস্ট নম্বর`;
+              if(!document.getElementById('wt'+p)){
+                wInp.insertAdjacentHTML('afterend', `<input id="wt${p}" placeholder="${p}ম স্থানের সময় (ঐচ্ছিক)" style="margin-top:4px">`);
+              }
             }
           }
           const pubBtn = app.querySelector('button[onclick="pubR()"]');
@@ -9389,4 +9417,221 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
   };
 })();
 </script>
+
+<script>
+/* =========================================================================
+   v21: QR কোড জেনারেটর (চেস্ট কার্ড + ফাইনাল জাজমেন্ট শিট) ও মোবাইল QR স্ক্যানার
+   ========================================================================= */
+(function(){
+  const _qrCache = {};
+  window.SHQR = true;
+
+  window.saMakeQr = function(text, size){
+    const key = text + '|' + (size || 96);
+    if(_qrCache[key]) return _qrCache[key];
+    if(typeof QRCode === 'undefined') return '';
+    try {
+      const box = document.createElement('div');
+      box.style.cssText = 'position:fixed;left:-9999px;top:-9999px;visibility:hidden';
+      document.body.appendChild(box);
+      new QRCode(box, {
+        text: String(text),
+        width: size || 96,
+        height: size || 96,
+        colorDark: '#000000',
+        colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.M
+      });
+      const cvs = box.querySelector('canvas');
+      const img = box.querySelector('img');
+      const url = cvs ? cvs.toDataURL('image/png') : (img && img.src ? img.src : '');
+      box.remove();
+      if(url) _qrCache[key] = url;
+      return url;
+    } catch(e){
+      return '';
+    }
+  };
+
+  let _qrStream = null;
+  let _qrRaf = 0;
+  let _qrActive = false;
+
+  function beepOk(){
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if(!AC) return;
+      const ctx = new AC();
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = 'sine'; o.frequency.value = 880;
+      g.gain.setValueAtTime(0.18, ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.16);
+      o.connect(g); g.connect(ctx.destination);
+      o.start(); o.stop(ctx.currentTime + 0.17);
+      setTimeout(() => { try { ctx.close(); } catch(e){} }, 300);
+    } catch(e){}
+  }
+
+  function ensureJsQr(){
+    return new Promise(resolve => {
+      if(typeof window.jsQR === 'function') return resolve(true);
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js';
+      s.onload = () => resolve(typeof window.jsQR === 'function');
+      s.onerror = () => resolve(false);
+      document.head.appendChild(s);
+    });
+  }
+
+  window.saCloseQrScan = function(){
+    _qrActive = false;
+    if(_qrRaf){ cancelAnimationFrame(_qrRaf); _qrRaf = 0; }
+    if(_qrStream){
+      _qrStream.getTracks().forEach(t => { try { t.stop(); } catch(e){} });
+      _qrStream = null;
+    }
+    const ov = document.getElementById('sa-qr-ov');
+    if(ov) ov.remove();
+  };
+
+  function handleQrPayload(raw, mode, pos){
+    const txt = String(raw || '').trim();
+    if(!txt) return false;
+    const parts = txt.split('|');
+
+    // Event QR: SA|E|<cat>|<sec>|<evIdx>
+    if(parts[0] === 'SA' && parts[1] === 'E'){
+      const cat = parts[2], sec = parts[3] || '', evIdx = parseInt(parts[4], 10);
+      if(mode === 'event' || mode === 'verify'){
+        beepOk();
+        window.saCloseQrScan();
+        window.RC = cat;
+        window.RS = sec;
+        if(!isNaN(evIdx) && ALLEV[evIdx]) window.RE = ALLEV[evIdx][2];
+        draw();
+        info(`✅ ইভেন্ট সিলেক্ট হয়েছে:<br><b>${CN[cat]||cat} ${SN[sec]||''} — ${esc(window.RE||'')}</b>`);
+        return true;
+      }
+      return false;
+    }
+
+    // Athlete QR: SA|A|<chest>|<cat>|<sec>  (or plain chest number)
+    let chest = txt;
+    if(parts[0] === 'SA' && parts[1] === 'A') chest = parts[2] || '';
+
+    if(mode === 'pos' && pos){
+      beepOk();
+      window.saCloseQrScan();
+      const inp = document.getElementById('w' + pos);
+      if(inp){
+        inp.value = chest;
+        if(typeof look === 'function') look(pos);
+      }
+      return true;
+    }
+
+    if(mode === 'verify'){
+      beepOk();
+      window.saCloseQrScan();
+      const ids = (typeof schools === 'function' && ME) ? schools(ME.id).map(s=>s.id) : null;
+      const ath = (DB && DB.a || []).find(x => (!ids || ids.includes(x.school)) && String(x.chest||'').toUpperCase() === chest.toUpperCase());
+      if(ath){
+        const sch = (typeof U === 'function' && U(ath.school)) ? U(ath.school).name : '';
+        info(`✅ <b>প্রতিযোগী ভেরিফায়েড</b><br><br>চেস্ট নম্বর: <b>${esc(ath.chest)}</b><br>নাম: <b>${esc(ath.name)}</b>${ath.bn?' ('+esc(ath.bn)+')':''}<br>বিদ্যালয়: ${esc(sch)}<br>বিভাগ: ${CN[ath.cat]||''} ${SN[ath.sec]||''}<br>ইভেন্ট: ${esc((ath.ev||[]).join(', '))}`);
+      } else {
+        info(`⚠️ চেস্ট নম্বর <b>${esc(chest)}</b> খুঁজে পাওয়া যায়নি।`);
+      }
+      return true;
+    }
+
+    if(mode === 'event'){
+      beepOk();
+      window.saCloseQrScan();
+      info(`⚠️ এটি প্রতিযোগীর QR কোড (চেস্ট: <b>${esc(chest)}</b>)। ইভেন্ট সিলেক্ট করতে শিটের ওপরের ডানদিকের QR কোডটি স্ক্যান করুন।`);
+      return true;
+    }
+    return false;
+  }
+
+  window.saOpenQrScan = async function(mode, pos){
+    window.saCloseQrScan();
+    const title = mode === 'event'
+      ? '📷 ইভেন্ট শিটের ওপরের QR স্ক্যান করুন'
+      : mode === 'pos'
+        ? `📷 ${pos}ম স্থানের প্রতিযোগীর QR স্ক্যান করুন`
+        : '📷 চেস্ট কার্ড / ইভেন্ট QR ভেরিফাই করুন';
+
+    const ov = document.createElement('div');
+    ov.id = 'sa-qr-ov';
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(4,10,22,.92);z-index:9999;display:flex;align-items:center;justify-content:center;padding:14px';
+    ov.innerHTML = `
+      <div style="background:#101f38;border:2px solid var(--a);border-radius:14px;padding:14px;max-width:420px;width:100%;text-align:center;box-shadow:0 0 24px var(--g)">
+        <div style="font-weight:700;font-size:16px;margin-bottom:8px;color:var(--a)">${title}</div>
+        <div style="position:relative;width:100%;aspect-ratio:1/1;background:#000;border-radius:10px;overflow:hidden;border:2px solid rgba(0,240,255,.45)">
+          <video id="sa-qr-vid" playsinline muted style="width:100%;height:100%;object-fit:cover"></video>
+          <div style="position:absolute;inset:16%;border:2px dashed #39ff14;border-radius:10px;pointer-events:none;box-shadow:0 0 0 999px rgba(0,0,0,.35)"></div>
+        </div>
+        <div id="sa-qr-st" class="mu" style="margin:8px 0">ক্যামেরা চালু হচ্ছে...</div>
+        <button class="b d" style="width:100%" onclick="window.saCloseQrScan()">✖ বন্ধ করুন</button>
+      </div>
+    `;
+    document.body.appendChild(ov);
+
+    const vid = document.getElementById('sa-qr-vid');
+    const st = document.getElementById('sa-qr-st');
+
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+      if(st) st.textContent = '⚠️ এই ব্রাউজারে ক্যামেরা সাপোর্ট নেই বা সাইটটি HTTPS-এ খোলা হয়নি।';
+      return;
+    }
+
+    try {
+      _qrStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+      vid.srcObject = _qrStream;
+      await vid.play();
+      _qrActive = true;
+      if(st) st.textContent = 'QR কোডটি সবুজ বক্সের ভেতরে ধরুন...';
+
+      let detector = null;
+      if('BarcodeDetector' in window){
+        try { detector = new BarcodeDetector({ formats: ['qr_code'] }); } catch(e){ detector = null; }
+      }
+      if(!detector){
+        await ensureJsQr();
+      }
+
+      const cvs = document.createElement('canvas');
+      const ctx = cvs.getContext('2d', { willReadFrequently: true });
+
+      const tick = async () => {
+        if(!_qrActive) return;
+        if(vid.readyState >= 2){
+          try {
+            if(detector){
+              const codes = await detector.detect(vid);
+              if(codes && codes.length && codes[0].rawValue){
+                if(handleQrPayload(codes[0].rawValue, mode, pos)) return;
+              }
+            } else if(typeof window.jsQR === 'function'){
+              cvs.width = vid.videoWidth || 320;
+              cvs.height = vid.videoHeight || 320;
+              ctx.drawImage(vid, 0, 0, cvs.width, cvs.height);
+              const imgData = ctx.getImageData(0, 0, cvs.width, cvs.height);
+              const code = window.jsQR(imgData.data, imgData.width, imgData.height, { inversionAttempts: 'dontInvert' });
+              if(code && code.data){
+                if(handleQrPayload(code.data, mode, pos)) return;
+              }
+            }
+          } catch(e){}
+        }
+        _qrRaf = requestAnimationFrame(tick);
+      };
+      _qrRaf = requestAnimationFrame(tick);
+    } catch(err){
+      if(st) st.textContent = '⚠️ ক্যামেরা চালু করা যায়নি। অনুগ্রহ করে Camera Permission (Allow) দিন।';
+    }
+  };
+})();
+</script>
+
 </body></html>
