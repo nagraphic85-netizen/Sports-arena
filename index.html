@@ -10852,19 +10852,30 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
   }
 
   // --- Level-Aware Unit Name for Calling Voice ---
+  function cleanUnitLabel(str){
+    return String(str || '')
+      .replace(/^\s*(?:বিদ্যালয়|বিদ্যালয়|স্কুল|প্রাথমিক\s*প্রাইমারি\s*স্কুল)\s*[:\-–—]?\s*/i, '')
+      .replace(/\s*প্রাথমিক\s*প্রাইমারি\s*স্কুল\s*$/i, ' প্রাথমিক বিদ্যালয়')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
   function unitNameForCall(ath){
     const schObj = U(ath.school);
-    const schName = schObj ? schObj.name : '';
+    const rawSchName = (ath && ath.sch) ? ath.sch : (schObj ? schObj.name : '');
+    const schName = cleanUnitLabel(rawSchName);
     const role = (typeof ME !== 'undefined' && ME) ? ME.role : 'gp';
     if(role === 'circle'){
       const gpObj = schObj ? up(schObj, 'gp') : null;
-      return gpObj ? (gpObj.name + ' জিপি') : schName;
+      const gpName = gpObj ? cleanUnitLabel(gpObj.name) : '';
+      return gpName || schName;
     }
     if(role === 'sub'){
       const cirObj = schObj ? up(schObj, 'circle') : null;
-      return cirObj ? (cirObj.name + ' সার্কেল') : schName;
+      const cirName = cirObj ? cleanUnitLabel(cirObj.name) : '';
+      return cirName || schName;
     }
-    return schName ? ('বিদ্যালয় ' + schName) : '';
+    return schName;
   }
 
   // --- Bengali TTS Helper for Calling ---
@@ -11632,12 +11643,75 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
 
 <script>
 /* =========================================================================
-   v30-v13: High Contrast (Judge Attendance + Stopwatch + Live View) & Warnings
+   v30-v14: High Contrast (বালক বিভাগ & বালিকা বিভাগ in Dark Mode + Judge + Live)
    ========================================================================= */
 (function(){
   const hcCss = document.createElement('style');
-  hcCss.id = 'sa-hc-v13';
+  hcCss.id = 'sa-hc-v14';
   hcCss.textContent = `
+    /* Live Scoreboard & Live Panel Dark Mode Contrast (especially বালক বিভাগ & বালিকা বিভাগ) */
+    #sa-live-tv:not(.tv-light) {
+      background: #020617 !important;
+      color: #ffffff !important;
+    }
+    #sa-live-tv:not(.tv-light) .tv-card,
+    #sa-live-tv:not(.tv-light) .res {
+      background: #0f172a !important;
+      color: #ffffff !important;
+      border: 2px solid #38bdf8 !important;
+    }
+    #sa-live-tv:not(.tv-light) .tv-card h3,
+    #sa-live-tv:not(.tv-light) .tv-slide-hd,
+    #sa-live-tv:not(.tv-light) h2,
+    #sa-live-tv:not(.tv-light) h3 {
+      color: #fef08a !important;
+      font-weight: 800 !important;
+    }
+    #sa-live-tv:not(.tv-light) .tv-tbl th {
+      background: #1e293b !important;
+      color: #fef08a !important;
+    }
+    #sa-live-tv:not(.tv-light) .tv-tbl td {
+      background: #060d1b !important;
+      color: #ffffff !important;
+    }
+    #sa-live-tv:not(.tv-light) .sa-div-boys-dark {
+      background: #082f49 !important;
+      color: #7dd3fc !important;
+      border: 1.5px solid #38bdf8 !important;
+      border-radius: 8px !important;
+      padding: 4px 10px !important;
+      font-weight: 800 !important;
+    }
+    #sa-live-tv:not(.tv-light) .sa-div-girls-dark {
+      background: #4c0519 !important;
+      color: #fda4af !important;
+      border: 1.5px solid #fb7185 !important;
+      border-radius: 8px !important;
+      padding: 4px 10px !important;
+      font-weight: 800 !important;
+    }
+
+    /* Live Scoreboard Light Mode Contrast */
+    #sa-live-tv.tv-light {
+      background: #f8fafc !important;
+      color: #0f172a !important;
+    }
+    #sa-live-tv.tv-light .tv-card,
+    #sa-live-tv.tv-light .res {
+      background: #ffffff !important;
+      color: #0f172a !important;
+      border: 2px solid #0284c7 !important;
+    }
+    #sa-live-tv.tv-light .tv-tbl th {
+      background: #0f172a !important;
+      color: #ffffff !important;
+    }
+    #sa-live-tv.tv-light .tv-tbl td {
+      background: #ffffff !important;
+      color: #0f172a !important;
+    }
+
     /* Judge Panel & Calling Room High Contrast */
     #sa-judge-ov .cd, #sa-calling-ov .cd {
       background: #0b1324 !important;
@@ -11715,46 +11789,29 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
       color: #fde047 !important;
       font-weight: 800 !important;
     }
-
-    /* Live Scoreboard & Live Report Contrast */
-    #sa-live-tv:not(.tv-light) {
-      background: #020617 !important;
-      color: #ffffff !important;
-    }
-    #sa-live-tv:not(.tv-light) .tv-card,
-    #sa-live-tv:not(.tv-light) .res {
-      background: #0f172a !important;
-      color: #ffffff !important;
-      border: 2px solid #38bdf8 !important;
-    }
-    #sa-live-tv:not(.tv-light) .tv-tbl th {
-      background: #1e293b !important;
-      color: #fef08a !important;
-    }
-    #sa-live-tv:not(.tv-light) .tv-tbl td {
-      background: #060d1b !important;
-      color: #ffffff !important;
-    }
-    #sa-live-tv.tv-light {
-      background: #f8fafc !important;
-      color: #0f172a !important;
-    }
-    #sa-live-tv.tv-light .tv-card,
-    #sa-live-tv.tv-light .res {
-      background: #ffffff !important;
-      color: #0f172a !important;
-      border: 2px solid #0284c7 !important;
-    }
-    #sa-live-tv.tv-light .tv-tbl th {
-      background: #0f172a !important;
-      color: #ffffff !important;
-    }
-    #sa-live-tv.tv-light .tv-tbl td {
-      background: #ffffff !important;
-      color: #0f172a !important;
-    }
   `;
   document.head.appendChild(hcCss);
+
+  function applyDivisionDarkContrast(){
+    const tv = document.getElementById('sa-live-tv');
+    if(!tv || tv.classList.contains('tv-light')) return;
+    tv.querySelectorAll('h1, h2, h3, h4, .tv-card h3, .tv-slide-hd').forEach(el => {
+      const txt = el.textContent || '';
+      if(txt.includes('বালক বিভাগ')){
+        el.style.setProperty('color', '#7dd3fc', 'important');
+        el.style.setProperty('background', '#082f49', 'important');
+        el.style.setProperty('border', '1.5px solid #38bdf8', 'important');
+        el.style.setProperty('border-radius', '8px', 'important');
+        el.style.setProperty('padding', '4px 10px', 'important');
+      } else if(txt.includes('বালিকা বিভাগ')){
+        el.style.setProperty('color', '#fda4af', 'important');
+        el.style.setProperty('background', '#4c0519', 'important');
+        el.style.setProperty('border', '1.5px solid #fb7185', 'important');
+        el.style.setProperty('border-radius', '8px', 'important');
+        el.style.setProperty('padding', '4px 10px', 'important');
+      }
+    });
+  }
 
   function showTopModal(html){
     const md = document.getElementById('md');
@@ -11995,8 +12052,11 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     };
   }
 
-  new MutationObserver(() => mountInJudgePanel())
-    .observe(document.body, { childList: true, subtree: true });
+  new MutationObserver(() => {
+    mountInJudgePanel();
+    applyDivisionDarkContrast();
+  }).observe(document.body, { childList: true, subtree: true });
+  setTimeout(applyDivisionDarkContrast, 200);
 })();
 </script>
 
