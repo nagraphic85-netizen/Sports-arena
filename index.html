@@ -123,7 +123,7 @@ if(!w.length)return info('কমপক্ষে একজন বিজয়ী 
 DB.r=DB.r.filter(x=>x.id!==id);DB.r.push({id,gp:ME.id,gpn:ME.name,cat:c,sec:s,ev:e,win:w,by:'admin',ts:Date.now()});sv();draw();info('প্রকাশিত ✔')}
 const tyOf=e=>e.includes('দীর্ঘ')?'lj':e.includes('উচ্চ')?'hj':e.includes('যোগ')?'yg':e.includes('জিমন')?'gy':e.includes('বল ছোঁড়া')?'fb':'tr';
 const HJ0={boys:{B:1.10,C:1.15},girls:{B:1.00,C:1.05}};
-function shSel(){return`<div class="cd"><h2>ইভেন্ট শিট — অফিস / কলিং / ফাইনাল জাজমেন্ট (A4)</h2><select onchange="SHSEL=+this.value;SHALL=0;draw()">${ALLEV.map((x,i)=>`<option value="${i}"${i===SHSEL?' selected':''}>${CN[x[0]]} ${SN[x[1]]} — ${x[2]}</option>`).join('')}</select><button class="b${SHALL?'':' on'}" onclick="SHALL=0;draw()">এই ইভেন্ট (৩ কপি)</button><button class="b${SHALL?' on':''}" onclick="SHALL=1;draw()">সব ইভেন্ট</button>${(SHALL||tyOf(ALLEV[SHSEL][2])==='tr')?`<div style="margin-top:8px"><b>হিট:</b> <button class="b${SHHT?'':' on'}" onclick="SHHT=0;draw()">না</button><button class="b${SHHT?' on':''}" onclick="SHHT=1;draw()">হ্যাঁ</button>${SHHT?` &nbsp; এক হিটে সর্বোচ্চ কতজন: <input type="number" min="1" value="${SHHM}" style="width:70px" onchange="SHHM=Math.max(1,parseInt(this.value)||8);draw()">`:''}<div class="mu">শুধু ট্র্যাক/দৌড় ইভেন্টে প্রযোজ্য।</div></div>`:''}<div style="margin-top:8px"><b>📷 ফাইনাল জাজমেন্ট কপিতে QR কোড:</b> <button class="b${window.SHQR===false?'':' on'}" onclick="window.SHQR=true;draw()">হ্যাঁ (স্ক্যানযোগ্য)</button><button class="b${window.SHQR===false?' on':''}" onclick="window.SHQR=false;draw()">না</button><div class="mu">চালু থাকলে ফাইনাল জাজমেন্ট কপিতে ইভেন্ট ও প্রতিটি প্রতিযোগীর QR কোড প্রিন্ট হবে।</div></div><p class="mu">আগে চেস্ট নম্বর তৈরি করুন।</p></div><div id="pv"></div>`}
+function shSel(){return`<div class="cd"><h2>ইভেন্ট শিট — অফিস / কলিং / ফাইনাল জাজমেন্ট (A4)</h2><select onchange="SHSEL=+this.value;SHALL=0;draw()">${ALLEV.map((x,i)=>`<option value="${i}"${i===SHSEL?' selected':''}>${CN[x[0]]} ${SN[x[1]]} — ${x[2]}</option>`).join('')}</select><button class="b${SHALL?'':' on'}" onclick="SHALL=0;draw()">এই ইভেন্ট (৩ কপি)</button><button class="b${SHALL?' on':''}" onclick="SHALL=1;draw()">সব ইভেন্ট</button>${(SHALL||tyOf(ALLEV[SHSEL][2])==='tr')?`<div style="margin-top:8px"><b>হিট:</b> <button class="b${SHHT?'':' on'}" onclick="SHHT=0;draw()">না</button><button class="b${SHHT?' on':''}" onclick="SHHT=1;draw()">হ্যাঁ</button>${SHHT?` &nbsp; এক হিটে সর্বোচ্চ কতজন: <input type="number" min="1" value="${SHHM}" style="width:70px" onchange="SHHM=Math.max(1,parseInt(this.value)||8);draw()">`:''}<div class="mu">শুধু ট্র্যাক/দৌড় ইভেন্টে প্রযোজ্য।</div></div>`:''}<div style="margin-top:8px"><b>📷 ইভেন্ট শিটে (৩ কপিতেই) QR কোড:</b> <button class="b${window.SHQR===false?'':' on'}" onclick="window.SHQR=true;draw()">হ্যাঁ (স্ক্যানযোগ্য)</button><button class="b${window.SHQR===false?' on':''}" onclick="window.SHQR=false;draw()">না</button><div class="mu">চালু থাকলে অফিস, কলিং ও ফাইনাল জাজমেন্ট — তিনটি কপির ওপরে ডানদিকে ইভেন্ট QR কোড প্রিন্ট হবে।</div></div><div style="margin-top:10px;padding:10px;border:1px dashed var(--a);border-radius:10px;background:rgba(0,240,255,.05)"><b>📢 এই ইভেন্টের প্রতিযোগীদের মাইকে ডাকুন:</b><div style="display:flex;gap:6px;flex-wrap:wrap;margin:6px 0"><button type="button" class="b s${(window._saCallDest||'calling')==='calling'?' on':''}" onclick="window._saCallDest='calling';draw()">📢 কলিং রুমে</button><button type="button" class="b s${window._saCallDest==='field'?' on':''}" onclick="window._saCallDest='field';draw()">🏟️ সরাসরি মাঠে</button></div><div style="display:flex;gap:12px;flex-wrap:wrap;margin:4px 0 8px;font-size:13.5px"><label style="display:inline-flex;align-items:center;gap:5px;cursor:pointer"><input type="checkbox" style="width:auto;min-height:auto;margin:0" ${window._saCallNames===false?'':'checked'} onchange="window._saCallNames=this.checked"> চেস্ট নম্বর ও নাম ধরে ডাকুন</label><label style="display:inline-flex;align-items:center;gap:5px;cursor:pointer"><input type="checkbox" style="width:auto;min-height:auto;margin:0" ${window._saCallAbs?'checked':''} onchange="window._saCallAbs=this.checked"> ⏳ শুধু অনুপস্থিতদের ডাকুন</label></div><div style="display:flex;gap:6px;flex-wrap:wrap"><button type="button" class="b s" onclick="window.saQuickCallout(1,SHSEL,{dest:window._saCallDest||'calling',withNames:window._saCallNames!==false,absentOnly:!!window._saCallAbs})">১ম কল</button><button type="button" class="b s p" onclick="window.saQuickCallout(2,SHSEL,{dest:window._saCallDest||'calling',withNames:window._saCallNames!==false,absentOnly:!!window._saCallAbs})">২য় কল</button><button type="button" class="b s d" onclick="window.saQuickCallout(3,SHSEL,{dest:window._saCallDest||'calling',withNames:window._saCallNames!==false,absentOnly:!!window._saCallAbs})">শেষ কল (Final)</button><button type="button" class="b s" onclick="if(typeof window.stopPaAnnouncement==='function')window.stopPaAnnouncement();if(typeof stopVoice==='function')stopVoice();if(typeof speechSynthesis!=='undefined')speechSynthesis.cancel()">⏹ থামান</button></div></div><p class="mu">আগে চেস্ট নম্বর তৈরি করুন।</p></div><div id="pv"></div>`}
 const NB=x=>esc(x.name)+(x.bn?'<br>('+esc(x.bn)+')':'');
 const SMZ=(n,k)=>{const b=k===2?150:230,f=Math.max(5,Math.min(11,((b/n-.6)/2.3)/.3528));return f>=11?{c:'',s:''}:{c:' sm',s:' style="--fz:'+f.toFixed(1)+'px;--rh:'+Math.max(2,Math.min(6.6,b/n-.9)).toFixed(1)+'mm"'}};
 function heatH(a,k,t,c,s,e,gp,ex0){const M=Math.max(1,parseInt(SHHM)||8),N=a.length,H=Math.ceil(N/M),b=Math.floor(N/H),rm=N%H,hs=[];let p=0;for(let i=0;i<H;i++){const z=b+(i<rm?1:0);hs.push(a.slice(p,p+z));p+=z}
@@ -3747,7 +3747,7 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
             return;
           }
 
-          const useQr = (k === 2 && window.SHQR !== false && typeof window.saMakeQr === 'function');
+          const useQr = (window.SHQR !== false && typeof window.saMakeQr === 'function');
           const evIdx = ALLEV.findIndex(v => v[0]===c && v[1]===s && v[2]===e);
           const evQr = useQr ? window.saMakeQr(`SA|E|${c}|${s||''}|${evIdx}`, 96) : '';
           const ttlHtml = `<div class="ttl" style="position:relative;${evQr?'min-height:17.5mm;padding-right:19mm':''}"><b style="font-size:15.5px">${esc(DB.cfg.h)}</b><br>${esc(DB.cfg.s)} ${esc(DB.cfg.d)}<br>${esc(ME.name)} • <b>${CN[c]}${s?' '+SN[s]+' বিভাগ':''}</b><br><span class="ev-bdg">${esc(biEv(e))} — ${t}</span>${evQr?`<img src="${evQr}" style="position:absolute;right:0;top:0;width:16mm;height:16mm;background:#fff;padding:0.5mm;border:1px solid #94a3b8" alt="Event QR">`:''}</div>`;
@@ -7317,6 +7317,7 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
         }
         btns.push(`<button class="b s" onclick="window.saProOpen('champion')">🏆 চ্যাম্পিয়ন</button>`);
         btns.push(`<button class="b s p" onclick="window.saOpenLiveBoard()">📺 লাইভ স্কোরবোর্ড</button>`);
+        btns.push(`<button class="b s p" onclick="window.openPaBoard && window.openPaBoard()">📢 স্পেশাল মাইক</button>`);
         btns.push(`<button class="b s" onclick="window.saProOpen('soundboard')">🎵 সাউন্ডবোর্ড</button>`);
         btns.push(`<button class="b s" onclick="window.saProOpen('ceremony')">🎺 অনুষ্ঠান</button>`);
         btns.push(`<button class="b s" onclick="window.saProOpen('backup')">💾 ব্যাকআপ</button>`);
@@ -7327,6 +7328,7 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
         btns.push(`<button class="b s d" onclick="window.saProOpen('agecheck')">⚠ বয়স যাচাই</button>`);
         btns.push(`<button class="b s" onclick="window.saProOpen('champion')">🏆 চ্যাম্পিয়ন</button>`);
         btns.push(`<button class="b s p" onclick="window.saOpenLiveBoard()">📺 লাইভ স্কোরবোর্ড</button>`);
+        btns.push(`<button class="b s p" onclick="window.openPaBoard && window.openPaBoard()">📢 স্পেশাল মাইক</button>`);
         btns.push(`<button class="b s" onclick="window.saProOpen('soundboard')">🎵 সাউন্ডবোর্ড</button>`);
         btns.push(`<button class="b s" onclick="window.saProOpen('ceremony')">🎺 অনুষ্ঠান</button>`);
         btns.push(`<button class="b s" onclick="window.saProOpen('backup')">💾 ব্যাকআপ</button>`);
@@ -8355,25 +8357,62 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     } catch(e){}
   };
 
-  window.saQuickCallout = function(callNo){
+  window.saQuickCallout = function(callNo, evIdxOverride, optOverride){
     try {
       const sel = document.getElementById('sa-sb-ev');
-      const idx = sel ? +sel.value : 0;
+      const idx = (typeof evIdxOverride === 'number' && !isNaN(evIdxOverride)) ? evIdxOverride : (sel ? +sel.value : 0);
       const item = (typeof ALLEV !== 'undefined' && ALLEV[idx]) ? ALLEV[idx] : null;
       if(!item) return;
       const [c, s, ev] = item;
       const cLbl = (typeof CN !== 'undefined' && CN[c]) ? CN[c] : c;
       const sLbl = (s && typeof SN !== 'undefined' && SN[s]) ? (SN[s] + ' বিভাগ, ') : '';
+
+      const destEl = document.getElementById('sa-sb-dest');
+      const namesEl = document.getElementById('sa-sb-names');
+      const absEl = document.getElementById('sa-sb-abs');
+      const dest = (optOverride && optOverride.dest) ? optOverride.dest : (destEl ? destEl.value : (window._saCallDest || 'calling'));
+      const withNames = (optOverride && typeof optOverride.withNames === 'boolean') ? optOverride.withNames : (namesEl ? namesEl.checked : (window._saCallNames !== false));
+      const absentOnly = (optOverride && typeof optOverride.absentOnly === 'boolean') ? optOverride.absentOnly : (absEl ? absEl.checked : !!window._saCallAbs);
+
+      const destPhrase = dest === 'field' ? 'মাঠে উপস্থিত হওয়ার জন্য' : 'কলিং রুমে রিপোর্ট করার জন্য';
+      let listStr = '';
+      if(withNames && typeof DB !== 'undefined' && Array.isArray(DB.a)){
+        const sIds = (typeof ME !== 'undefined' && ME && ME.role !== 'owner' && typeof schools === 'function')
+          ? schools(ME.id).map(u => u.id)
+          : null;
+        let list = DB.a.filter(x => (!sIds || sIds.includes(x.school)) && x.cat === c && (x.sec || '') === (s || '') && (x.ev || []).includes(ev) && x.chest);
+        if(absentOnly){
+          const att = DB.att || {};
+          list = list.filter(x => {
+            const rec = att[x.id + '|' + ev];
+            return !(rec && rec.st === 1);
+          });
+          if(!list.length){
+            if(typeof info === 'function') info('✅ এই ইভেন্টের সবাই উপস্থিত আছেন! ডাকার মতো কেউ বাকি নেই।');
+            return;
+          }
+        }
+        list.sort((p, q) => (parseInt(String(p.chest).replace(/\D/g, ''), 10) || 0) - (parseInt(String(q.chest).replace(/\D/g, ''), 10) || 0));
+        if(list.length){
+          const entries = list.map(x => {
+            const schObj = (typeof U === 'function') ? U(x.school) : null;
+            const schNm = (x.sch || (schObj ? schObj.name : '') || '').trim();
+            return `চেস্ট নম্বর ${x.chest}, ${x.bn || x.name}${schNm ? ', ' + schNm : ''}`;
+          });
+          listStr = (absentOnly ? ' অনুপস্থিত প্রতিযোগীরা হলেন: ' : ' প্রতিযোগীরা হলেন: ') + entries.join('। ') + '।';
+        }
+      }
+
       let txt = '';
       if(callNo === 1){
         window.saPlaySfx('bell');
-        txt = `প্রথম কল। ${cLbl} ${sLbl}${ev} প্রতিযোগিতার সকল প্রতিযোগীকে প্রস্তুত থাকার জন্য অনুরোধ করা হচ্ছে।`;
+        txt = `প্রথম কল। ${cLbl} ${sLbl}${ev} প্রতিযোগিতার সকল প্রতিযোগীকে প্রস্তুত থাকার এবং ${destPhrase} অনুরোধ করা হচ্ছে।${listStr}`;
       } else if(callNo === 2){
         window.saPlaySfx('bell');
-        txt = `দ্বিতীয় কল। ${cLbl} ${sLbl}${ev} ইভেন্টের প্রতিযোগীদের অবিলম্বে কলিং কাউন্টারে রিপোর্ট করার জন্য অনুরোধ করা হচ্ছে।`;
+        txt = `দ্বিতীয় কল। ${cLbl} ${sLbl}${ev} ইভেন্টের প্রতিযোগীদের অবিলম্বে ${destPhrase} অনুরোধ করা হচ্ছে।${listStr}`;
       } else {
         window.saPlaySfx('whistle');
-        txt = `শেষ কল, ফাইনাল কল। ${cLbl} ${sLbl}${ev} প্রতিযোগিতা এখনই শুরু হতে চলেছে। সকল প্রতিযোগীকে দ্রুত মাঠে উপস্থিত হওয়ার জন্য শেষ বারের মতো অনুরোধ করা হচ্ছে।`;
+        txt = `শেষ কল, ফাইনাল কল। ${cLbl} ${sLbl}${ev} প্রতিযোগিতা এখনই শুরু হতে চলেছে। সকল প্রতিযোগীকে দ্রুত ${destPhrase} শেষ বারের মতো অনুরোধ করা হচ্ছে।${listStr}`;
       }
       const prof = (document.getElementById('sa-sb-voice') || {}).value;
       if(prof && typeof window.paSetVoiceProfile === 'function') window.paSetVoiceProfile(prof);
@@ -9392,6 +9431,16 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
             <div style="font-weight:700;font-size:14px;margin-bottom:4px">📢 এক-ক্লিকে ইভেন্ট কলিং (১ম / ২য় / শেষ কল):</div>
             ${vprofOptsHtml('sa-sb-voice')}
             <select id="sa-sb-ev">${evOpts}</select>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin:6px 0">
+              <select id="sa-sb-dest" style="flex:1;min-width:160px;margin:0" onchange="window._saCallDest=this.value">
+                <option value="calling"${(window._saCallDest||'calling')==='calling'?' selected':''}>📢 কলিং রুমে ডাকুন</option>
+                <option value="field"${window._saCallDest==='field'?' selected':''}>🏟️ সরাসরি মাঠে ডাকুন</option>
+              </select>
+            </div>
+            <div style="display:flex;gap:12px;flex-wrap:wrap;margin:4px 0 8px;font-size:13px">
+              <label style="display:inline-flex;align-items:center;gap:5px;cursor:pointer"><input id="sa-sb-names" type="checkbox" style="width:auto;min-height:auto;margin:0" ${window._saCallNames===false?'':'checked'} onchange="window._saCallNames=this.checked"> চেস্ট নম্বর ও নাম ধরে ডাকুন</label>
+              <label style="display:inline-flex;align-items:center;gap:5px;cursor:pointer"><input id="sa-sb-abs" type="checkbox" style="width:auto;min-height:auto;margin:0" ${window._saCallAbs?'checked':''} onchange="window._saCallAbs=this.checked"> ⏳ শুধু অনুপস্থিতদের ডাকুন</label>
+            </div>
             <div class="sa-pro-row">
               <button class="b s" onclick="window.saQuickCallout(1)">১ম কল</button>
               <button class="b s" onclick="window.saQuickCallout(2)">২য় কল</button>
