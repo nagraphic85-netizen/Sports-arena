@@ -264,7 +264,7 @@ window.docOf=(o=>function(inner,title,z){const t=document.createElement('templat
  t.content.querySelectorAll('table').forEach(tb=>{const h=[...tb.querySelectorAll('tr:first-child th')].findIndex(x=>x.textContent.trim()==='অঞ্চল (জিপি)');if(h>=0)tb.querySelectorAll('tr').forEach(r=>r.children[h]&&r.children[h].remove())});
  inner=t.innerHTML;let d=o(inner,title,z);
  if(/class="cds"/.test(inner))d=d.replace(/body:before\{[^}]*\}/,'body:before{display:none}').replace(/\.pg:before\{[^}]*\}/,'.pg:before{display:none}');
- d=d.replace(/(<div class="ttl"[^>]*>)/g,'$1<img src="'+LG+'" style="height:11mm;filter:grayscale(1)"><br>');filter:grayscale(1)"><br><b');
+ d=d.replace(/(<div class="ttl"[^>]*>)(?!\s*<img\b)/g,'$1<img src="'+LG+'" style="height:11mm;filter:grayscale(1)"><br>');
  return d.replace('</style>','.card .h,.card .f{text-transform:uppercase}</style>')})(docOf);
 window.cardsH=(o=>function(p){let h=o(p);return h&&h.replace(/(<div class="h"[^>]*>)/g,(m0,t0)=>t0+'<img src="'+lgOn((/background:\s*([^;"]+)/.exec(t0)||[])[1])+'" style="height:7mm"><br>')})(cardsH);
 window.schedH=function(){const ids=schools(ME.id).map(s=>s.id),a=DB.a.filter(x=>ids.includes(x.school)&&x.chest),T=[];
@@ -9746,6 +9746,7 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
       let html = _origSchedH23.apply(this, arguments);
       if(!html || typeof DB === 'undefined' || !ME) return html;
       try {
+        const norm = s => String(s || '').normalize('NFC').replace(/\s+/g, ' ').trim();
         const ids = (typeof schools === 'function') ? schools(ME.id).map(s=>s.id) : [];
         const ath = (DB.a || []).filter(x => ids.includes(x.school) && x.chest);
         const cc = {};
@@ -9755,11 +9756,55 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
             .sort((p,q) => String(p.chest).replace(/\D/g,'') - String(q.chest).replace(/\D/g,''))
             .map(x => x.chest);
           list.forEach(ch => cc[ch] = (cc[ch]||0) + 1);
-          evMap.push({ c, s, e, cn: CN[c]||'', sn: SN[s]||'', ch: list });
+          evMap.push({ c, s, e, en: norm(e), cn: norm(CN[c]||''), sn: norm(SN[s]||''), ch: list });
         });
+
+        const matchCell = rawTxt => {
+          const nt = norm(rawTxt);
+          if(!nt || nt === '-') return [];
+          const hasBoys = nt.indexOf('বালক') !== -1;
+          const hasGirls = nt.indexOf('বালিকা') !== -1;
+          const hasTeachM = nt.indexOf('শিক্ষক') !== -1;
+          const hasTeachF = nt.indexOf('শিক্ষিকা') !== -1;
+          const hasSecA = /(?:^|[\s('"/,\-])ক(?:$|[\s)'"/,\-])/.test(nt);
+          const hasSecB = /(?:^|[\s('"/,\-])খ(?:$|[\s)'"/,\-])/.test(nt);
+          const hasSecC = /(?:^|[\s('"/,\-])গ(?:$|[\s)'"/,\-])/.test(nt);
+          const anySec = hasSecA || hasSecB || hasSecC;
+
+          const evMatches = m => {
+            if(m.en && nt.indexOf(m.en) !== -1) return true;
+            if(m.en.indexOf('৭৫') !== -1 && (nt.indexOf('৭৫') !== -1 || nt.indexOf('75') !== -1)) return true;
+            if(m.en.indexOf('১০০') !== -1 && m.c !== 'teach' && (nt.indexOf('১০০') !== -1 || nt.indexOf('100') !== -1) && !hasTeachM) return true;
+            if(m.en.indexOf('২০০') !== -1 && (nt.indexOf('২০০') !== -1 || nt.indexOf('200') !== -1)) return true;
+            if(m.en.indexOf('শাটল') !== -1 && nt.indexOf('শাটল') !== -1) return true;
+            if(m.en.indexOf('দীর্ঘ') !== -1 && nt.indexOf('দীর্ঘ') !== -1) return true;
+            if(m.en.indexOf('উচ্চ') !== -1 && nt.indexOf('উচ্চ') !== -1) return true;
+            if(m.en.indexOf('যোগাসন') !== -1 && nt.indexOf('যোগ') !== -1) return true;
+            if(m.en.indexOf('জিমন্যাস্টিক্স') !== -1 && nt.indexOf('জিমন') !== -1) return true;
+            if(m.en.indexOf('আবৃত্তি') !== -1 && nt.indexOf('আবৃত্তি') !== -1) return true;
+            if(m.en.indexOf('অঙ্কন') !== -1 && nt.indexOf('অঙ্কন') !== -1) return true;
+            if(m.c === 'teach' && m.en.indexOf('শিক্ষক') !== -1 && hasTeachM) return true;
+            if(m.c === 'teach' && m.en.indexOf('শিক্ষিকা') !== -1 && (hasTeachF || nt.indexOf('চামচ') !== -1)) return true;
+            return false;
+          };
+
+          let pick = evMap.filter(evMatches);
+          if(!pick.length) return [];
+
+          if(hasBoys || hasGirls){
+            const f = pick.filter(m => (hasBoys && m.c === 'boys') || (hasGirls && m.c === 'girls'));
+            if(f.length) pick = f;
+          }
+          if(anySec){
+            const f = pick.filter(m => !m.s || (hasSecA && m.s === 'A') || (hasSecB && m.s === 'B') || (hasSecC && m.s === 'C'));
+            if(f.length) pick = f;
+          }
+          return pick;
+        };
 
         const tmp = document.createElement('div');
         tmp.innerHTML = html;
+        let injectedAny = false;
         tmp.querySelectorAll('table tr').forEach((tr, ri) => {
           if(ri === 0) return;
           const tds = tr.querySelectorAll('td');
@@ -9768,26 +9813,22 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
             if(td.querySelector('.ch')) continue;
             const rawLines = (td.innerHTML || '').split(/<br\s*\/?>/i).map(x => x.replace(/<[^>]+>/g, '').trim()).filter(Boolean);
             const txt = rawLines.length ? rawLines[0] : (td.textContent || '').trim();
-            if(!txt || txt === '-') continue;
-            const matched = evMap.filter(m => {
-              if(!m.e || txt.indexOf(m.e) === -1) return false;
-              if(m.cn && txt.indexOf(m.cn) !== -1){
-                if(m.sn && txt.indexOf(m.sn) !== -1) return true;
-                if(!m.sn) return true;
-              }
-              return false;
-            });
-            const pick = matched.length ? matched : evMap.filter(m => m.e && txt.indexOf(m.e) !== -1);
+            const pick = matchCell(txt);
             if(pick.length){
               const chests = [];
               pick.forEach(m => m.ch.forEach(ch => { if(!chests.includes(ch)) chests.push(ch); }));
               if(chests.length){
                 const chHtml = chests.map(ch => cc[ch] > 1 ? `<span class="red" style="color:#d00!important;font-weight:800">${esc(ch)}</span>` : esc(ch)).join(', ');
                 td.innerHTML += `<span class="ch" style="display:block;font-size:12px;font-weight:700;margin-top:2px">[${chHtml}]</span>`;
+                injectedAny = true;
               }
             }
           }
         });
+        if(injectedAny && !tmp.querySelector('p .red')){
+          const pg = tmp.querySelector('.pg');
+          if(pg) pg.insertAdjacentHTML('beforeend', '<p style="font-size:11px;margin-top:4px"><span class="red" style="color:#d00!important;font-weight:800">লাল রঙের চেস্ট</span> = একাধিক ইভেন্টে থাকা কমন প্রতিযোগী।</p>');
+        }
         html = tmp.innerHTML;
       } catch(e){}
       return html;
