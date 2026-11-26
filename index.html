@@ -264,7 +264,7 @@ window.docOf=(o=>function(inner,title,z){const t=document.createElement('templat
  t.content.querySelectorAll('table').forEach(tb=>{const h=[...tb.querySelectorAll('tr:first-child th')].findIndex(x=>x.textContent.trim()==='অঞ্চল (জিপি)');if(h>=0)tb.querySelectorAll('tr').forEach(r=>r.children[h]&&r.children[h].remove())});
  inner=t.innerHTML;let d=o(inner,title,z);
  if(/class="cds"/.test(inner))d=d.replace(/body:before\{[^}]*\}/,'body:before{display:none}').replace(/\.pg:before\{[^}]*\}/,'.pg:before{display:none}');
- d=d.replace(/<div class="ttl"><b/g,'<div class="ttl"><img src="'+LG+'" style="height:11mm;filter:grayscale(1)"><br><b');
+ d=d.replace(/(<div class="ttl"[^>]*>)(?!\s*<img\b)/g,'$1<img src="'+LG+'" style="height:11mm;filter:grayscale(1)"><br>');filter:grayscale(1)"><br><b');
  return d.replace('</style>','.card .h,.card .f{text-transform:uppercase}</style>')})(docOf);
 window.cardsH=(o=>function(p){let h=o(p);return h&&h.replace(/(<div class="h"[^>]*>)/g,(m0,t0)=>t0+'<img src="'+lgOn((/background:\s*([^;"]+)/.exec(t0)||[])[1])+'" style="height:7mm"><br>')})(cardsH);
 window.schedH=function(){const ids=schools(ME.id).map(s=>s.id),a=DB.a.filter(x=>ids.includes(x.school)&&x.chest),T=[];
@@ -3753,23 +3753,7 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
           const ttlHtml = `<div class="ttl" style="position:relative;${evQr?'min-height:17.5mm;padding-right:19mm':''}"><b style="font-size:15.5px">${esc(DB.cfg.h)}</b><br>${esc(DB.cfg.s)} ${esc(DB.cfg.d)}<br>${esc(ME.name)} • <b>${CN[c]}${s?' '+SN[s]+' বিভাগ':''}</b><br><span class="ev-bdg">${esc(biEv(e))} — ${t}</span>${evQr?`<img src="${evQr}" style="position:absolute;right:0;top:0;width:16mm;height:16mm;background:#fff;padding:0.5mm;border:1px solid #94a3b8" alt="Event QR">`:''}</div>`;
           const fTbl = k===2 ? `<table style="margin-top:7px"><tr><th style="width:12%">স্থান</th><th style="width:36%">বিজয়ীর নাম</th><th style="width:12%">চেস্ট</th><th style="width:28%">${uColTitle}</th><th style="width:12%">মান/সময়</th></tr>${['প্রথম','দ্বিতীয়','তৃতীয়','চতুর্থ'].map(p=>`<tr><td><b>${p}</b></td><td></td><td></td><td></td><td></td></tr>`).join('')}</table><div class="sg"><div>১ম বিচারক</div><div>২য় বিচারক</div><div>প্রধান বিচারক</div></div>` : '';
 
-          if(useQr){
-            const perPg = 12;
-            const chunks = [];
-            for(let i=0; i<Math.max(1, a.length); i+=perPg) chunks.push(a.slice(i, i+perPg));
-            const qrColW = [colW[0], Math.max(14, colW[1]-4), Math.max(18, colW[2]-4), colW[3], 9, ...colW.slice(4).map(v => Math.max(5, v - 1/ex.length))];
-            chunks.forEach((chunk, ci) => {
-              const isLast = (ci === chunks.length - 1);
-              let r = '';
-              chunk.forEach((x, j) => {
-                const sl = ci * perPg + j + 1;
-                const aQr = window.saMakeQr(`SA|A|${x.chest}|${x.cat}|${x.sec||''}`, 84);
-                r += `<tr style="height:14.5mm"><td class="sl-c">${sl}</td><td class="fit">${fmtUnitCell(x)}</td><td class="fit"><b>${esc(x.name)}</b>${x.bn?'<br><small>('+esc(x.bn)+')</small>':''}</td><td class="ch-c">${esc(x.chest)}</td><td style="text-align:center;padding:1px">${aQr?`<img src="${aQr}" style="width:12.5mm;height:12.5mm;display:block;margin:0 auto" alt="QR">`:''}</td>${ex.map(()=>'<td></td>').join('')}</tr>`;
-              });
-              if(!chunk.length) r = `<tr><td colspan="${5+ex.length}" style="text-align:center">কোনো প্রতিযোগী নেই</td></tr>`;
-              h += `<div class="sheet pg"><div class="m-pstrip"></div>${ttlHtml}${note?`<div style="font-size:10.5px;margin-bottom:2px">📌 ${note}</div>`:''}<table class="fx"><tr><th style="width:${qrColW[0]}%">ক্রম</th><th style="width:${qrColW[1]}%">${uColTitle}</th><th style="width:${qrColW[2]}%">প্রতিযোগীর নাম</th><th style="width:${qrColW[3]}%">চেস্ট</th><th style="width:${qrColW[4]}%;text-align:center">QR</th>${ex.map((x,xi)=>`<th style="width:${qrColW[5+xi]||8}%">${x}</th>`).join('')}</tr>${r}</table>${isLast?fTbl:''}</div>`;
-            });
-          } else {
+          
             const n = a.length, _z = SMZ(n,k);
             let r = '';
             for(let i=0;i<n;i++){
@@ -3778,7 +3762,7 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
             }
             if(!n) r = `<tr><td colspan="${4+ex.length}" style="text-align:center">কোনো প্রতিযোগী নেই</td></tr>`;
             h += `<div class="sheet pg${_z.c}"${_z.s}><div class="m-pstrip"></div>${ttlHtml}${note?`<div style="font-size:10.5px;margin-bottom:2px">📌 ${note}</div>`:''}<table class="fx"><tr><th style="width:${colW[0]}%">ক্রম</th><th style="width:${colW[1]}%">${uColTitle}</th><th style="width:${colW[2]}%">প্রতিযোগীর নাম</th><th style="width:${colW[3]}%">চেস্ট</th>${ex.map((x,xi)=>`<th style="width:${colW[4+xi]||8}%">${x}</th>`).join('')}</tr>${r}</table>${fTbl}</div>`;
-          }
+          
         });
       });
       return h.indexOf('class="sheet')<0 ? null : h;
@@ -9761,53 +9745,92 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     window.schedH = function(o){
       let html = _origSchedH23.apply(this, arguments);
       if(!html || typeof DB === 'undefined' || !ME) return html;
-      // If custom schedule was used, cells won't have <span class="ch"> yet -> inject matching chest numbers!
-      if(html.indexOf('class="ch"') === -1){
-        try {
-          const ids = (typeof schools === 'function') ? schools(ME.id).map(s=>s.id) : [];
-          const ath = (DB.a || []).filter(x => ids.includes(x.school) && x.chest);
-          const cc = {};
-          const evMap = [];
-          (ALLEV || []).forEach(([c,s,e]) => {
-            const list = ath.filter(x => x.cat===c && x.sec===s && (x.ev||[]).includes(e))
-              .sort((p,q) => String(p.chest).replace(/\D/g,'') - String(q.chest).replace(/\D/g,''))
-              .map(x => x.chest);
-            list.forEach(ch => cc[ch] = (cc[ch]||0) + 1);
-            evMap.push({ c, s, e, cn: CN[c]||'', sn: SN[s]||'', ch: list });
-          });
+      try {
+        const norm = s => String(s || '').normalize('NFC').replace(/\s+/g, ' ').trim();
+        const ids = (typeof schools === 'function') ? schools(ME.id).map(s=>s.id) : [];
+        const ath = (DB.a || []).filter(x => ids.includes(x.school) && x.chest);
+        const cc = {};
+        const evMap = [];
+        (ALLEV || []).forEach(([c,s,e]) => {
+          const list = ath.filter(x => x.cat===c && x.sec===s && (x.ev||[]).includes(e))
+            .sort((p,q) => String(p.chest).replace(/\D/g,'') - String(q.chest).replace(/\D/g,''))
+            .map(x => x.chest);
+          list.forEach(ch => cc[ch] = (cc[ch]||0) + 1);
+          evMap.push({ c, s, e, en: norm(e), cn: norm(CN[c]||''), sn: norm(SN[s]||''), ch: list });
+        });
 
-          const tmp = document.createElement('div');
-          tmp.innerHTML = html;
-          tmp.querySelectorAll('table.ms tr').forEach((tr, ri) => {
-            if(ri === 0) return;
-            const tds = tr.querySelectorAll('td');
-            for(let ci = 2; ci < tds.length; ci++){
-              const td = tds[ci];
-              const txt = (td.textContent || '').trim();
-              if(!txt || txt === '-') continue;
-              // Match event name + category/section in cell text
-              const matched = evMap.filter(m => {
-                if(!m.e || txt.indexOf(m.e) === -1) return false;
-                if(m.cn && txt.indexOf(m.cn) !== -1){
-                  if(m.sn && txt.indexOf(m.sn) !== -1) return true;
-                  if(!m.sn) return true;
-                }
-                return false;
-              });
-              const pick = matched.length ? matched : evMap.filter(m => m.e && txt.indexOf(m.e) !== -1);
-              if(pick.length){
-                const chests = [];
-                pick.forEach(m => m.ch.forEach(ch => { if(!chests.includes(ch)) chests.push(ch); }));
-                if(chests.length){
-                  const chHtml = chests.map(ch => cc[ch] > 1 ? `<span class="red">${esc(ch)}</span>` : esc(ch)).join(', ');
-                  td.innerHTML += `<span class="ch" style="display:block;font-size:12px;font-weight:700;margin-top:2px">[${chHtml}]</span>`;
-                }
+        const matchCell = rawTxt => {
+          const nt = norm(rawTxt);
+          if(!nt || nt === '-') return [];
+          const hasBoys = nt.indexOf('বালক') !== -1;
+          const hasGirls = nt.indexOf('বালিকা') !== -1;
+          const hasTeachM = nt.indexOf('শিক্ষক') !== -1;
+          const hasTeachF = nt.indexOf('শিক্ষিকা') !== -1;
+          const hasSecA = /(?:^|[\s('"/,\-])ক(?:$|[\s)'"/,\-])/.test(nt);
+          const hasSecB = /(?:^|[\s('"/,\-])খ(?:$|[\s)'"/,\-])/.test(nt);
+          const hasSecC = /(?:^|[\s('"/,\-])গ(?:$|[\s)'"/,\-])/.test(nt);
+          const anySec = hasSecA || hasSecB || hasSecC;
+
+          const evMatches = m => {
+            if(m.en && nt.indexOf(m.en) !== -1) return true;
+            if(m.en.indexOf('৭৫') !== -1 && (nt.indexOf('৭৫') !== -1 || nt.indexOf('75') !== -1)) return true;
+            if(m.en.indexOf('১০০') !== -1 && m.c !== 'teach' && (nt.indexOf('১০০') !== -1 || nt.indexOf('100') !== -1) && !hasTeachM) return true;
+            if(m.en.indexOf('২০০') !== -1 && (nt.indexOf('২০০') !== -1 || nt.indexOf('200') !== -1)) return true;
+            if(m.en.indexOf('শাটল') !== -1 && nt.indexOf('শাটল') !== -1) return true;
+            if(m.en.indexOf('দীর্ঘ') !== -1 && nt.indexOf('দীর্ঘ') !== -1) return true;
+            if(m.en.indexOf('উচ্চ') !== -1 && nt.indexOf('উচ্চ') !== -1) return true;
+            if(m.en.indexOf('যোগাসন') !== -1 && nt.indexOf('যোগ') !== -1) return true;
+            if(m.en.indexOf('জিমন্যাস্টিক্স') !== -1 && nt.indexOf('জিমন') !== -1) return true;
+            if(m.en.indexOf('আবৃত্তি') !== -1 && nt.indexOf('আবৃত্তি') !== -1) return true;
+            if(m.en.indexOf('অঙ্কন') !== -1 && nt.indexOf('অঙ্কন') !== -1) return true;
+            if(m.c === 'teach' && m.en.indexOf('শিক্ষক') !== -1 && hasTeachM) return true;
+            if(m.c === 'teach' && m.en.indexOf('শিক্ষিকা') !== -1 && (hasTeachF || nt.indexOf('চামচ') !== -1)) return true;
+            return false;
+          };
+
+          let pick = evMap.filter(evMatches);
+          if(!pick.length) return [];
+
+          if(hasBoys || hasGirls){
+            const f = pick.filter(m => (hasBoys && m.c === 'boys') || (hasGirls && m.c === 'girls'));
+            if(f.length) pick = f;
+          }
+          if(anySec){
+            const f = pick.filter(m => !m.s || (hasSecA && m.s === 'A') || (hasSecB && m.s === 'B') || (hasSecC && m.s === 'C'));
+            if(f.length) pick = f;
+          }
+          return pick;
+        };
+
+        const tmp = document.createElement('div');
+        tmp.innerHTML = html;
+        let injectedAny = false;
+        tmp.querySelectorAll('table tr').forEach((tr, ri) => {
+          if(ri === 0) return;
+          const tds = tr.querySelectorAll('td');
+          for(let ci = 2; ci < tds.length; ci++){
+            const td = tds[ci];
+            if(td.querySelector('.ch')) continue;
+            const rawLines = (td.innerHTML || '').split(/<br\s*\/?>/i).map(x => x.replace(/<[^>]+>/g, '').trim()).filter(Boolean);
+            const txt = rawLines.length ? rawLines[0] : (td.textContent || '').trim();
+            const pick = matchCell(txt);
+            if(pick.length){
+              const chests = [];
+              pick.forEach(m => m.ch.forEach(ch => { if(!chests.includes(ch)) chests.push(ch); }));
+              if(chests.length){
+                const chHtml = chests.map(ch => cc[ch] > 1 ? `<span class="red" style="color:#d00!important;font-weight:800">${esc(ch)}</span>` : esc(ch)).join(', ');
+                td.innerHTML += `<span class="ch" style="display:block;font-size:12px;font-weight:700;margin-top:2px">[${chHtml}]</span>`;
+                injectedAny = true;
               }
             }
-          });
-          html = tmp.innerHTML;
-        } catch(e){}
-      }
+          }
+        });
+        if(injectedAny && !tmp.querySelector('p .red')){
+          const pg = tmp.querySelector('.pg');
+          if(pg) pg.insertAdjacentHTML('beforeend', '<p style="font-size:11px;margin-top:4px"><span class="red" style="color:#d00!important;font-weight:800">লাল রঙের চেস্ট</span> = একাধিক ইভেন্টে থাকা কমন প্রতিযোগী।</p>');
+        }
+        html = tmp.innerHTML;
+      } catch(e){}
       return html;
     };
   }
