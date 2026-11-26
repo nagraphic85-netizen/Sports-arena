@@ -123,7 +123,7 @@ if(!w.length)return info('কমপক্ষে একজন বিজয়ী 
 DB.r=DB.r.filter(x=>x.id!==id);DB.r.push({id,gp:ME.id,gpn:ME.name,cat:c,sec:s,ev:e,win:w,by:'admin',ts:Date.now()});sv();draw();info('প্রকাশিত ✔')}
 const tyOf=e=>e.includes('দীর্ঘ')?'lj':e.includes('উচ্চ')?'hj':e.includes('যোগ')?'yg':e.includes('জিমন')?'gy':e.includes('বল ছোঁড়া')?'fb':'tr';
 const HJ0={boys:{B:1.10,C:1.15},girls:{B:1.00,C:1.05}};
-function shSel(){return`<div class="cd"><h2>ইভেন্ট শিট — অফিস / কলিং / ফাইনাল জাজমেন্ট (A4)</h2><select onchange="SHSEL=+this.value;SHALL=0;draw()">${ALLEV.map((x,i)=>`<option value="${i}"${i===SHSEL?' selected':''}>${CN[x[0]]} ${SN[x[1]]} — ${x[2]}</option>`).join('')}</select><button class="b${SHALL?'':' on'}" onclick="SHALL=0;draw()">এই ইভেন্ট (৩ কপি)</button><button class="b${SHALL?' on':''}" onclick="SHALL=1;draw()">সব ইভেন্ট</button>${(SHALL||tyOf(ALLEV[SHSEL][2])==='tr')?`<div style="margin-top:8px"><b>হিট:</b> <button class="b${SHHT?'':' on'}" onclick="SHHT=0;draw()">না</button><button class="b${SHHT?' on':''}" onclick="SHHT=1;draw()">হ্যাঁ</button>${SHHT?` &nbsp; এক হিটে সর্বোচ্চ কতজন: <input type="number" min="1" value="${SHHM}" style="width:70px" onchange="SHHM=Math.max(1,parseInt(this.value)||8);draw()">`:''}<div class="mu">শুধু ট্র্যাক/দৌড় ইভেন্টে প্রযোজ্য।</div></div>`:''}<div style="margin-top:8px"><b>📷 ইভেন্ট শিটে (৩ কপিতেই) QR কোড:</b> <button class="b${window.SHQR===false?'':' on'}" onclick="window.SHQR=true;draw()">হ্যাঁ (স্ক্যানযোগ্য)</button><button class="b${window.SHQR===false?' on':''}" onclick="window.SHQR=false;draw()">না</button><div class="mu">চালু থাকলে অফিস, কলিং ও ফাইনাল জাজমেন্ট — তিনটি কপির ওপরে ডানদিকে ইভেন্ট QR কোড প্রিন্ট হবে।</div></div><div style="margin-top:10px;padding:10px;border:1px dashed var(--a);border-radius:10px;background:rgba(0,240,255,.05)"><b>📢 এই ইভেন্টের প্রতিযোগীদের মাইকে ডাকুন:</b><div style="display:flex;gap:6px;flex-wrap:wrap;margin:6px 0"><button type="button" class="b s${(window._saCallDest||'calling')==='calling'?' on':''}" onclick="window._saCallDest='calling';draw()">📢 কলিং রুমে</button><button type="button" class="b s${window._saCallDest==='field'?' on':''}" onclick="window._saCallDest='field';draw()">🏟️ সরাসরি মাঠে</button></div><div style="display:flex;gap:12px;flex-wrap:wrap;margin:4px 0 8px;font-size:13.5px"><label style="display:inline-flex;align-items:center;gap:5px;cursor:pointer"><input type="checkbox" style="width:auto;min-height:auto;margin:0" ${window._saCallNames===false?'':'checked'} onchange="window._saCallNames=this.checked"> চেস্ট নম্বর ও নাম ধরে ডাকুন</label><label style="display:inline-flex;align-items:center;gap:5px;cursor:pointer"><input type="checkbox" style="width:auto;min-height:auto;margin:0" ${window._saCallAbs?'checked':''} onchange="window._saCallAbs=this.checked"> ⏳ শুধু অনুপস্থিতদের ডাকুন</label></div><div style="display:flex;gap:6px;flex-wrap:wrap"><button type="button" class="b s" onclick="window.saQuickCallout(1,SHSEL,{dest:window._saCallDest||'calling',withNames:window._saCallNames!==false,absentOnly:!!window._saCallAbs})">১ম কল</button><button type="button" class="b s p" onclick="window.saQuickCallout(2,SHSEL,{dest:window._saCallDest||'calling',withNames:window._saCallNames!==false,absentOnly:!!window._saCallAbs})">২য় কল</button><button type="button" class="b s d" onclick="window.saQuickCallout(3,SHSEL,{dest:window._saCallDest||'calling',withNames:window._saCallNames!==false,absentOnly:!!window._saCallAbs})">শেষ কল (Final)</button><button type="button" class="b s" onclick="if(typeof window.stopPaAnnouncement==='function')window.stopPaAnnouncement();if(typeof stopVoice==='function')stopVoice();if(typeof speechSynthesis!=='undefined')speechSynthesis.cancel()">⏹ থামান</button></div></div><p class="mu">আগে চেস্ট নম্বর তৈরি করুন।</p></div><div id="pv"></div>`}
+function shSel(){return`<div class="cd"><h2>ইভেন্ট শিট — অফিস / কলিং / ফাইনাল জাজমেন্ট (A4)</h2><select onchange="SHSEL=+this.value;SHALL=0;draw()">${ALLEV.map((x,i)=>`<option value="${i}"${i===SHSEL?' selected':''}>${CN[x[0]]} ${SN[x[1]]} — ${x[2]}</option>`).join('')}</select><button class="b${SHALL?'':' on'}" onclick="SHALL=0;draw()">এই ইভেন্ট (৩ কপি)</button><button class="b${SHALL?' on':''}" onclick="SHALL=1;draw()">সব ইভেন্ট</button>${(SHALL||tyOf(ALLEV[SHSEL][2])==='tr')?`<div style="margin-top:8px"><b>হিট:</b> <button class="b${SHHT?'':' on'}" onclick="SHHT=0;draw()">না</button><button class="b${SHHT?' on':''}" onclick="SHHT=1;draw()">হ্যাঁ</button>${SHHT?` &nbsp; এক হিটে সর্বোচ্চ কতজন: <input type="number" min="1" value="${SHHM}" style="width:70px" onchange="SHHM=Math.max(1,parseInt(this.value)||8);draw()">`:''}<div class="mu">শুধু ট্র্যাক/দৌড় ইভেন্টে প্রযোজ্য।</div></div>`:''}<div style="margin-top:8px"><b>📷 ইভেন্ট শিটে (৩ কপিতেই) QR কোড:</b> <button class="b${window.SHQR===false?'':' on'}" onclick="window.SHQR=true;draw()">হ্যাঁ (স্ক্যানযোগ্য)</button><button class="b${window.SHQR===false?' on':''}" onclick="window.SHQR=false;draw()">না</button><div class="mu">চালু থাকলে অফিস, কলিং ও ফাইনাল জাজমেন্ট — তিনটি কপির ওপরে ডানদিকে ইভেন্ট QR কোড প্রিন্ট হবে।</div></div><div style="margin-top:10px;padding:10px;border:1px dashed var(--a);border-radius:10px;background:rgba(0,240,255,.05)"><b>📢 এই ইভেন্টের প্রতিযোগীদের মাইকে ডাকুন:</b><div style="display:flex;gap:6px;flex-wrap:wrap;margin:6px 0"><button type="button" class="b s${(window._saCallDest||'calling')==='calling'?' on':''}" onclick="window._saCallDest='calling';draw()">📢 কলিং রুমে</button><button type="button" class="b s${window._saCallDest==='field'?' on':''}" onclick="window._saCallDest='field';draw()">🏟️ সরাসরি মাঠে</button>${window.saSpeedSelectHtml?window.saSpeedSelectHtml('width:auto;min-height:34px;margin:2px;padding:3px 8px;font-size:13px'):''}</div><div style="display:flex;gap:12px;flex-wrap:wrap;margin:4px 0 8px;font-size:13.5px"><label style="display:inline-flex;align-items:center;gap:5px;cursor:pointer"><input type="checkbox" style="width:auto;min-height:auto;margin:0" ${window._saCallNames===false?'':'checked'} onchange="window._saCallNames=this.checked"> চেস্ট নম্বর ও নাম ধরে ডাকুন</label><label style="display:inline-flex;align-items:center;gap:5px;cursor:pointer"><input type="checkbox" style="width:auto;min-height:auto;margin:0" ${window._saCallAbs?'checked':''} onchange="window._saCallAbs=this.checked"> ⏳ শুধু অনুপস্থিতদের ডাকুন</label></div><div style="display:flex;gap:6px;flex-wrap:wrap"><button type="button" class="b s" onclick="window.saQuickCallout(1,SHSEL,{dest:window._saCallDest||'calling',withNames:window._saCallNames!==false,absentOnly:!!window._saCallAbs})">১ম কল</button><button type="button" class="b s p" onclick="window.saQuickCallout(2,SHSEL,{dest:window._saCallDest||'calling',withNames:window._saCallNames!==false,absentOnly:!!window._saCallAbs})">২য় কল</button><button type="button" class="b s d" onclick="window.saQuickCallout(3,SHSEL,{dest:window._saCallDest||'calling',withNames:window._saCallNames!==false,absentOnly:!!window._saCallAbs})">শেষ কল (Final)</button><button type="button" class="b s" onclick="if(typeof window.stopPaAnnouncement==='function')window.stopPaAnnouncement();if(typeof stopVoice==='function')stopVoice();if(typeof speechSynthesis!=='undefined')speechSynthesis.cancel()">⏹ থামান</button></div></div><p class="mu">আগে চেস্ট নম্বর তৈরি করুন।</p></div><div id="pv"></div>`}
 const NB=x=>esc(x.name)+(x.bn?'<br>('+esc(x.bn)+')':'');
 const SMZ=(n,k)=>{const b=k===2?150:230,f=Math.max(5,Math.min(11,((b/n-.6)/2.3)/.3528));return f>=11?{c:'',s:''}:{c:' sm',s:' style="--fz:'+f.toFixed(1)+'px;--rh:'+Math.max(2,Math.min(6.6,b/n-.9)).toFixed(1)+'mm"'}};
 function heatH(a,k,t,c,s,e,gp,ex0){const M=Math.max(1,parseInt(SHHM)||8),N=a.length,H=Math.ceil(N/M),b=Math.floor(N/H),rm=N%H,hs=[];let p=0;for(let i=0;i<H;i++){const z=b+(i<rm?1:0);hs.push(a.slice(p,p+z));p+=z}
@@ -5084,9 +5084,34 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
       <option value="1.05" ${curS==='1.05'?'selected':''}>🚶 স্বাভাবিক গতি (1.05x)</option>
       <option value="1.18" ${curS==='1.18'?'selected':''}>🏃 মাঝারি দ্রুত (1.18x)</option>
       <option value="1.30" ${curS==='1.30'?'selected':''}>⚡ দ্রুত গতি (1.30x)</option>
-      <option value="1.45" ${curS==='1.45'?'selected':''}>🚀 সুপার ফাস্ট (1.45x)</option>
+      <option value="1.50" ${curS==='1.50'?'selected':''}>⚡ অতি দ্রুত (1.50x)</option>
+      <option value="1.75" ${curS==='1.75'?'selected':''}>🔥 টার্বো (1.75x)</option>
+      <option value="2.00" ${curS==='2.00'?'selected':''}>🚀 সুপার ফাস্ট (2.00x)</option>
     </select>`;
   }
+
+  window.saGetActiveSpeed = function(defNum){
+    const raw = window.__saVoiceSpeed || localStorage.getItem('sa_vspd') || 'auto';
+    if(raw === 'auto') return defNum || 1.05;
+    const n = parseFloat(raw);
+    return isNaN(n) ? (defNum || 1.05) : Math.max(0.5, Math.min(2.0, n));
+  };
+
+  window.saSpeedSelectHtml = function(extraStyle, idAttr){
+    const curS = window.__saVoiceSpeed || localStorage.getItem('sa_vspd') || 'auto';
+    const idPart = idAttr ? ` id="${idAttr}"` : '';
+    const stPart = extraStyle ? ` style="${extraStyle}"` : '';
+    return `<select${idPart} class="sa-vspd-sel"${stPart} onchange="if(window.setVoiceSpeed)window.setVoiceSpeed(this.value);else{window.__saVoiceSpeed=this.value;try{localStorage.setItem('sa_vspd',this.value);}catch(e){}document.querySelectorAll('.sa-vspd-sel').forEach(el=>{if(el.value!==this.value)el.value=this.value;});}" title="ঘোষণার গতি (Speed)">
+      <option value="auto" ${curS==='auto'?'selected':''}>⚡ অটো স্পিড</option>
+      <option value="0.95" ${curS==='0.95'?'selected':''}>🐢 ধীর গতি (0.95x)</option>
+      <option value="1.05" ${curS==='1.05'?'selected':''}>🚶 স্বাভাবিক (1.05x)</option>
+      <option value="1.18" ${curS==='1.18'?'selected':''}>🏃 মাঝারি দ্রুত (1.18x)</option>
+      <option value="1.30" ${curS==='1.30'?'selected':''}>⚡ দ্রুত (1.30x)</option>
+      <option value="1.50" ${curS==='1.50'?'selected':''}>⚡ অতি দ্রুত (1.50x)</option>
+      <option value="1.75" ${curS==='1.75'?'selected':''}>🔥 টার্বো (1.75x)</option>
+      <option value="2.00" ${curS==='2.00'?'selected':''}>🚀 সুপার ফাস্ট (2.00x)</option>
+    </select>`;
+  };
 
   /* বড় বাক্যকে কখনোই মাঝপথে না কেটে শব্দের সীমানা ধরে নিরাপদ অংশে ভাগ করা (স্কুলের নাম যেন কখনোই না কাটে!) */
   function splitSafelyForTTS(text, maxLen){
@@ -6509,6 +6534,8 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
             <option value="female_tanishaa">🎙 তনিষা মহিলা কণ্ঠ (Neural ইকো)</option>
             <option value="male_native">📱 ডিভাইস নিজস্ব পুরুষ কণ্ঠ (অফলাইন)</option>
           </select>
+          <label style="font-size:12.5px;font-weight:700;margin-left:4px">⏩ গতি:</label>
+          ${window.saSpeedSelectHtml ? window.saSpeedSelectHtml('margin:0;min-height:30px;width:auto;max-width:190px', 'paSpdSel') : ''}
         </div>
         <p class="mu" style="font-size:12.5px;margin:0 0 6px">যেকোনো বাটনে চাপলেই সাথে সাথে নির্বাচিত কণ্ঠে <b>ইকো ও মিউজিকসহ</b> পূর্ণ ঘোষণা বাজবে।</p>
         <div id="paPresetGrid" class="pa-grid"></div>
@@ -6532,6 +6559,8 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     }
     const sel = document.getElementById('paVoiceSel');
     if(sel) sel.value = curP;
+    const spSel = document.getElementById('paSpdSel');
+    if(spSel) spSel.value = window.__saVoiceSpeed || localStorage.getItem('sa_vspd') || 'auto';
     m.style.display = 'grid';
     renderPaPresetGrid();
   };
@@ -7273,10 +7302,18 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
       ['female_tanishaa', 'তনিষা (মহিলা কণ্ঠ - Vercel)'],
       ['female_classic', 'ক্লাসিক ইকো মহিলা কণ্ঠ']
     ];
-    return `<label class="mu">কণ্ঠস্বর (চালু সার্ভার ও ইকোসহ)</label>
-      <select id="${id}">
-        ${opts.map(o => `<option value="${o[0]}"${o[0] === cur ? ' selected' : ''}>${o[1]}</option>`).join('')}
-      </select>`;
+    return `<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+      <div style="flex:1.4;min-width:180px">
+        <label class="mu">কণ্ঠস্বর (চালু সার্ভার ও ইকোসহ)</label>
+        <select id="${id}" style="margin:2px 0 4px">
+          ${opts.map(o => `<option value="${o[0]}"${o[0] === cur ? ' selected' : ''}>${o[1]}</option>`).join('')}
+        </select>
+      </div>
+      <div style="flex:1;min-width:150px">
+        <label class="mu">⏩ ঘোষণার গতি (Speed)</label>
+        ${window.saSpeedSelectHtml ? window.saSpeedSelectHtml('margin:2px 0 4px') : ''}
+      </div>
+    </div>`;
   }
 
   /* =========================================================================
@@ -8685,10 +8722,18 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
       ['female_classic', 'ক্লাসিক ইকো মহিলা কণ্ঠ (অফলাইন)'],
       ['male_native', 'ডিভাইস পুরুষ কণ্ঠ (অফলাইন)']
     ];
-    return `<label class="mu" style="display:block;margin-top:4px">🎙️ কণ্ঠস্বর বাছাই করুন:</label>
-      <select id="${id}" class="sa-vprof-sel" onchange="if(typeof window.paSetVoiceProfile==='function')window.paSetVoiceProfile(this.value)">
-        ${opts.map(o => `<option value="${o[0]}"${o[0] === cur ? ' selected' : ''}>${o[1]}</option>`).join('')}
-      </select>`;
+    return `<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-top:4px">
+      <div style="flex:1.4;min-width:180px">
+        <label class="mu" style="display:block">🎙️ কণ্ঠস্বর বাছাই করুন:</label>
+        <select id="${id}" class="sa-vprof-sel" style="margin:2px 0 4px" onchange="if(typeof window.paSetVoiceProfile==='function')window.paSetVoiceProfile(this.value)">
+          ${opts.map(o => `<option value="${o[0]}"${o[0] === cur ? ' selected' : ''}>${o[1]}</option>`).join('')}
+        </select>
+      </div>
+      <div style="flex:1;min-width:150px">
+        <label class="mu" style="display:block">⏩ ঘোষণার গতি (Speed):</label>
+        ${window.saSpeedSelectHtml ? window.saSpeedSelectHtml('margin:2px 0 4px') : ''}
+      </div>
+    </div>`;
   }
 
   let _oathIdx = 0;
@@ -8771,7 +8816,7 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
       speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(line);
       u.lang = 'bn-IN';
-      u.rate = 0.88;
+      u.rate = window.saGetActiveSpeed ? window.saGetActiveSpeed(0.88) : 0.88;
       u.onend = onLineDone;
       u.onerror = onLineDone;
       speechSynthesis.speak(u);
@@ -8826,7 +8871,7 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
         speechSynthesis.cancel();
         const u = new SpeechSynthesisUtterance(line);
         u.lang = 'bn-IN';
-        u.rate = 0.88;
+        u.rate = window.saGetActiveSpeed ? window.saGetActiveSpeed(0.88) : 0.88;
         u.onend = afterLine;
         u.onerror = () => { _cerTimers.push(setTimeout(speakNext, 1500)); };
         speechSynthesis.speak(u);
@@ -10988,7 +11033,7 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
       window.speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(text);
       u.lang = 'bn-IN';
-      u.rate = 0.92;
+      u.rate = window.saGetActiveSpeed ? window.saGetActiveSpeed(0.92) : 0.92;
       const vs = window.speechSynthesis.getVoices() || [];
       const bnV = vs.find(v => /bn/i.test(v.lang));
       if(bnV) u.voice = bnV;
@@ -11547,12 +11592,7 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
           </div>
           <div>
             <label class="mu">⚡ বলার গতি (Speed)</label>
-            <select class="sa-vspd-sel" onchange="if(window.setVoiceSpeed)setVoiceSpeed(this.value);else{window.__saVoiceSpeed=this.value;localStorage.setItem('sa_vspd',this.value);}">
-              <option value="auto" ${_curSpd29==='auto'?'selected':''}>⚡ অটো স্পিড (স্বাভাবিক)</option>
-              <option value="0.88" ${_curSpd29==='0.88'?'selected':''}>🐢 একটু ধীরে (স্পষ্ট)</option>
-              <option value="1.0" ${_curSpd29==='1.0'?'selected':''}>▶ সাধারণ (1.0x)</option>
-              <option value="1.15" ${_curSpd29==='1.15'?'selected':''}>🐇 দ্রুত (1.15x)</option>
-            </select>
+            ${window.saSpeedSelectHtml ? window.saSpeedSelectHtml() : ''}
           </div>
         </div>
         <select onchange="window.saMonitorPick(+this.value)">
