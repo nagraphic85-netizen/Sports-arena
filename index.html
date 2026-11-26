@@ -115,7 +115,7 @@ let rows='';for(let i=0;i<20;i++)rows+=`<tr><td>${i+1}</td><td>${tm()}</td><td>$
 return`<style>@page{size:A4 ${o};margin:8mm}</style><div class="pg"><div class="sheet"><h3>${esc(DB.cfg.h)} — মাস্টার শিডিউল</h3><table><tr><th>অর্ডার</th><th>সময়</th><th>ইভেন্ট ১</th><th>ইভেন্ট ২</th></tr>${rows}</table><p style="font-size:11px"><span class="red">লাল</span> = একাধিক ইভেন্টে থাকা কমন চেস্ট</p></div></div>`}
 function sched(){return`<div class="cd"><h2>মাস্টার শিডিউল (ট্র্যাক / ফিল্ড / কালচারাল)</h2>${oriBtns()}</div><div id="pv"></div>`}
 function resEntry(){const c=window.RC||'boys';let s=window.RS||'A';if(!secs(c).includes(s))s=secs(c)[0];const l=evs(c,s),sel=l.includes(window.RE)?window.RE:l[0];
-return`<div class="cd"><div class="top" style="margin-bottom:6px"><h2>ফলাফল এন্ট্রি</h2><div style="display:flex;gap:4px;flex-wrap:wrap"><button class="b s p" onclick="window.saOpenQrScan('event')">📷 ইভেন্ট QR স্ক্যান</button><button class="b s" onclick="window.saOpenQrScan('verify')">🔍 চেস্ট ভেরিফাই</button><button class="b s" onclick="window.saOpenPhotoFinish()">🎬 ফটো-ফিনিশ (স্লো-মো)</button></div></div><select onchange="window.RC=this.value;window.RE=null;draw()">${Object.keys(CN).map(k=>`<option value="${k}"${k===c?' selected':''}>${CN[k]}</option>`).join('')}</select>${c==='teach'?'':`<select onchange="window.RS=this.value;window.RE=null;draw()">${secs(c).map(k=>`<option value="${k}"${k===s?' selected':''}>${SN[k]} বিভাগ</option>`).join('')}</select>`}<select id="re" onchange="window.RE=this.value;if(window.saSyncResLabels)window.saSyncResLabels()">${l.map(e=>`<option${e===sel?' selected':''}>${e}</option>`).join('')}</select>${[1,2,3,4].map(p=>`<div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.15);border-radius:10px;padding:8px;margin-bottom:8px"><div style="display:flex;gap:6px;align-items:center"><input id="w${p}" type="text" placeholder="${p}ম স্থানের চেস্ট নম্বর" oninput="look(${p})" style="flex:1;min-width:0;margin:0;background:#e0f2fe;color:#0b1426;font-weight:700;border:2px solid #0284c7"><button type="button" class="b s" style="flex-shrink:0;margin:0;min-height:44px" onclick="window.saOpenQrScan('pos',${p})" title="QR স্ক্যান করুন">📷 স্ক্যান</button><button type="button" class="b s d" style="flex-shrink:0;margin:0;min-height:44px;padding:0 11px" onclick="var el=document.getElementById('w${p}');if(el){el.value='';look(${p});el.focus()}" title="মুছুন">✕</button></div><div class="mu" id="wn${p}" style="margin:4px 0"></div><input id="wt${p}" type="text" placeholder="${window.saValPh?window.saValPh(p,c,sel):p+'ম স্থানের সময় (ঐচ্ছিক)'}" style="margin:2px 0 0;background:#ffffff;color:#111111;border:1px solid #94a3b8"></div>`).join('')}<button class="b p" onclick="pubR()">Publish Result</button></div><div class="cd"><h2>প্রকাশিত</h2>${DB.r.filter(x=>x.gp===ME.id).map(x=>`<div class="res"><b>${CN[x.cat]} ${SN[x.sec]} — ${esc(x.ev)}</b> <button class="b d s" onclick="conf('মুছবেন?',()=>{DB.r=DB.r.filter(y=>y.id!=='${x.id}');sv();draw()})">মুছুন</button>${x.win.map(w=>`<div>${w.pos}ম: ${esc(w.chest)} ${esc(w.name)}</div>`).join('')}</div>`).join('')}</div>`+resPrintCard()}
+return`<div class="cd"><div class="top" style="margin-bottom:6px"><h2>ফলাফল এন্ট্রি</h2><div style="display:flex;gap:4px;flex-wrap:wrap"><button class="b s p" onclick="window.saOpenQrScan('event')">📷 ইভেন্ট QR স্ক্যান</button><button class="b s" onclick="window.saOpenQrScan('verify')">🔍 চেস্ট ভেরিফাই</button><button class="b s" onclick="window.saOpenPhotoFinish()">🎬 ফটো-ফিনিশ (স্লো-মো)</button></div></div>${window._saAdmEvConf?`<div style="background:#052e16;color:#bbf7d0;border:1.5px solid #22c55e;border-radius:8px;padding:6px 10px;margin-bottom:8px;font-weight:700;font-size:13px">✅ সক্রিয় ইভেন্ট: ${CN[c]||''} ${SN[s]||''} — ${esc(sel||'')}</div>`:`<div style="background:#451a03;color:#fde68a;border:1.5px solid #f59e0b;border-radius:8px;padding:6px 10px;margin-bottom:8px;font-weight:700;font-size:13px">⚠️ ইভেন্ট নিশ্চিত করা হয়নি — আগে ইভেন্ট শিটের QR স্ক্যান করুন (অথবা নিচে ইভেন্ট সিলেক্ট করুন)</div>`}<select onchange="window.RC=this.value;window.RE=null;window._saAdmEvConf=true;draw()">${Object.keys(CN).map(k=>`<option value="${k}"${k===c?' selected':''}>${CN[k]}</option>`).join('')}</select>${c==='teach'?'':`<select onchange="window.RS=this.value;window.RE=null;window._saAdmEvConf=true;draw()">${secs(c).map(k=>`<option value="${k}"${k===s?' selected':''}>${SN[k]} বিভাগ</option>`).join('')}</select>`}<select id="re" onchange="window.RE=this.value;window._saAdmEvConf=true;if(window.saSyncResLabels)window.saSyncResLabels();draw()">${l.map(e=>`<option${e===sel?' selected':''}>${e}</option>`).join('')}</select>${[1,2,3,4].map(p=>`<div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.15);border-radius:10px;padding:8px;margin-bottom:8px"><div style="display:flex;gap:6px;align-items:center"><input id="w${p}" type="text" placeholder="${p}ম স্থানের চেস্ট নম্বর" oninput="look(${p})" style="flex:1;min-width:0;margin:0;background:#e0f2fe;color:#0b1426;font-weight:700;border:2px solid #0284c7"><button type="button" class="b s" style="flex-shrink:0;margin:0;min-height:44px" onclick="window.saOpenQrScan('pos',${p})" title="QR স্ক্যান করুন">📷 স্ক্যান</button><button type="button" class="b s d" style="flex-shrink:0;margin:0;min-height:44px;padding:0 11px" onclick="var el=document.getElementById('w${p}');if(el){el.value='';look(${p});el.focus()}" title="মুছুন">✕</button></div><div class="mu" id="wn${p}" style="margin:4px 0"></div><input id="wt${p}" type="text" placeholder="${window.saValPh?window.saValPh(p,c,sel):p+'ম স্থানের সময় (ঐচ্ছিক)'}" style="margin:2px 0 0;background:#ffffff;color:#111111;border:1px solid #94a3b8"></div>`).join('')}<button class="b p" onclick="pubR()">Publish Result</button></div><div class="cd"><h2>প্রকাশিত</h2>${DB.r.filter(x=>x.gp===ME.id).map(x=>`<div class="res"><b>${CN[x.cat]} ${SN[x.sec]} — ${esc(x.ev)}</b> <button class="b d s" onclick="conf('মুছবেন?',()=>{DB.r=DB.r.filter(y=>y.id!=='${x.id}');sv();draw()})">মুছুন</button>${x.win.map(w=>`<div>${w.pos}ম: ${esc(w.chest)} ${esc(w.name)}</div>`).join('')}</div>`).join('')}</div>`+resPrintCard()}
 function find(ch){const ids=schools(ME.id).map(s=>s.id),c=window.RC||'boys',e=$('re').value;return DB.a.find(x=>ids.includes(x.school)&&x.chest.toUpperCase()===ch.trim().toUpperCase()&&x.cat===c&&x.ev.includes(e))}
 function look(p){const v=$('w'+p).value,x=v&&find(v);$('wn'+p).textContent=x?x.name+' — '+U(x.school).name:v?'এই ইভেন্টে পাওয়া যায়নি':''}
 function pubR(){const w=[];for(let p=1;p<=4;p++){const v=$('w'+p).value;if(v){const x=find(v);if(!x)return info(p+'ম স্থানের চেস্ট ভুল');w.push({pos:p,chest:x.chest,name:x.name,school:U(x.school).name,pid:x.id})}}
@@ -9575,6 +9575,8 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
         window.RC = cat;
         window.RS = sec;
         if(!isNaN(evIdx) && ALLEV[evIdx]) window.RE = ALLEV[evIdx][2];
+        else if(parts[4]) window.RE = parts[4];
+        window._saAdmEvConf = true;
         draw();
         info(`✅ ইভেন্ট সিলেক্ট হয়েছে:<br><b>${CN[cat]||cat} ${SN[sec]||''} — ${esc(window.RE||'')}</b>`);
         return true;
@@ -9593,6 +9595,9 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
       if(inp){
         inp.value = chest;
         if(typeof look === 'function') look(pos);
+        if(typeof find === 'function' && !find(chest)){
+          info(`⚠️ চেস্ট নম্বর <b>${esc(chest)}</b> বর্তমান সক্রিয় ইভেন্টে পাওয়া যায়নি। সঠিক ইভেন্ট শিটের QR স্ক্যান করা আছে কিনা দেখে নিন।`);
+        }
       }
       return true;
     }
@@ -9621,6 +9626,18 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
   }
 
   window.saOpenQrScan = async function(mode, pos){
+    if((mode === 'jpos' || mode === 'jatt') && !(window._saIsEvConfirmed && window._saIsEvConfirmed('judge'))){
+      info('⚠️ আগে ইভেন্ট শিটের ওপরের ডানদিকের <b>ইভেন্ট QR কোড</b> স্ক্যান করুন (অথবা ড্রপডাউন থেকে ইভেন্ট সিলেক্ট করুন)। তারপর চেস্ট কার্ড স্ক্যান করুন।');
+      return;
+    }
+    if(mode === 'catt' && !(window._saIsEvConfirmed && window._saIsEvConfirmed('calling'))){
+      info('⚠️ আগে ইভেন্ট শিটের ওপরের ডানদিকের <b>ইভেন্ট QR কোড</b> স্ক্যান করুন (অথবা ড্রপডাউন থেকে ইভেন্ট সিলেক্ট করুন)। তারপর উপস্থিতির জন্য চেস্ট কার্ড স্ক্যান করুন।');
+      return;
+    }
+    if(mode === 'pos' && !window._saAdmEvConf){
+      info('⚠️ আগে ইভেন্ট শিটের ওপরের ডানদিকের <b>ইভেন্ট QR কোড</b> স্ক্যান করুন (অথবা ড্রপডাউন থেকে ইভেন্ট সিলেক্ট করুন)। তারপর বিজয়ীর চেস্ট কার্ড স্ক্যান করুন।');
+      return;
+    }
     window.saCloseQrScan();
     const title = (mode === 'event' || mode === 'jevent' || mode === 'cevent')
       ? '📷 ইভেন্ট শিটের ওপরের QR স্ক্যান করুন'
@@ -10946,6 +10963,7 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
   let _cAuth = false;
   let _cIdx = 0;
   let _cFilter = 'all';
+  let _cEvConf27 = false;
 
   window.saCloseCallingPanel = function(){
     const ov = document.getElementById('sa-calling-ov');
@@ -10953,6 +10971,7 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
   };
 
   window.saOpenCallingPanel = function(){
+    _cEvConf27 = false;
     window.saCloseCallingPanel();
     const ov = document.createElement('div');
     ov.id = 'sa-calling-ov';
@@ -11008,6 +11027,9 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
             <button class="b s p" onclick="window.saOpenQrScan('catt')">📷 QR উপস্থিতি</button>
             <button class="b s" onclick="window.saOpenQrScan('verify')">🔍 চেস্ট ভেরিফাই</button>
           </div>
+          ${_cEvConf27
+            ? `<div style="background:#052e16;color:#bbf7d0;border:1.5px solid #22c55e;border-radius:8px;padding:6px 10px;margin-bottom:8px;font-weight:700;font-size:13px">✅ সক্রিয় ইভেন্ট: ${CN[cCat]||''} ${SN[cSec]||''} — ${esc(cEv)}</div>`
+            : `<div style="background:#451a03;color:#fde68a;border:1.5px solid #f59e0b;border-radius:8px;padding:6px 10px;margin-bottom:8px;font-weight:700;font-size:13px">⚠️ ইভেন্ট নিশ্চিত করা হয়নি — আগে ইভেন্ট শিটের QR স্ক্যান করুন (অথবা নিচে ইভেন্ট সিলেক্ট করুন)</div>`}
 
           <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px">
             <button class="b s" onclick="window.saCallingStep(-1)" ${_cIdx<=0?'disabled':''}>⏮ আগের ইভেন্ট</button>
@@ -11061,9 +11083,9 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
       info('⚠️ কলিং রুম আইডি বা পিন সঠিক নয়।');
     }
   };
-  window.saCallingLogout = function(){ _cAuth = false; window.saCloseCallingPanel(); };
-  window.saCallingStep   = function(d){ _cIdx = Math.max(0, Math.min(ALLEV.length - 1, _cIdx + d)); renderCallingPanel(); };
-  window.saCallingPick   = function(i){ _cIdx = i; renderCallingPanel(); };
+  window.saCallingLogout = function(){ _cAuth = false; _cEvConf27 = false; window.saCloseCallingPanel(); };
+  window.saCallingStep   = function(d){ _cIdx = Math.max(0, Math.min(ALLEV.length - 1, _cIdx + d)); _cEvConf27 = true; renderCallingPanel(); };
+  window.saCallingPick   = function(i, isAuto){ _cIdx = i; if(!isAuto) _cEvConf27 = true; renderCallingPanel(); };
   window.saCallingFilter = function(f){ _cFilter = f; renderCallingPanel(); };
   window.saCallingMark   = function(aid, st){
     const cur = ALLEV[_cIdx];
@@ -11095,7 +11117,16 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     return (DB.a || []).find(x => String(x.chest || '').toUpperCase() === q && x.cat === _jCat27 && x.sec === _jSec27 && (x.ev || []).includes(_jEv27));
   }
 
-  function renderJudgePanel27(){
+  let _jEvConf27 = false;
+  let _jLastEvKey27 = '';
+  window._saIsEvConfirmed = function(ctx){
+    if(ctx === 'judge') return !!_jEvConf27;
+    if(ctx === 'calling') return !!_cEvConf27;
+    if(ctx === 'admin') return !!window._saAdmEvConf;
+    return true;
+  };
+
+  function renderJudgePanel27(clearInputs){
     const ov = document.getElementById('sa-judge-ov');
     if(!ov) return;
     if(!_jAuth27){
@@ -11117,6 +11148,18 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     if(!secs(_jCat27).includes(_jSec27)) _jSec27 = secs(_jCat27)[0];
     const evList = evs(_jCat27, _jSec27);
     if(!evList.includes(_jEv27)) _jEv27 = evList[0] || '';
+
+    const curEvKey = _jCat27 + '|' + _jSec27 + '|' + _jEv27;
+    const savedVals = {};
+    if(!clearInputs && _jLastEvKey27 === curEvKey){
+      for(let p=1; p<=4; p++){
+        const wEl = document.getElementById('jw' + p);
+        const tEl = document.getElementById('jwt' + p);
+        if(wEl) savedVals['w' + p] = wEl.value;
+        if(tEl) savedVals['t' + p] = tEl.value;
+      }
+    }
+    _jLastEvKey27 = curEvKey;
 
     const participants = (DB.a || []).filter(x => x.cat === _jCat27 && x.sec === _jSec27 && (x.ev || []).includes(_jEv27) && x.chest)
       .sort((a,b) => String(a.chest).replace(/\D/g,'') - String(b.chest).replace(/\D/g,''));
@@ -11145,6 +11188,9 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
             <button class="b s" onclick="window.saOpenQrScan('verify')">🔍 চেস্ট ভেরিফাই</button>
             <button class="b s" onclick="window.saOpenPhotoFinish()">🎬 ফটো-ফিনিশ (স্লো-মো)</button>
           </div>
+          ${_jEvConf27
+            ? `<div style="background:#052e16;color:#bbf7d0;border:1.5px solid #22c55e;border-radius:8px;padding:6px 10px;margin-bottom:8px;font-weight:700;font-size:13px">✅ সক্রিয় ইভেন্ট: ${CN[_jCat27]||''} ${SN[_jSec27]||''} — ${esc(_jEv27)}</div>`
+            : `<div style="background:#451a03;color:#fde68a;border:1.5px solid #f59e0b;border-radius:8px;padding:6px 10px;margin-bottom:8px;font-weight:700;font-size:13px">⚠️ ইভেন্ট নিশ্চিত করা হয়নি — আগে ইভেন্ট শিটের QR স্ক্যান করুন (অথবা নিচে ইভেন্ট সিলেক্ট করুন)</div>`}
 
           <h2 style="margin-top:6px">✍️ দ্রুত ফলাফল এন্ট্রি</h2>
           <div class="g">
@@ -11201,9 +11247,20 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
         </div>
       </div>
     `;
+    for(let p=1; p<=4; p++){
+      const wEl = document.getElementById('jw' + p);
+      const tEl = document.getElementById('jwt' + p);
+      if(wEl && savedVals['w' + p]){
+        wEl.value = savedVals['w' + p];
+        if(typeof window.saJudgeLook === 'function') window.saJudgeLook(p);
+      }
+      if(tEl && savedVals['t' + p]) tEl.value = savedVals['t' + p];
+    }
   }
 
   window.saOpenJudgePanel = function(){
+    _jEvConf27 = false;
+    _jLastEvKey27 = '';
     window.saCloseJudgePanel();
     const ov = document.createElement('div');
     ov.id = 'sa-judge-ov';
@@ -11217,11 +11274,12 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     if(id === getJudgeId() && pin === getJudgePin()){ _jAuth27 = true; renderJudgePanel27(); }
     else info('⚠️ বিচারক আইডি বা পিন সঠিক নয়।');
   };
-  window.saJudgeLogout = function(){ _jAuth27 = false; window.saCloseJudgePanel(); };
-  window.saJudgeSet = function(k, v){
+  window.saJudgeLogout = function(){ _jAuth27 = false; _jEvConf27 = false; _jLastEvKey27 = ''; window.saCloseJudgePanel(); };
+  window.saJudgeSet = function(k, v, isAuto){
     if(k === 'c'){ _jCat27 = v; _jEv27 = ''; }
     else if(k === 's'){ _jSec27 = v; _jEv27 = ''; }
     else if(k === 'e'){ _jEv27 = v; }
+    if(!isAuto) _jEvConf27 = true;
     renderJudgePanel27();
   };
   window.saJudgeFilter = function(f){ _jFilter27 = f; renderJudgePanel27(); };
@@ -11257,7 +11315,7 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     DB.r.push({ id, gp: gpId, gpn: gpName, cat: _jCat27, sec: _jSec27, ev: _jEv27, win: w, by: 'judge', ts: Date.now() });
     sv();
     info('✅ ফলাফল সেভ ও প্রকাশিত হয়েছে!');
-    renderJudgePanel27();
+    renderJudgePanel27(true);
   };
 
   // --- QR Handler for both Judge & Calling Room ---
@@ -11266,34 +11324,63 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
     const parts = String(raw || '').trim().split('|');
     if(parts[0] !== 'SA') return false;
 
+    const resolveEvQr = (p) => {
+      let cat = p[2] || 'boys';
+      let sec = p[3] || '';
+      const rawEv = p[4] || '';
+      let evName = rawEv;
+      const nIdx = parseInt(rawEv, 10);
+      if(/^\d+$/.test(rawEv) && !isNaN(nIdx) && ALLEV[nIdx]){
+        cat = ALLEV[nIdx][0];
+        sec = ALLEV[nIdx][1] || '';
+        evName = ALLEV[nIdx][2];
+      }
+      const foundIdx = ALLEV.findIndex(e => e[0] === cat && (e[1] || '') === sec && e[2] === evName);
+      return { cat, sec, evName, idx: foundIdx };
+    };
+
     if(mode === 'jevent' && parts[1] === 'E'){
       window.saCloseQrScan();
-      _jCat27 = parts[2] || 'boys'; _jSec27 = parts[3] || ''; _jEv27 = parts[4] || '';
-      renderJudgePanel27();
-      info(`✅ ইভেন্ট সিলেক্ট হয়েছে:<br><b>${CN[_jCat27]||''} ${SN[_jSec27]||''} — ${esc(_jEv27)}</b>`);
+      const evObj = resolveEvQr(parts);
+      _jCat27 = evObj.cat; _jSec27 = evObj.sec; _jEv27 = evObj.evName;
+      _jEvConf27 = true;
+      renderJudgePanel27(true);
+      info(`✅ ইভেন্ট সিলেক্ট ও নিশ্চিত হয়েছে:<br><b>${CN[_jCat27]||''} ${SN[_jSec27]||''} — ${esc(_jEv27)}</b>`);
       return true;
     }
     if(mode === 'jpos' && parts[1] === 'A'){
       window.saCloseQrScan();
       const ch = parts[2] || '';
       const inp = document.getElementById('jw' + pos);
-      if(inp){ inp.value = ch; window.saJudgeLook(pos); }
+      if(inp){
+        inp.value = ch;
+        window.saJudgeLook(pos);
+        if(!jFind27(ch)){
+          info(`⚠️ চেস্ট নম্বর <b>${esc(ch)}</b> বর্তমান ইভেন্টে (<b>${CN[_jCat27]||''} ${SN[_jSec27]||''} — ${esc(_jEv27)}</b>) পাওয়া যায়নি।`);
+        }
+      }
       return true;
     }
     if(mode === 'jatt' && parts[1] === 'A'){
       window.saCloseQrScan();
       const ch = parts[2] || '';
       const x = jFind27(ch);
-      if(!x){ info(`⚠️ চেস্ট নম্বর <b>${esc(ch)}</b> এই ইভেন্টে পাওয়া যায়নি।`); return true; }
+      if(!x){ info(`⚠️ চেস্ট নম্বর <b>${esc(ch)}</b> বর্তমান ইভেন্টে (<b>${esc(_jEv27)}</b>) পাওয়া যায়নি।`); return true; }
       window.saJudgePresent(x.id);
       info(`✅ মাঠে উপস্থিতি নেওয়া হয়েছে:<br><b>${esc(x.name)} (চেস্ট: ${esc(x.chest)})</b>`);
       return true;
     }
     if(mode === 'cevent' && parts[1] === 'E'){
       window.saCloseQrScan();
-      const idx = ALLEV.findIndex(e => e[0] === (parts[2]||'') && e[1] === (parts[3]||'') && e[2] === (parts[4]||''));
-      if(idx >= 0){ _cIdx = idx; renderCallingPanel(); info(`✅ কলিং ইভেন্ট সিলেক্ট হয়েছে:<br><b>${CN[parts[2]]||''} ${SN[parts[3]]||''} — ${esc(parts[4])}</b>`); }
-      else info('⚠️ এই ইভেন্টটি তালিকায় পাওয়া যায়নি।');
+      const evObj = resolveEvQr(parts);
+      if(evObj.idx >= 0){
+        _cIdx = evObj.idx;
+        _cEvConf27 = true;
+        renderCallingPanel();
+        info(`✅ কলিং ইভেন্ট সিলেক্ট ও নিশ্চিত হয়েছে:<br><b>${CN[evObj.cat]||''} ${SN[evObj.sec]||''} — ${esc(evObj.evName)}</b>`);
+      } else {
+        info('⚠️ এই ইভেন্টটি তালিকায় পাওয়া যায়নি।');
+      }
       return true;
     }
     if(mode === 'catt' && parts[1] === 'A'){
@@ -11301,11 +11388,21 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
       const cur = ALLEV[_cIdx];
       const ch = String(parts[2] || '').trim().toUpperCase();
       const x = cur && (DB.a || []).find(a => String(a.chest||'').toUpperCase() === ch && a.cat === cur[0] && a.sec === cur[1] && (a.ev||[]).includes(cur[2]));
-      if(!x){ info(`⚠️ চেস্ট নম্বর <b>${esc(ch)}</b> এই ইভেন্টে পাওয়া যায়নি।`); return true; }
+      if(!x){ info(`⚠️ চেস্ট নম্বর <b>${esc(ch)}</b> বর্তমান ইভেন্টে পাওয়া যায়নি।`); return true; }
       setAttRec(x.id, cur[2], 1, 'calling');
       renderCallingPanel();
       info(`✅ কলিং রুমে উপস্থিতি নেওয়া হয়েছে:<br><b>${esc(x.name)} (চেস্ট: ${esc(x.chest)})</b>`);
       return true;
+    }
+    if((mode === 'jpos' || mode === 'jatt' || mode === 'catt') && parts[1] === 'E'){
+      const st = document.getElementById('sa-qr-st');
+      if(st) st.textContent = '⚠️ এটি ইভেন্ট QR — অনুগ্রহ করে প্রতিযোগীর চেস্ট কার্ডের QR দেখান।';
+      return false;
+    }
+    if((mode === 'jevent' || mode === 'cevent') && parts[1] === 'A'){
+      const st = document.getElementById('sa-qr-st');
+      if(st) st.textContent = '⚠️ এটি চেস্ট কার্ড QR — ইভেন্ট সিলেক্ট করতে শিটের ওপরের ডানদিকের QR দেখান।';
+      return false;
     }
     return false;
   };
@@ -11624,20 +11721,29 @@ window.saQR=function(text,size,margin){try{const QC=req('./index.js'),E=req('./Q
       }
     } catch(e){}
 
+    // Do not interrupt active QR scanner
+    if(document.getElementById('sa-qr-ov')) return;
+
     // Refresh Calling Room overlay if open and logged in
     const cOv = document.getElementById('sa-calling-ov');
-    if(cOv && document.getElementById('sa-calling-ov').querySelector('table')){
+    if(cOv && cOv.querySelector('table')){
       const sel = cOv.querySelector('select');
-      if(sel && typeof window.saCallingPick === 'function') window.saCallingPick(+sel.value);
+      if(sel && typeof window.saCallingPick === 'function') window.saCallingPick(+sel.value, true);
     }
 
-    // Refresh Judge Panel attendance table if open and logged in
+    // Refresh Judge Panel attendance table if open and logged in (never wipe scanned/typed results)
     const jOv = document.getElementById('sa-judge-ov');
     if(jOv && document.getElementById('sa-je')){
       const activeTag = (document.activeElement || {}).tagName;
-      if(!/^(INPUT|SELECT|TEXTAREA)$/.test(activeTag)){
+      let hasUnsaved = false;
+      for(let p=1; p<=4; p++){
+        const wEl = document.getElementById('jw' + p);
+        const tEl = document.getElementById('jwt' + p);
+        if((wEl && wEl.value.trim()) || (tEl && tEl.value.trim())){ hasUnsaved = true; break; }
+      }
+      if(!hasUnsaved && !/^(INPUT|SELECT|TEXTAREA)$/.test(activeTag)){
         const curEv = document.getElementById('sa-je').value;
-        if(typeof window.saJudgeSet === 'function') window.saJudgeSet('e', curEv);
+        if(typeof window.saJudgeSet === 'function') window.saJudgeSet('e', curEv, true);
       }
     }
 
