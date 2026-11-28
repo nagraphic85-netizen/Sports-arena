@@ -90,10 +90,10 @@ const blk=id=>{U(id).blocked=!U(id).blocked;sv();draw()};
 const rst=id=>conf('নতুন পিন তৈরি হবে।',async()=>{const p=rp();U(id).pin=await H(p);sv();draw();info(`নতুন পিন: <b>${p}</b>`)});
 const delU=id=>conf('এই অ্যাকাউন্ট ও অধীনের সব ডেটা (স্তর, প্রতিযোগী, ফলাফল) মুছবে।',()=>{const ids=[...desc(id),id];DB.a=DB.a.filter(a=>!ids.includes(a.school));DB.e=(DB.e||[]).filter(e=>!ids.includes(e.owner));DB.r=DB.r.filter(x=>!ids.includes(x.gp));DB.u=DB.u.filter(u=>!ids.includes(u.id));['vd','ctx','sg'].forEach(n=>{if(DB[n])ids.forEach(i=>{delete DB[n][i]})});sv();draw()});
 function entry(){if(ME.locked)return`<div class="cd"><h2>🔒 ফাইনাল সাবমিট হয়েছে</h2><p>সংশোধনে জিপি অ্যাডমিনকে আনলক করতে বলুন।</p></div>`;
-if(EC==='cult'&&ES==='C')ES='A';const s=EC==='teach'?'':ES,l=evs(EC,s),op=a=>a.map(e=>`<option>${e}</option>`).join('');
-return`<div class="cd"><h2>নতুন এন্ট্রি</h2><div class="g"><div><select onchange="EC=this.value;draw()">${Object.keys(CN).map(k=>`<option value="${k}"${k===EC?' selected':''}>${CN[k]}</option>`).join('')}</select>${EC==='teach'?'':`<select onchange="ES=this.value;draw()">${secs(EC).map(k=>`<option value="${k}"${k===ES?' selected':''}>${SN[k]} বিভাগ</option>`).join('')}</select>`}<input id="en" placeholder="নাম (ইংরেজি, বড় হাতের)" style="text-transform:uppercase" autocomplete="off" oninput="enIn(this)"><div id="bnv"></div><input id="eb" placeholder="নাম (বাংলা) — ইংরেজি লিখলে নিজে আসবে, ভুল হলে এখানে ঠিক করুন" oninput="BNE=this.value?1:0"><input id="ef" placeholder="বাবার নাম (ইংরেজি)" style="text-transform:uppercase" autocomplete="off" oninput="UP(this)"></div><div><label for="ed" class="mu" style="display:block;margin-top:4px;color:var(--tx);font-weight:600">জন্ম তারিখ</label><input id="ed" type="date"><select id="ecl"><option value="">ক্লাস</option>${CLS.map(c=>`<option value="${c[0]}">${c[1]}</option>`).join('')}</select><input id="ep" placeholder="PEN (ঐচ্ছিক)" style="text-transform:uppercase" oninput="UP(this)"><select id="e1" onchange="$('e2').disabled=!this.value;if(!this.value)$('e2').value=''"><option value="">ইভেন্ট ১</option>${op(l)}</select><select id="e2" disabled><option value="">ইভেন্ট ২ (ঐচ্ছিক)</option>${op(l)}</select><input id="em" type="tel" placeholder="মোবাইল"></div></div><button class="b p" onclick="addA()">যোগ করুন</button></div>
+if(EC==='cult'&&ES==='C')ES='A';const s=EC==='teach'?'':ES,l=evs(EC,s),op=a=>a.map(e=>`<option>${e}</option>`).join(''),isCult=EC==='cult';
+return`<div class="cd"><h2>নতুন এন্ট্রি</h2><div class="g"><div><select onchange="EC=this.value;draw()">${Object.keys(CN).map(k=>`<option value="${k}"${k===EC?' selected':''}>${CN[k]}</option>`).join('')}</select>${EC==='teach'?'':`<select onchange="ES=this.value;draw()">${secs(EC).map(k=>`<option value="${k}"${k===ES?' selected':''}>${SN[k]} বিভাগ</option>`).join('')}</select>`}<input id="en" placeholder="নাম (ইংরেজি, বড় হাতের)" style="text-transform:uppercase" autocomplete="off" oninput="enIn(this)"><div id="bnv"></div><input id="eb" placeholder="নাম (বাংলা) — ইংরেজি লিখলে নিজে আসবে, ভুল হলে এখানে ঠিক করুন" oninput="BNE=this.value?1:0"><input id="ef" placeholder="বাবার নাম (ইংরেজি)" style="text-transform:uppercase" autocomplete="off" oninput="UP(this)"></div><div><label for="ed" class="mu" style="display:block;margin-top:4px;color:var(--tx);font-weight:600">জন্ম তারিখ</label><input id="ed" type="date"><select id="ecl"><option value="">ক্লাস</option>${CLS.map(c=>`<option value="${c[0]}">${c[1]}</option>`).join('')}</select><input id="ep" placeholder="PEN (ঐচ্ছিক)" style="text-transform:uppercase" oninput="UP(this)">${isCult?`<select id="e1"><option value="">ইভেন্ট</option>${op(l)}</select>`:`<select id="e1" onchange="$('e2').disabled=!this.value;if(!this.value)$('e2').value=''"><option value="">ইভেন্ট ১</option>${op(l)}</select><select id="e2" disabled><option value="">ইভেন্ট ২ (ঐচ্ছিক)</option>${op(l)}</select>`}<input id="em" type="tel" placeholder="মোবাইল"></div></div><button class="b p" onclick="addA()">যোগ করুন</button></div>
 <div class="cd"><h2>এক্সেল বাল্ক এন্ট্রি</h2><button class="b" onclick="tpl()">টেমপ্লেট (.xlsx)</button><input type="file" accept=".xlsx" onchange="bulk(this)"></div>${escForm()}`}
-function addA(){const n=$('en').value.trim().toUpperCase(),e1=$('e1').value,e2=$('e2').value;if(!n||!e1)return info('নাম ও ইভেন্ট দিন');if(e1===e2)return info('দুটি ইভেন্ট আলাদা হতে হবে');
+function addA(){const n=$('en').value.trim().toUpperCase(),e1=$('e1').value,e2=(EC==='cult'||!$('e2'))?'':$('e2').value;if(!n||!e1)return info('নাম ও ইভেন্ট দিন');if(e2&&e1===e2)return info('দুটি ইভেন্ট আলাদা হতে হবে');
 DB.a.push({id:Date.now()+Math.random(),school:ME.id,name:n,bn:$('eb').value,father:$('ef').value.trim().toUpperCase(),dob:$('ed').value,cls:$('ecl').value.trim().toUpperCase(),pen:$('ep').value.trim().toUpperCase(),mob:$('em').value,cat:EC,sec:EC==='teach'?'':ES,ev:[e1,...(e2?[e2]:[])],chest:''});BNW=[];BNE=0;sv();draw();info('যোগ হয়েছে ✔')}
 const tpl=()=>{const w=XLSX.utils.book_new();XLSX.utils.book_append_sheet(w,XLSX.utils.aoa_to_sheet([['Name','NameBn','Father','DOB','Class','PEN','Category(boys/girls/cult/teach)','Group(A/B/C)','Event1','Event2'],['RAHUL SK','রাহুল শেখ','ABC SK','2015-03-15','IV','','boys','A','৭৫ মি. দৌড়','']]),'Entry');XLSX.writeFile(w,'entry-template.xlsx')};
 function bulk(el){const f=el.files[0];if(!f)return;f.arrayBuffer().then(b=>{const rows=XLSX.utils.sheet_to_json(XLSX.read(b).Sheets.Entry||XLSX.read(b).Sheets[XLSX.read(b).SheetNames[0]],{header:1}).slice(1);let ok=0,bad=[];
@@ -1590,11 +1590,32 @@ window.saCode=function(name){
   if(/^[A-Za-z]+$/.test(w))o=w.length>4?w.slice(0,4).toUpperCase():w.toUpperCase();
   L+=o});
  return (L.slice(0,5)+D.slice(0,3))||''};
-window.saNewId=async function(role,name){const c=window.saCode?saCode(name):'',pre=c?c+'-':'',R=role.toUpperCase();
- for(let k=0;k<12;k++){const id=pre+R+'-'+Math.floor(100+Math.random()*900);
+window.saRoleTag=function(role){const r=String(role||'').toLowerCase();return r==='sub'?'SUB':r==='circle'?'C':r==='gp'?'G':r==='school'?'S':r.toUpperCase()};
+window.sa3Letters=function(name){
+ const raw=String(name||'').trim();
+ const enOnly=raw.replace(/[^A-Za-z]/g,'').toUpperCase();
+ if(enOnly.length>=3)return enOnly.slice(0,3);
+ const t=raw.replace(/[০-৯]/g,c=>'০১২৩৪৫৬৭৮৯'.indexOf(c)).replace(/[()\[\]]/g,' ');
+ const ws=t.split(/[\s\-_.,/]+/).filter(Boolean),keep=ws.filter(w=>!SKIP.test(w)),use=keep.length?keep:ws;
+ let L='';
+ use.forEach(w=>{
+  let o='',first=true;
+  for(const ch of Array.from(w.normalize('NFC'))){
+   if(/[A-Za-z]/.test(ch)){o+=ch.toUpperCase();first=false;continue}
+   if(BM[ch]){o+=BM[ch];first=false;continue}
+   if(first&&BV[ch]){o+=BV[ch]}
+   first=false}
+  L+=o});
+ L=(enOnly+L).replace(/[^A-Z]/g,'');
+ return (L.slice(0,3)||'USR').padEnd(3,'X')};
+window.saNewId=async function(role,name){const pre=window.sa3Letters(name),tag=window.saRoleTag(role),base=pre+'-'+tag+'-';
+ for(let n=1;n<=999;n++){const id=base+n;
   if(DB.u.some(u=>nrm(u.id)===nrm(id)))continue;
   if(await idxFree(id)){idxAdd([id]);return id}}
- const id=pre+R+'-'+String(Date.now()).slice(-6);idxAdd([id]);return id};
+ for(let k=0;k<20;k++){const id=base+Math.floor(1000+Math.random()*9000);
+  if(DB.u.some(u=>nrm(u.id)===nrm(id)))continue;
+  if(await idxFree(id)){idxAdd([id]);return id}}
+ const id=base+String(Date.now()).slice(-4);idxAdd([id]);return id};
 /* বিদ্যমান ইউনিটের আইডি সূচিতে তুলে রাখা (একবার, ব্যাকগ্রাউন্ডে) */
 setTimeout(()=>{try{if(!ON()||!DB||!DB.u||DB.u.length<2)return;const ids=DB.u.map(u=>String(u.id)).filter(x=>x!=='owner');for(let i=0;i<ids.length;i+=200)idxAdd(ids.slice(i,i+200))}catch(e){}},8000);
 function evSwitch(id,code,name,auto){try{if(auto)sessionStorage.setItem('sa_auto',JSON.stringify(auto))}catch(e){}
